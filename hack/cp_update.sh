@@ -20,7 +20,7 @@ cpdirs()
   if [[ ! -d cmd ]]; then
     mkdir cmd
   fi
-  cp -r $kfctldir/cmd/kfctl cmd
+  cp -r $kfctldir/cmd/{kfctl,plugins} cmd
   if [[ ! -d pkg ]]; then
     mkdir pkg
   fi
