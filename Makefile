@@ -18,7 +18,7 @@ GOPATH ?= $(HOME)/go
 # To build without the cache set the environment variable
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
-TAG ?= $(eval TAG := $(shell git describe --tags --long))$(TAG)
+TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
 KFCTL_TARGET ?= kfctl
 MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
 MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
