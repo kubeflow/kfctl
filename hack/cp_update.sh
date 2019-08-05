@@ -47,11 +47,6 @@ w
 q
 EOF
   done
-  ex -s go.mod <<EOF1
-%s#\.\./components/profile-controller#../kubeflow/components/profile-controller#
-w
-q
-EOF1
 }
 
 preclean && cpdirs && updatefiles

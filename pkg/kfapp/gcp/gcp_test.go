@@ -3,8 +3,8 @@ package gcp
 import (
 	"encoding/json"
 	"github.com/gogo/protobuf/proto"
-	kftypes "github.com/kubeflow/kfctl/v2/pkg/apis/apps"
-	kfdefs "github.com/kubeflow/kfctl/v2/pkg/apis/apps/kfdef/v1alpha1"
+	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
