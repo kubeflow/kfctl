@@ -2,12 +2,6 @@
 # see kubeflow/testing/py/run_e2e_workflow.py
 workflows:
   - app_dir: kubeflow/kfctl/testing/workflows
-    component: workflows
-    name: e2e
-    job_types:
-      - presubmit
-  # Run kfctl E2E
-  - app_dir: kubeflow/kfctl/testing/workflows
     component: kfctl_go_test
     name: kfctl-go
     job_types:

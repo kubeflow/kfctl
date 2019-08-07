@@ -4,13 +4,6 @@
     // replicas: 4,
   },
   components: {
-    "workflows": {
-      bucket: "kubeflow-ci_temp",
-      name: "some-very-very-very-very-very-long-name-kfctl-presubmit-test-74-786a",
-      namespace: "kubeflow-test-infra",
-      prow_env: "JOB_NAME=kfctl-presubmit-test,JOB_TYPE=presubmit,PULL_NUMBER=74,REPO_NAME=kfctl,REPO_OWNER=kubeflow,BUILD_NUMBER=786a",
-      versionTag: null,
-    },
     kfctl_go_test: {
       bucket: "kubeflow-ci_temp",
       name: "somefakename",
