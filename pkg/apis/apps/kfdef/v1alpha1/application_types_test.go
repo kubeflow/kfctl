@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/kfctl/v2/config"
+	"github.com/kubeflow/kfctl/v3/config"
 	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"os"

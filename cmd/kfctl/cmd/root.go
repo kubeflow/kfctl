@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	kftypes "github.com/kubeflow/kfctl/v2/pkg/apis/apps"
+	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/spf13/cobra"
 	"os"
 )

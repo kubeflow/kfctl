@@ -2,7 +2,7 @@
 package fake
 
 import (
-	kftypes "github.com/kubeflow/kfctl/v2/pkg/apis/apps"
+	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"golang.org/x/oauth2"
 )
 

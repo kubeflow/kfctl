@@ -8,6 +8,7 @@ kfctldir=$(dirname $0)/../../kubeflow/bootstrap
 
 preclean()
 {
+  rm $(find config pkg -name 'zz_generated*')
   rm -rf go.* cmd pkg config
 }
 
@@ -35,7 +36,7 @@ cpdirs()
 findfiles() 
 {
   cd $kfctldir 
-  find go.mod cmd pkg -type f -exec grep -l 'github.com\/kubeflow\/kubeflow\/bootstrap\/' {} \; | grep -v zz_generated
+  find go.mod cmd pkg -type f -exec grep -l 'github.com\/kubeflow\/kubeflow\/bootstrap\/' {} \;
 }
 
 updatefiles() 
@@ -47,11 +48,6 @@ w
 q
 EOF
   done
-  ex -s go.mod <<EOF1
-%s#\.\./components/profile-controller#../kubeflow/components/profile-controller#
-w
-q
-EOF1
 }
 
 preclean && cpdirs && updatefiles
