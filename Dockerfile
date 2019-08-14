@@ -33,6 +33,9 @@ RUN  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -
 ENV GO111MODULE=on
 ENV GOPATH=/go
 
+# install kustomize
+RUN go install sigs.k8s.io/kustomize/v3/cmd/kustomize
+
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl
 WORKDIR ${GOPATH}/src/github.com/kubeflow
