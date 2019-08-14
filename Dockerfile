@@ -24,6 +24,9 @@ ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 ENV GO111MODULE=on
 ENV GOPATH=/go
 
+# install kustomize
+RUN go install sigs.k8s.io/kustomize/v3/cmd/kustomize
+
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl
 WORKDIR ${GOPATH}/src/github.com/kubeflow/kfctl
