@@ -45,6 +45,7 @@ COPY . .
 FROM builder as kfctl_base
 
 RUN make build-kfctl
+RUN cp bin/kfctl /usr/local/bin
 
 #**********************************************************************
 #
