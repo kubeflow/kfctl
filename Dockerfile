@@ -34,6 +34,7 @@ ENV GO111MODULE=on
 ENV GOPATH=/go
 
 # install kustomize
+RUN go mod download
 RUN go install sigs.k8s.io/kustomize/v3/cmd/kustomize
 
 # Create kfctl folder
@@ -47,7 +48,6 @@ WORKDIR ${GOPATH}/src/github.com/kubeflow/kfctl
 # Download dependencies first to optimize Docker caching.
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
 # Copy in the source
 COPY . .
 
