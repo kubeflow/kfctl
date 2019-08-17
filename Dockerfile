@@ -46,8 +46,6 @@ FROM builder as kfctl_base
 
 RUN make build-kfctl
 RUN cp bin/kfctl /usr/local/bin
-RUN mkdir -p /opt/kubeflow
-WORKDIR /opt/kubeflow
 
 #**********************************************************************
 #
