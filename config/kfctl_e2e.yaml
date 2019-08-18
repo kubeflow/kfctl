@@ -42,6 +42,14 @@ spec:
         value: refs/pull/10/head
       - name: config
         value: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl_e2e.yaml
+      - name: useIstio
+        value: "false"
+      - name: skip-init-gcp-project
+        value: "true"
+      - name: namespace
+        value: kubeflow-e2e
+      - name: disable_usage_report
+        value: "true"
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-pipelines
