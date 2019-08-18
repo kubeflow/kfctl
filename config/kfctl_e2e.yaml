@@ -1,0 +1,42 @@
+# This is the config to install Kubeflow on an existing k8s cluster.
+
+apiVersion: kfdef.apps.kubeflow.org/v1alpha1
+kind: KfDef
+metadata:
+  name: kubeflow_app
+  namespace: kfctl-e2e-testing
+spec:
+  repos:
+  - name: manifests
+    root: 
+    uri: https://github.com/kubeflow/manifests/archive/pull/285/head.tar.gz
+  - name: kubeflow
+    root: kubeflow-master
+    uri: https://github.com/kubeflow/kubeflow/archive/master.tar.gz
+  applications:
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-crds
+    name: tektoncd-crds
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-install
+    name: tektoncd-install
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-tasks
+    name: tektoncd-tasks
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-pipelines
+    name: tektoncd-pipelines
+  enableApplications: true
+  packageManager: kustomize
+  skipInitProject: true
+  useBasicAuth: false
+  useIstio: false
+  version: master
