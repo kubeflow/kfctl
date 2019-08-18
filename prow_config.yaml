@@ -1,6 +1,5 @@
 # This file configures the workflows to trigger in our Prow jobs.
 # see kubeflow/testing/py/run_e2e_workflow.py
-#- py_func: kubeflow/kfctl/testing/e2e/in_cluster_config.py
 workflows:
 #- app_dir: kubeflow/kfctl/testing/workflows
 #  component: kfctl_go_test
@@ -15,7 +14,6 @@ workflows:
 #    version: master
 #    configPath: bootstrap/config/kfctl_gcp_iap.yaml
 - py_func: kubeflow.testing.ci.kf_unittests.create_workflow
-  name: create_workflow
   kw_args:
     a: b
     c: d

@@ -9,7 +9,7 @@ kfctldir=$(dirname $0)/../../kubeflow/bootstrap
 preclean()
 {
   rm $(find config pkg -name 'zz_generated*')
-  rm -rf go.* cmd pkg config
+  rm -rf go.* cmd pkg config/{types.go,doc.go}
 }
 
 cpdirs() 
