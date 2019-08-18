@@ -20,6 +20,9 @@ spec:
         path: tektoncd/tektoncd-crds
     name: tektoncd-crds
   - kustomizeConfig:
+      parameters:
+      - name: namespace
+        value: tekton-pipelines
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-install
@@ -30,7 +33,18 @@ spec:
         path: tektoncd/tektoncd-tasks
     name: tektoncd-tasks
   - kustomizeConfig:
+      parameters:
+      - name: project
+        value: constant-cubist-173123
+      - name: email
+        value: kam.d.kasravi@intel.com
+      - name: pullrequest
+        value: refs/pull/10/head
+      - name: config
+        value: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl_e2e.yaml
       repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-pipelines
         name: manifests
         path: tektoncd/tektoncd-pipelines
     name: tektoncd-pipelines
