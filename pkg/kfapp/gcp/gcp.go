@@ -1035,7 +1035,7 @@ func (gcp *Gcp) copyFile(source string, dest string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("cannot create directory: %v", err),
+			Message: fmt.Sprintf("cannot open input for copying: %v", err),
 		}
 	}
 	defer from.Close()
@@ -1278,8 +1278,9 @@ func (gcp *Gcp) generateDMConfigs() error {
 	gcpConfigDirErr := os.MkdirAll(gcpConfigDir, os.ModePerm)
 	if gcpConfigDirErr != nil {
 		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("cannot create directory %v", gcpConfigDirErr),
+			Code: int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("cannot create directory %v using appdir %v",
+				gcpConfigDirErr, appDir),
 		}
 	}
 	repo, ok := gcp.kfDef.Status.ReposCache[kftypesv3.KubeflowRepoName]
@@ -1300,8 +1301,8 @@ func (gcp *Gcp) generateDMConfigs() error {
 		if copyErr != nil {
 			return &kfapis.KfError{
 				Code: copyErr.(*kfapis.KfError).Code,
-				Message: fmt.Sprintf("could not copy %v to %v Error %v",
-					sourceFile, destFile, copyErr.(*kfapis.KfError).Message),
+				Message: fmt.Sprintf("could not copy %v to %v using repo local path %v Error %v",
+					sourceFile, destFile, repo.LocalPath, copyErr.(*kfapis.KfError).Message),
 			}
 		}
 	}
@@ -1495,17 +1496,10 @@ func (gcp *Gcp) buildBasicAuthSecret() (*v1.Secret, error) {
 		return nil, err
 	}
 
-	password, err := gcp.kfDef.GetSecret(p.Auth.BasicAuth.Password.Name)
+	encodedPassword, err := gcp.kfDef.GetSecret(p.Auth.BasicAuth.Password.Name)
 
 	if err != nil {
 		log.Errorf("There was a problem getting the password for basic auth; error %v", err)
-		return nil, err
-	}
-
-	encodedPassword, err := base64EncryptPassword(password)
-
-	if err != nil {
-		log.Errorf("There was a problem encrypting the password; %v", err)
 		return nil, err
 	}
 
@@ -1876,11 +1870,23 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				Name: BasicAuthPasswordSecretName,
 			}
 
+			password := os.Getenv(kftypesv3.KUBEFLOW_PASSWORD)
+			if password == "" {
+				log.Errorf("Could not configure basic auth; environment variable %s not set", kftypesv3.KUBEFLOW_PASSWORD)
+				return errors.WithStack(fmt.Errorf("Could not configure basic auth; environment variable %s not set", kftypesv3.KUBEFLOW_PASSWORD))
+			}
+			encodedPassword, err := base64EncryptPassword(password)
+
+			if err != nil {
+				log.Errorf("There was a problem encrypting the password; %v", err)
+				return errors.WithStack(err)
+			}
+
 			gcp.kfDef.SetSecret(kfdefs.Secret{
 				Name: BasicAuthPasswordSecretName,
 				SecretSource: &kfdefs.SecretSource{
-					EnvSource: &kfdefs.EnvSource{
-						Name: kftypesv3.KUBEFLOW_PASSWORD,
+					HashedSource: &kfdefs.HashedSource{
+						HashedValue: encodedPassword,
 					},
 				},
 			})
@@ -1966,10 +1972,6 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 					GCP_CONFIG, gcpConfigFilesErr),
 			}
 		}
-	}
-
-	if err := gcp.kfDef.SetApplicationParameter("cert-manager", "acmeEmail", gcp.kfDef.Spec.Email); err != nil {
-		return errors.WithStack(err)
 	}
 
 	if err := gcp.kfDef.SetApplicationParameter("profiles", "admin", gcp.kfDef.Spec.Email); err != nil {
