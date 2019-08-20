@@ -16,5 +16,17 @@
       useIstio: "true",
       configPath: "bootstrap/config/kfctl_gcp_iap.yaml",
     },
+    default_config_test: {
+      bucket: "kubeflow-ci_temp",
+      name: "somefakename",
+      namespace: "kubeflow-test-infra",
+      prow_env: "",
+      deleteKubeflow: true,
+      gkeApiVersion: "v1",
+      workflowName: "kfctl-go",
+      useBasicAuth: "false",
+      useIstio: "true",
+      configPath: "bootstrap/config/kfctl_k8s_istio.yaml",
+    },
   },
 }

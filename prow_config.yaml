@@ -13,3 +13,15 @@ workflows:
       useIstio: true
       version: master
       configPath: bootstrap/config/kfctl_gcp_iap.yaml
+  - app_dir: kubeflow/kfctl/testing/workflows
+    component: kfctl_go_test
+    name: kfctl-k8s-istio-test
+    job_types:
+      - presubmit
+    params:
+      platform: gke
+      gkeApiVersion: v1
+      workflowName: kfctl-go
+      useIstio: true
+      version: master
+      configPath: bootstrap/config/kfctl_k8s_istio.yaml
