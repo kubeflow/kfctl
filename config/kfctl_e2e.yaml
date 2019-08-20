@@ -23,6 +23,10 @@ spec:
       parameters:
       - name: namespace
         value: tekton-pipelines
+      - name: project
+        value: constant-cubist-173123
+      - name: registry
+        value: gcr.io/constant-cubist-173123
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-install
