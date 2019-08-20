@@ -4,7 +4,7 @@ apiVersion: kfdef.apps.kubeflow.org/v1alpha1
 kind: KfDef
 metadata:
   name: kubeflow_app
-  namespace: kfctl-e2e-testing
+  namespace: tekton-pipelines
 spec:
   repos:
   - name: manifests
