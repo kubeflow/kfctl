@@ -26,7 +26,7 @@ spec:
       - name: project
         value: constant-cubist-173123
       - name: registry
-        value: gcr.io/constant-cubist-173123
+        value: gcr.io/tekton-releases
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-install
