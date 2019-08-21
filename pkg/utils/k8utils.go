@@ -158,6 +158,7 @@ type Apply struct {
 func NewApply(namespace string) (*Apply, error) {
 	apply := &Apply{
 		matchVersionKubeConfigFlags: cmdutil.NewMatchVersionFlags(genericclioptions.NewConfigFlags()),
+		err:                         nil,
 	}
 	apply.factory = cmdutil.NewFactory(apply.matchVersionKubeConfigFlags)
 	clientset, err := apply.factory.KubernetesClientSet()
