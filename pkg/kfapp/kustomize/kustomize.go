@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
 	"github.com/kubeflow/kfctl/v3/config"
@@ -33,19 +32,13 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
 	rbacv2 "k8s.io/api/rbac/v1"
 	crdclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	kubectlapply "k8s.io/kubernetes/pkg/kubectl/cmd/apply"
-	kubectldelete "k8s.io/kubernetes/pkg/kubectl/cmd/delete"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,8 +51,6 @@ import (
 	"sigs.k8s.io/kustomize/pkg/target"
 	"sigs.k8s.io/kustomize/pkg/types"
 	"strings"
-	"time"
-
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -247,127 +238,11 @@ func (kustomize *kustomize) initK8sClients() error {
 	return nil
 }
 
-func (kustomize *kustomize) deleteFlags(usage string) *kubectldelete.DeleteFlags {
-	cascade := true
-	gracePeriod := -1
-	// setup command defaults
-	all := false
-	force := false
-	ignoreNotFound := false
-	now := false
-	output := ""
-	labelSelector := ""
-	fieldSelector := ""
-	timeout := time.Duration(0)
-	wait := true
-	filenames := []string{"-"}
-	recursive := false
-	return &kubectldelete.DeleteFlags{
-		FileNameFlags:  &genericclioptions.FileNameFlags{Usage: usage, Filenames: &filenames, Recursive: &recursive},
-		LabelSelector:  &labelSelector,
-		FieldSelector:  &fieldSelector,
-		Cascade:        &cascade,
-		GracePeriod:    &gracePeriod,
-		All:            &all,
-		Force:          &force,
-		IgnoreNotFound: &ignoreNotFound,
-		Now:            &now,
-		Timeout:        &timeout,
-		Wait:           &wait,
-		Output:         &output,
-	}
-}
-
-func (kustomize *kustomize) initApplyOptions(o *kubectlapply.ApplyOptions, f cmdutil.Factory) error {
-	var err error
-	// allow for a success message operation to be specified at print time
-	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = operation
-		if o.DryRun {
-			o.PrintFlags.Complete("%s (dry run)")
-		}
-		if o.ServerDryRun {
-			o.PrintFlags.Complete("%s (server dry run)")
-		}
-		return o.PrintFlags.ToPrinter()
-	}
-	o.DiscoveryClient, err = f.ToDiscoveryClient()
-	if err != nil {
-		return err
-	}
-	dynamicClient, err := f.DynamicClient()
-	if err != nil {
-		return err
-	}
-	o.DeleteOptions = o.DeleteFlags.ToOptions(dynamicClient, o.IOStreams)
-	o.ShouldIncludeUninitialized = false
-	o.OpenApiPatch = true
-	o.OpenAPISchema, _ = f.OpenAPISchema()
-	o.Validator, err = f.Validator(false)
-	o.Builder = f.NewBuilder()
-	o.Mapper, err = f.ToRESTMapper()
-	if err != nil {
-		return err
-	}
-	o.DynamicClient, err = f.DynamicClient()
-	if err != nil {
-		return err
-	}
-	o.Namespace, o.EnforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (kustomize *kustomize) tempFile(data []byte) *os.File {
-	tmpfile, err := ioutil.TempFile("/tmp", "kout")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err := tmpfile.Write(data); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := tmpfile.Seek(0, 0); err != nil {
-		log.Fatal(err)
-	}
-	return tmpfile
-}
-
-func (kustomize *kustomize) cleanup(tmpfile *os.File, stdin *os.File) error {
-	os.Stdin = stdin
-	if err := tmpfile.Close(); err != nil {
-		log.Fatal(err)
-	}
-	return os.Remove(tmpfile.Name())
-}
-
 // Apply deploys kustomize generated resources to the kubenetes api server
 func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
-	kubeConfigFlags := genericclioptions.NewConfigFlags()
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
-	factory := cmdutil.NewFactory(matchVersionKubeConfigFlags)
-	clientset, err := factory.KubernetesClientSet()
-	if err != nil {
-		return &kfapisv3.KfError{
-			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not get clientset Error %v", err),
-		}
-	}
-	namespace := kustomize.kfDef.ObjectMeta.Namespace
-	log.Infof(string(kftypesv3.NAMESPACE)+": %v", namespace)
-	_, nsMissingErr := clientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
-	if nsMissingErr != nil {
-		log.Infof("Creating namespace: %v", namespace)
-		nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-		_, nsErr := clientset.CoreV1().Namespaces().Create(nsSpec)
-		if nsErr != nil {
-			return &kfapisv3.KfError{
-				Code: int(kfapisv3.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't create %v %v Error: %v",
-					string(kftypesv3.NAMESPACE), namespace, nsErr),
-			}
-		}
+	apply := utils.NewApply().Namespace(kustomize.kfDef)
+	if apply.Error() != nil {
+		return apply.Error()
 	}
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
@@ -388,26 +263,9 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
 			}
 		}
-		tmpfile := kustomize.tempFile(data)
-		oldStdin := os.Stdin
-		os.Stdin = tmpfile
-		defer kustomize.cleanup(tmpfile, oldStdin)
-		ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-		applyOptions := kubectlapply.NewApplyOptions(ioStreams)
-		applyOptions.DeleteFlags = kustomize.deleteFlags("that contains the configuration to apply")
-		initializeErr := kustomize.initApplyOptions(applyOptions, factory)
-		if initializeErr != nil {
-			return &kfapisv3.KfError{
-				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("could not initialize  Error %v", initializeErr),
-			}
-		}
-		resourcesErr := applyOptions.Run()
-		if resourcesErr != nil {
-			return &kfapisv3.KfError{
-				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("couldn't create resources from %v Error: %v", app.Name, resourcesErr),
-			}
+		err = apply.Init(data).Run().Error()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -429,50 +287,15 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				},
 			},
 		}
-		_, nsMissingErr := clientset.CoreV1().Namespaces().Get(defaultProfileNamespace, metav1.GetOptions{})
-		if nsMissingErr != nil {
+		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
 			body, err := json.Marshal(profile)
 			if err != nil {
 				return err
 			}
-			tmpfile := kustomize.tempFile(body)
-			oldStdin := os.Stdin
-			os.Stdin = tmpfile
-			defer kustomize.cleanup(tmpfile, oldStdin)
-			ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-			applyOptions := kubectlapply.NewApplyOptions(ioStreams)
-			applyOptions.DeleteFlags = kustomize.deleteFlags("that contains the configuration to apply")
-			initializeErr := kustomize.initApplyOptions(applyOptions, factory)
-			if initializeErr != nil {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("could not initialize  Error %v", initializeErr),
-				}
+			err = apply.Init(body).Run().Error()
+			if err != nil {
+				return err
 			}
-			resourcesErr := applyOptions.Run()
-			if resourcesErr != nil {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("couldn't create default profile from %v Error: %v", profile, resourcesErr),
-				}
-			}
-			//TODO I don't think we need this since kubectl has something similar
-			b := backoff.NewExponentialBackOff()
-			b.InitialInterval = 3 * time.Second
-			b.MaxInterval = 30 * time.Second
-			b.MaxElapsedTime = 5 * time.Minute
-			return backoff.Retry(func() error {
-				_, nsErr := clientset.CoreV1().Namespaces().Get(defaultProfileNamespace, metav1.GetOptions{})
-				if nsErr != nil {
-					msg := fmt.Sprintf("Could not find namespace %v, wait and retry: %v", defaultProfileNamespace, nsErr)
-					log.Warnf(msg)
-					return &kfapisv3.KfError{
-						Code:    int(kfapisv3.INVALID_ARGUMENT),
-						Message: msg,
-					}
-				}
-				return nil
-			}, b)
 		} else {
 			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
 				profile.Spec.Owner.Name)
