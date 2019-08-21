@@ -40,6 +40,8 @@ spec:
     name: tektoncd-tasks
   - kustomizeConfig:
       parameters:
+      - name: namespace
+        value: tekton-pipelines
       - name: project
         value: constant-cubist-173123
       - name: email
