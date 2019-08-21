@@ -34,14 +34,15 @@ spec:
   - kustomizeConfig:
       overlays:
       - e2e
+      parameters:
+      - name: namespace
+        value: tekton-pipelines
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-tasks
     name: tektoncd-tasks
   - kustomizeConfig:
       parameters:
-      - name: namespace
-        value: tekton-pipelines
       - name: project
         value: constant-cubist-173123
       - name: email
