@@ -148,11 +148,11 @@ func DeleteResourceFromFile(config *rest.Config, filename string) error {
 }
 
 type Apply interface {
+	Cleanup() error
 	DefaultProfileNamespace(string) bool
-	Error() error
 	Init([]byte) Apply
-	Namespace(*kfdefs.KfDef) Apply
-	Run() Apply
+	Namespace(*kfdefs.KfDef) (Apply, error)
+	Run() error
 }
 
 type apply struct {
@@ -160,17 +160,20 @@ type apply struct {
 	factory                     cmdutil.Factory
 	clientset                   *kubernetes.Clientset
 	options                     *kubectlapply.ApplyOptions
-	error                       *kfapis.KfError
+	tmpfile                     *os.File
+	stdin                       *os.File
+	err                         *kfapis.KfError
 }
 
 func NewApply() Apply {
 	apply := &apply{
 		matchVersionKubeConfigFlags: cmdutil.NewMatchVersionFlags(genericclioptions.NewConfigFlags()),
+		err:                         nil,
 	}
 	apply.factory = cmdutil.NewFactory(apply.matchVersionKubeConfigFlags)
 	clientset, err := apply.factory.KubernetesClientSet()
 	if err != nil {
-		apply.error = &kfapis.KfError{
+		apply.err = &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("could not get clientset Error %v", err),
 		}
@@ -188,16 +191,15 @@ func (a *apply) DefaultProfileNamespace(name string) bool {
 }
 
 func (a *apply) Init(data []byte) Apply {
-	tmpfile := a.tempFile(data)
-	oldStdin := os.Stdin
-	os.Stdin = tmpfile
-	defer a.cleanup(tmpfile, oldStdin)
+	a.tmpfile = a.tempFile(data)
+	a.stdin = os.Stdin
+	os.Stdin = a.tmpfile
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	a.options = kubectlapply.NewApplyOptions(ioStreams)
 	a.options.DeleteFlags = a.deleteFlags("that contains the configuration to apply")
 	initializeErr := a.init()
 	if initializeErr != nil {
-		a.error = &kfapis.KfError{
+		a.err = &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("could not initialize  Error %v", initializeErr),
 		}
@@ -206,26 +208,29 @@ func (a *apply) Init(data []byte) Apply {
 }
 
 func (a *apply) Error() error {
-	return a.error
+	return a.err
 }
 
-func (a *apply) Run() Apply {
+func (a *apply) Run() error {
 	resourcesErr := a.options.Run()
 	if resourcesErr != nil {
-		a.error = &kfapis.KfError{
+		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("Apply.Run  Error %v", resourcesErr),
 		}
 	}
-	return a
+	return nil
 }
 
-func (a *apply) cleanup(tmpfile *os.File, stdin *os.File) error {
-	os.Stdin = stdin
-	if err := tmpfile.Close(); err != nil {
-		log.Fatal(err)
+func (a *apply) Cleanup() error {
+	os.Stdin = a.stdin
+	if a.tmpfile != nil {
+		if err := a.tmpfile.Close(); err != nil {
+			return err
+		}
+		return os.Remove(a.tmpfile.Name())
 	}
-	return os.Remove(tmpfile.Name())
+	return nil
 }
 
 func (a *apply) init() error {
@@ -272,7 +277,7 @@ func (a *apply) init() error {
 	return nil
 }
 
-func (a *apply) Namespace(kfDef *kfdefs.KfDef) Apply {
+func (a *apply) Namespace(kfDef *kfdefs.KfDef) (Apply, error) {
 	namespace := kfDef.ObjectMeta.Namespace
 	log.Infof(string(kftypes.NAMESPACE)+": %v", namespace)
 	_, nsMissingErr := a.clientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
@@ -281,14 +286,14 @@ func (a *apply) Namespace(kfDef *kfdefs.KfDef) Apply {
 		nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 		_, nsErr := a.clientset.CoreV1().Namespaces().Create(nsSpec)
 		if nsErr != nil {
-			a.error = &kfapis.KfError{
+			return a, &kfapis.KfError{
 				Code: int(kfapis.INVALID_ARGUMENT),
 				Message: fmt.Sprintf("couldn't create %v %v Error: %v",
 					string(kftypes.NAMESPACE), namespace, nsErr),
 			}
 		}
 	}
-	return a
+	return a, nil
 }
 
 func (a *apply) tempFile(data []byte) *os.File {
