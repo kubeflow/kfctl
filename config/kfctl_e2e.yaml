@@ -42,6 +42,19 @@ spec:
         path: tektoncd/tektoncd-install
     name: tektoncd-install
   - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: admission-webhook/webhook
+    name: webhook
+  - kustomizeConfig:
+      parameters:
+      - name: webhookNamePrefix
+        value: admission-webhook-
+      repoRef:
+        name: manifests
+        path: admission-webhook/bootstrap
+    name: bootstrap
+  - kustomizeConfig:
       parameters:
       - initRequired: true
         name: admin
