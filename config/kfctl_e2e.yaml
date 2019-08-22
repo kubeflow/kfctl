@@ -17,6 +17,18 @@ spec:
   - kustomizeConfig:
       repoRef:
         name: manifests
+        path: application/application-crds
+    name: application-crds
+  - kustomizeConfig:
+      overlays:
+      - application
+      repoRef:
+        name: manifests
+        path: application/application
+    name: application
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
         path: tektoncd/tektoncd-crds
     name: tektoncd-crds
   - kustomizeConfig:
