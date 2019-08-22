@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
 	"github.com/kubeflow/kfctl/v3/config"
@@ -51,6 +52,8 @@ import (
 	"sigs.k8s.io/kustomize/pkg/target"
 	"sigs.k8s.io/kustomize/pkg/types"
 	"strings"
+	"time"
+
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -98,7 +101,8 @@ type kustomize struct {
 }
 
 const (
-	outputDir = "kustomize"
+	defaultUserId = "anonymous"
+	outputDir     = "kustomize"
 )
 
 // Setter defines an interface for modifying the plugin.
@@ -270,38 +274,60 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 
+	// Create default profile
+	// When user identity available, the user will be owner of the profile
+	// Otherwise the profile would be a public one.
+	userId := defaultUserId
 	if kustomize.kfDef.Spec.Email != "" {
-		// Profile name is also the namespace created.
-		defaultProfileNamespace := kftypesv3.EmailToDefaultName(kustomize.kfDef.Spec.Email)
-		profile := &profilev2.Profile{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Profile",
-				APIVersion: "kubeflow.org/v1alpha1",
+		// Use user email as user id if available.
+		// When platform == GCP, same user email is also identity in requests through IAP.
+		userId = kustomize.kfDef.Spec.Email
+	}
+	defaultProfileNamespace := kftypesv3.EmailToDefaultName(userId)
+	profile := &profilev2.Profile{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Profile",
+			APIVersion: "kubeflow.org/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: defaultProfileNamespace,
+		},
+		Spec: profilev2.ProfileSpec{
+			Owner: rbacv2.Subject{
+				Kind: "User",
+				Name: userId,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: defaultProfileNamespace,
-			},
-			Spec: profilev2.ProfileSpec{
-				Owner: rbacv2.Subject{
-					Kind: "User",
-					Name: kustomize.kfDef.Spec.Email,
-				},
-			},
+		},
+	}
+
+	if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+		body, err := json.Marshal(profile)
+		if err != nil {
+			return err
 		}
-		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-			body, err := json.Marshal(profile)
-			if err != nil {
-				return err
-			}
-			defer apply.Cleanup()
-			err = apply.Init(body).Run()
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
-				profile.Spec.Owner.Name)
+		defer apply.Cleanup()
+		err = apply.Init(body).Run()
+		if err != nil {
+			return err
 		}
+		b := backoff.NewExponentialBackOff()
+		b.InitialInterval = 3 * time.Second
+		b.MaxInterval = 30 * time.Second
+		b.MaxElapsedTime = 5 * time.Minute
+		return backoff.Retry(func() error {
+			if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+				msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
+				log.Warnf(msg)
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INVALID_ARGUMENT),
+					Message: msg,
+				}
+			}
+			return nil
+		}, b)
+	} else {
+		log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
+			profile.Spec.Owner.Name)
 	}
 	return nil
 }
