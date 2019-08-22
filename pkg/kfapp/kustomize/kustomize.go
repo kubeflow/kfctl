@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
 	"github.com/kubeflow/kfctl/v3/config"
@@ -51,6 +52,8 @@ import (
 	"sigs.k8s.io/kustomize/pkg/target"
 	"sigs.k8s.io/kustomize/pkg/types"
 	"strings"
+	"time"
+
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -293,6 +296,13 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 					Name: userId,
 				},
 			},
+		},
+	}
+
+	if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+		body, err := json.Marshal(profile)
+		if err != nil {
+			return err
 		}
 		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
 			body, err := json.Marshal(profile)
@@ -323,6 +333,24 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
 				profile.Spec.Owner.Name)
 		}
+		b := backoff.NewExponentialBackOff()
+		b.InitialInterval = 3 * time.Second
+		b.MaxInterval = 30 * time.Second
+		b.MaxElapsedTime = 5 * time.Minute
+		return backoff.Retry(func() error {
+			if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+				msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
+				log.Warnf(msg)
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INVALID_ARGUMENT),
+					Message: msg,
+				}
+			}
+			return nil
+		}, b)
+	} else {
+		log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
+			profile.Spec.Owner.Name)
 	}
 	return nil
 }
