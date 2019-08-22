@@ -58,7 +58,7 @@ spec:
       - name: pullrequest
         value: refs/pull/10/head
       - name: configPath
-        value: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl_e2e.yaml
+        value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-pipelines
