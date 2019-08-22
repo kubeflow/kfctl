@@ -42,6 +42,15 @@ spec:
         path: tektoncd/tektoncd-install
     name: tektoncd-install
   - kustomizeConfig:
+      parameters:
+      - initRequired: true
+        name: admin
+        value: kam.d.kasravi@intel.com
+      repoRef:
+        name: manifests
+        path: profiles
+    name: profiles
+  - kustomizeConfig:
       overlays:
       - application
       - e2e
