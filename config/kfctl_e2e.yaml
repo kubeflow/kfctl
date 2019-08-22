@@ -31,6 +31,7 @@ spec:
     name: tektoncd-install
   - kustomizeConfig:
       overlays:
+      - application
       - e2e
       repoRef:
         name: manifests
