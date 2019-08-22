@@ -42,28 +42,6 @@ spec:
         path: tektoncd/tektoncd-install
     name: tektoncd-install
   - kustomizeConfig:
-      repoRef:
-        name: manifests
-        path: admission-webhook/webhook
-    name: webhook
-  - kustomizeConfig:
-      parameters:
-      - name: webhookNamePrefix
-        value: admission-webhook-
-      repoRef:
-        name: manifests
-        path: admission-webhook/bootstrap
-    name: bootstrap
-  - kustomizeConfig:
-      parameters:
-      - initRequired: true
-        name: admin
-        value: kam.d.kasravi@intel.com
-      repoRef:
-        name: manifests
-        path: profiles
-    name: profiles
-  - kustomizeConfig:
       overlays:
       - application
       - e2e
@@ -75,15 +53,11 @@ spec:
       parameters:
       - name: project
         value: constant-cubist-173123
-      - name: email
-        value: kam.d.kasravi@intel.com
       - name: pullrequest
         value: refs/pull/10/head
       - name: configPath
         value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
       repoRef:
-        name: manifests
-        path: tektoncd/tektoncd-pipelines
         name: manifests
         path: tektoncd/tektoncd-pipelines
     name: tektoncd-pipelines
