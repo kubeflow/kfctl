@@ -354,8 +354,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			if err != nil {
 				return err
 			}
-			defer apply.Cleanup()
-			err = apply.Init(body).Run()
+			err = apply.Apply(body)
 			if err != nil {
 				return err
 			}
