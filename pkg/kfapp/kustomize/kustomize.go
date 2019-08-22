@@ -333,24 +333,36 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
 				profile.Spec.Owner.Name)
 		}
-		b := backoff.NewExponentialBackOff()
-		b.InitialInterval = 3 * time.Second
-		b.MaxInterval = 30 * time.Second
-		b.MaxElapsedTime = 5 * time.Minute
-		return backoff.Retry(func() error {
-			if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-				msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
-				log.Warnf(msg)
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INVALID_ARGUMENT),
-					Message: msg,
-				}
+
+		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+			body, err := json.Marshal(profile)
+			if err != nil {
+				return err
 			}
-			return nil
-		}, b)
-	} else {
-		log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
-			profile.Spec.Owner.Name)
+			defer apply.Cleanup()
+			err = apply.Init(body).Run()
+			if err != nil {
+				return err
+			}
+			b := backoff.NewExponentialBackOff()
+			b.InitialInterval = 3 * time.Second
+			b.MaxInterval = 30 * time.Second
+			b.MaxElapsedTime = 5 * time.Minute
+			return backoff.Retry(func() error {
+				if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
+					msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
+					log.Warnf(msg)
+					return &kfapisv3.KfError{
+						Code:    int(kfapisv3.INVALID_ARGUMENT),
+						Message: msg,
+					}
+				}
+				return nil
+			}, b)
+		} else {
+			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
+				profile.Spec.Owner.Name)
+		}
 	}
 	return nil
 }
