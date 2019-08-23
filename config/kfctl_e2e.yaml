@@ -57,6 +57,12 @@ spec:
         value: refs/pull/10/head
       - name: configPath
         value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
+      - name: zone
+        value: us-west1-a
+      - name: email
+        value: kam.d.kasravi@intel.com
+      - name: platform
+        value: all
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-pipelines
