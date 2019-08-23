@@ -65,6 +65,18 @@ spec:
         value: kam.d.kasravi@intel.com
       - name: platform
         value: all
+      - name: image
+        value: "gcr.io/kubeflow-ci/test-worker:latest"
+      - name: cluster
+        value: "kubeflow-testing"
+      - name: bucket
+        value: kubernetes-jenkins
+      - name: REPO_OWNER
+        value: kubeflow
+      - name: REPO_NAME
+        value: kfctl
+      - name: repos_dir
+        value: /src
       repoRef:
         name: manifests
         path: tektoncd/tektoncd-pipelines
