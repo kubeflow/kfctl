@@ -50,6 +50,8 @@ spec:
         path: tektoncd/tektoncd-tasks
     name: tektoncd-tasks
   - kustomizeConfig:
+      overlays:
+      - e2e
       parameters:
       - name: project
         value: constant-cubist-173123
