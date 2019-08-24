@@ -62,7 +62,7 @@ spec:
       - name: zone
         value: us-west1-a
       - name: email
-        value: kam.d.kasravi@intel.com
+        value: docker@constant-cubist-173123.iam.gserviceaccount.com
       - name: platform
         value: all
       - name: image
