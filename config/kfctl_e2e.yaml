@@ -47,8 +47,8 @@ spec:
       - e2e
       repoRef:
         name: manifests
-        path: tektoncd/tektoncd-tasks
-    name: tektoncd-tasks
+        path: e2e/e2e-tasks
+    name: e2e-tasks
   - kustomizeConfig:
       overlays:
       - e2e
@@ -79,8 +79,8 @@ spec:
         value: /src
       repoRef:
         name: manifests
-        path: tektoncd/tektoncd-pipelines
-    name: tektoncd-pipelines
+        path: e2e/e2e-pipelines
+    name: e2e-pipelines
   enableApplications: true
   packageManager: kustomize
   skipInitProject: true
