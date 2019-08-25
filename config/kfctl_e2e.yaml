@@ -53,30 +53,42 @@ spec:
       overlays:
       - e2e
       parameters:
-      - name: project
-        value: constant-cubist-173123
-      - name: pullrequest
-        value: refs/pull/10/head
-      - name: configPath
-        value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
-      - name: zone
-        value: us-west1-a
-      - name: email
-        value: docker@constant-cubist-173123.iam.gserviceaccount.com
-      - name: platform
-        value: all
       - name: image
         value: "gcr.io/kubeflow-ci/test-worker:latest"
+      - name: project
+        value: constant-cubist-173123
       - name: cluster
         value: "kubeflow-testing"
       - name: bucket
         value: kubernetes-jenkins
+      - name: repos_dir
+        value: /src
+      - name: zone
+        value: us-west1-a
+      - name: configPath
+        value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
+      - name: pullrequest
+        value: refs/pull/10/head
+      - name: email
+        value: docker@constant-cubist-173123.iam.gserviceaccount.com
+      - name: platform
+        value: all
       - name: REPO_OWNER
         value: kubeflow
       - name: REPO_NAME
         value: kfctl
-      - name: repos_dir
-        value: /src
+      - name: JOB_NAME
+        value: kubeflow-test-presubmit-test
+      - name: JOB_TYPE
+        value: presubmit
+      - name: PULL_NUMBER
+        value: 10
+      - name: PULL_BASE_REF
+        value: master
+      - name: PULL_PULL_SHA
+        value: 123abc
+      - name: BUILD_NUMBER
+        value: a3bc
       repoRef:
         name: manifests
         path: e2e/e2e-pipelines
