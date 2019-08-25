@@ -13,7 +13,7 @@ workflows:
 #    useIstio: true
 #    version: master
 #    configPath: bootstrap/config/kfctl_gcp_iap.yaml
-- py_func: kubeflow.testing.tektoncd_client.PipelineTests
+- py_func: kubeflow.testing.tektoncd_client.run_pipeline
   kw_args:
     namespaces_exist: testing/e2e/test_namespaces_exist
     applications_exist: testing/e2e/test_applications_exist
