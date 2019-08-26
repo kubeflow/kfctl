@@ -15,6 +15,8 @@ workflows:
 #    configPath: bootstrap/config/kfctl_gcp_iap.yaml
 - py_func: kubeflow.testing.tektoncd_client.run_pipeline
   kw_args:
-    namespaces_exist: testing/e2e/test_namespaces_exist
-    applications_exist: testing/e2e/test_applications_exist
-    applications_status: testing/e2e/test_applications_status
+    config: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl_e2e.yaml
+    project: constant-cubist-173123
+    app_dir: /kubeflow/kubeflow-e2e
+    zone: us-west1-a
+    tests: {namespaces_exist: testing.e2e.teste2e.test_namespaces_exist, applications_exist: testing.e2e.teste2e.test_applications_exist, applications_status: testing.e2e.teste2e.test_applications_status}
