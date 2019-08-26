@@ -140,14 +140,6 @@ build-gcb:
 
 # Build but don't attach the latest tag. This allows manual testing/inspection of the image
 # first.
-push: build
-	docker push $(BOOTSTRAPPER_IMG):$(TAG)
-	@echo Pushed $(BOOTSTRAPPER_IMG):$(TAG)
-
-push-latest: push
-	gcloud container images add-tag --quiet $(BOOTSTRAPPER_IMG):$(TAG) $(BOOTSTRAPPER_IMG):latest --verbosity=info
-	echo created $(BOOTSTRAPPER_IMG):latest
-
 push-kfctl-container: build-kfctl-container
 	docker push $(KFCTL_IMG):$(TAG)
 	@echo Pushed $(KFCTL_IMG):$(TAG)
