@@ -19,4 +19,6 @@ workflows:
     project: constant-cubist-173123
     app_dir: /kubeflow/kubeflow-e2e
     zone: us-west1-a
-    tests: {namespaces_exist: testing.e2e.teste2e.test_namespaces_exist, applications_exist: testing.e2e.teste2e.test_applications_exist, applications_status: testing.e2e.teste2e.test_applications_status}
+    tests: {namespaces_exist: testing.e2e.teste2e.test_namespaces_exist, 
+            applications_exist: testing.e2e.teste2e.test_applications_exist, 
+            applications_status: testing.e2e.teste2e.test_applications_status}
