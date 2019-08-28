@@ -33,8 +33,6 @@ spec:
     name: tektoncd-crds
   - kustomizeConfig:
       parameters:
-      - name: project
-        value: constant-cubist-173123
       - name: registry
         value: gcr.io/tekton-releases
       repoRef:
