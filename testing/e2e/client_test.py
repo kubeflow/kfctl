@@ -246,10 +246,10 @@ class TestClient(unittest.TestCase):
             group="app.k8s.io",
             version="v1beta1",
             namespace="tekton-pipelines",
-            plural="applications", watch=False).items()
+            plural="applications", watch=False)
 
         # get the resource and print out data
-        list = ret[0][1]
+        list = ret['items']
         for i in list:
             name = i['metadata']['name']
             print("%s" % name)
