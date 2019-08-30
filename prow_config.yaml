@@ -13,13 +13,8 @@ workflows:
 #    useIstio: true
 #    version: master
 #    configPath: bootstrap/config/kfctl_gcp_iap.yaml
-- name: run-e2e-pipeline
-  py_func: kubeflow.testing.tektoncd_client.run_pipeline
-  kwargs:
-    config: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl-e2e-pipeline.yaml
-    app_dir: /Users/kdkasrav/kubeflow-e2e-pipeline
 - name: run-e2e-pipelinerun
   py_func: kubeflow.testing.tektoncd_client.run_pipeline
   kwargs:
     config: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl-e2e-pipelinerun.yaml
-    app_dir: /Users/kdkasrav/kubeflow-e2e-pipelinerun
+    app_dir: /Users/kdkasrav/kubeflow-e2e

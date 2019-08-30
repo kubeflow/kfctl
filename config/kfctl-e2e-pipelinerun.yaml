@@ -17,6 +17,85 @@ spec:
   - kustomizeConfig:
       repoRef:
         name: manifests
+        path: application/application-crds
+    name: application-crds
+  - kustomizeConfig:
+      overlays:
+      - application
+      repoRef:
+        name: manifests
+        path: application/application
+    name: application
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-crds
+    name: tektoncd-crds
+  - kustomizeConfig:
+      parameters:
+      - name: registry
+        value: gcr.io/tekton-releases
+      repoRef:
+        name: manifests
+        path: tektoncd/tektoncd-install
+    name: tektoncd-install
+  - kustomizeConfig:
+      overlays:
+      - application
+      - e2e
+      repoRef:
+        name: manifests
+        path: e2e/e2e-tasks
+    name: e2e-tasks
+  - kustomizeConfig:
+      overlays:
+      - e2e
+      parameters:
+      - name: image
+        value: "gcr.io/kubeflow-ci/test-worker:latest"
+      - name: project
+        value: constant-cubist-173123
+      - name: cluster
+        value: "kubeflow-testing"
+      - name: bucket
+        value: kubernetes-jenkins
+      - name: repos_dir
+        value: /src
+      - name: zone
+        value: us-west1-a
+      - name: configPath
+        value: https://raw.githubusercontent.com/kubeflow/kubeflow/master/bootstrap/config/kfctl_gcp_iap.yaml
+      - name: pullrequest
+        value: refs/pull/10/head
+      - name: email
+        value: kfctl-e2e@constant-cubist-173123.iam.gserviceaccount.com
+      - name: platform
+        value: all
+      - name: REPO_OWNER
+        value: kubeflow
+      - name: REPO_NAME
+        value: kfctl
+      - name: JOB_NAME
+        value: kubeflow-test-presubmit-test
+      - name: JOB_TYPE
+        value: presubmit
+      - name: PULL_NUMBER
+        value: 10
+      - name: PULL_BASE_REF
+        value: master
+      - name: PULL_PULL_SHA
+        value: 123abc
+      - name: BUILD_NUMBER
+        value: a3bc
+      - name: tests
+        value: /workspace/kfctl/testing/e2e
+      repoRef:
+        name: manifests
+        path: e2e/e2e-pipelines
+    name: e2e-pipelines
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
         path: e2e/e2e-pipelineruns
     name: e2e-pipelineruns
   enableApplications: true
