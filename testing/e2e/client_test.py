@@ -15,9 +15,9 @@
 import unittest
 import uuid
 
-from kubernetes.client import api_client
+from kubernetes import client, config
+from kubernetes.client import V1Namespace, V1NamespaceStatus
 from kubernetes.client.apis import core_v1_api
-from kubeflow.testing import util
 
 def short_uuid():
     id = str(uuid.uuid4())
@@ -28,8 +28,7 @@ class TestClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.config = util.load_kube_config()
-
+        config.load_kube_config()
 
     # def test_pod_apis(self):
     #     client = api_client.ApiClient(configuration=self.config)
@@ -222,11 +221,40 @@ class TestClient(unittest.TestCase):
     #     resp = api.list_namespaced_config_map('default', pretty=True)
     #     self.assertEqual([], resp.items)
     #
-    def test_node_apis(self):
-        client = api_client.ApiClient(configuration=self.config)
-        api = core_v1_api.CoreV1Api(client)
+    def test_namespace_apis(self):
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        print("Listing namespaces:")
+        for i in v1.list_namespace().items:
+            print("%s" % (i.metadata.name))
 
-        for item in api.list_node().items:
-            node = api.read_node(name=item.metadata.name)
-            self.assertTrue(len(node.metadata.labels) > 0)
-            self.assertTrue(isinstance(node.metadata.labels, dict))
+
+    def test_list_pods(self):
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        print("Listing pods with their IPs:")
+        ret = v1.list_pod_for_all_namespaces(watch=False)
+        for i in ret.items:
+            print("%s\t%s\t%s" %
+              (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+
+    def test_list_applications(self):
+        config.load_kube_config()
+        api = client.CustomObjectsApi()
+
+        ret = api.list_namespaced_custom_object(
+            group="app.k8s.io",
+            version="v1beta1",
+            namespace="tekton-pipelines",
+            plural="applications", watch=False).items()
+
+        # get the resource and print out data
+        list = ret[0][1]
+        for i in list:
+            name = i['metadata']['name']
+            print("%s" % name)
+            if 'components' in i['status']:
+                for j in i['status']['components']:
+                    self.assertEqual(j['status'], "Ready", "%s is not ready" % name)
+            else:
+                self.assertTrue(False, "no components in application %s" % name)
