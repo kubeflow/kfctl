@@ -2,6 +2,7 @@ module github.com/kubeflow/kfctl/v3
 
 require (
 	cloud.google.com/go v0.38.0
+	git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
