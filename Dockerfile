@@ -4,6 +4,7 @@
 # Create a go runtime suitable for building and testing kfctl
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
+ENV KUSTOMIZE_VERSION 2.0.3
 
 ARG BRANCH=master
 ARG REPO=https://github.com/kubeflow/kubeflow
@@ -33,9 +34,10 @@ RUN  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -
 ENV GO111MODULE=on
 ENV GOPATH=/go
 
-# install kustomize
-RUN go mod download
-RUN go install sigs.k8s.io/kustomize/v3/cmd/kustomize
+# Install kustomize
+RUN wget -O /usr/local/bin/kustomize \
+    https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64 && \
+    chmod a+x /usr/local/bin/kustomize
 
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl
