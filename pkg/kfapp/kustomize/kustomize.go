@@ -304,42 +304,6 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 					Name: userId,
 				},
 			},
-		},
-	}
-
-	if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-		body, err := json.Marshal(profile)
-		if err != nil {
-			return err
-		}
-		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-			body, err := json.Marshal(profile)
-			if err != nil {
-				return err
-			}
-			err = apply.Apply(body)
-			if err != nil {
-				return err
-			}
-			//TODO I don't think we need this since kubectl has something similar
-			b := backoff.NewExponentialBackOff()
-			b.InitialInterval = 3 * time.Second
-			b.MaxInterval = 30 * time.Second
-			b.MaxElapsedTime = 5 * time.Minute
-			return backoff.Retry(func() error {
-				if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-					msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
-					log.Warnf(msg)
-					return &kfapisv3.KfError{
-						Code:    int(kfapisv3.INVALID_ARGUMENT),
-						Message: msg,
-					}
-				}
-				return nil
-			}, b)
-		} else {
-			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
-				profile.Spec.Owner.Name)
 		}
 
 		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
