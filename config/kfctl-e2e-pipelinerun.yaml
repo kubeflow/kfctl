@@ -56,9 +56,9 @@ spec:
       - name: project
         value: constant-cubist-173123
       - name: cluster
-        value: "kubeflow-testing"
+        value: kubeflow-e2e
       - name: bucket
-        value: kubernetes-jenkins
+        value: kfctl-e2e
       - name: repos_dir
         value: /src
       - name: zone
