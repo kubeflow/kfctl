@@ -88,7 +88,7 @@ spec:
       - name: BUILD_NUMBER
         value: a3bc
       - name: tests
-        value: /workspace/kfctl/testing/e2e
+        value: /kubeflow/kfctl/testing/e2e
       repoRef:
         name: manifests
         path: e2e/e2e-pipelines
