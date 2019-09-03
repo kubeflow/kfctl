@@ -16,5 +16,5 @@ workflows:
 - name: run-e2e-pipelinerun
   py_func: kubeflow.testing.tektoncd_client.run_pipeline
   kwargs:
-    config: https://raw.githubusercontent.com/kkasravi/kfctl/tektoncd_pipelines/config/kfctl-e2e-pipelinerun.yaml
+    config: https://raw.githubusercontent.com/kkasravi/manifests/e2e-pipelineruns/kfdef/gcp/kfctl-gcp-e2e-pipelinerun.yaml
     app_dir: /Users/kdkasrav/kubeflow-e2e
