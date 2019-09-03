@@ -12,13 +12,13 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
-	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
-	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf v1.2.1
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/golang/protobuf v1.3.1
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.7
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -29,14 +29,17 @@ require (
 	github.com/onrik/logrus v0.2.1
 	github.com/otiai10/copy v1.0.1
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v0.9.2
 	github.com/prometheus/common v0.2.0
 	github.com/russross/blackfriday v1.5.2 // indirect
 	github.com/sirupsen/logrus v1.3.0
+	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
 	golang.org/x/crypto v0.0.0
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/api v0.6.0
 	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
