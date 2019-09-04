@@ -2,7 +2,6 @@ module github.com/kubeflow/kfctl/v3
 
 require (
 	cloud.google.com/go v0.38.0
-	git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.15.78

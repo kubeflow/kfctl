@@ -18,7 +18,6 @@ package kustomize
 
 import (
 	"bufio"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/cenkalti/backoff"
@@ -41,7 +40,6 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -298,42 +296,6 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 					Name: userId,
 				},
 			},
-		},
-	}
-
-	if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-		body, err := json.Marshal(profile)
-		if err != nil {
-			return err
-		}
-		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-			body, err := json.Marshal(profile)
-			if err != nil {
-				return err
-			}
-			err = apply.Apply(body)
-			if err != nil {
-				return err
-			}
-			//TODO I don't think we need this since kubectl has something similar
-			b := backoff.NewExponentialBackOff()
-			b.InitialInterval = 3 * time.Second
-			b.MaxInterval = 30 * time.Second
-			b.MaxElapsedTime = 5 * time.Minute
-			return backoff.Retry(func() error {
-				if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
-					msg := fmt.Sprintf("Could not find namespace %v, wait and retry", defaultProfileNamespace)
-					log.Warnf(msg)
-					return &kfapisv3.KfError{
-						Code:    int(kfapisv3.INVALID_ARGUMENT),
-						Message: msg,
-					}
-				}
-				return nil
-			}, b)
-		} else {
-			log.Infof("Default profile namespace already exists: %v within owner %v", defaultProfileNamespace,
-				profile.Spec.Owner.Name)
 		}
 
 		if !apply.DefaultProfileNamespace(defaultProfileNamespace) {
@@ -709,16 +671,6 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfdefsv3.KfDef,
 			for i, param := range params {
 				paramName := strings.Split(param, "=")[0]
 				if val, ok := paramMap[paramName]; ok && val != "" {
-					switch paramName {
-					case "generateName":
-						arr := strings.Split(param, "=")
-						if len(arr) == 1 || arr[1] == "" {
-							b := make([]byte, 4) //equals 8 charachters
-							rand.Read(b)
-							s := hex.EncodeToString(b)
-							val += s
-						}
-					}
 					params[i] = paramName + "=" + val
 				} else {
 					switch paramName {
