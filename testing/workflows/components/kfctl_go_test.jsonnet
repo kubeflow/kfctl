@@ -1,4 +1,4 @@
-// Uses test from kubeflow/kubeflow/testing/workflows/components/kfctl_go_test.jsonnet
+// Uses test from kubeflow/kfctl/testing/workflows/components/kfctl_go_test.jsonnet
 // Any changes should reflect here and there
 
 // E2E test for the new go based version of kfctl.
@@ -29,11 +29,11 @@ local outputDir = testDir + "/output";
 local artifactsDir = outputDir + "/artifacts";
 // Source directory where all repos should be checked out
 local srcRootDir = testDir + "/src";
-// The directory containing the kubeflow/kubeflow repo
-local srcDir = srcRootDir + "/kubeflow/kubeflow";
+// The directory containing the kubeflow/kfctl repo
+local srcDir = srcRootDir + "/kubeflow/kfctl";
 
 local runPath = srcDir + "/testing/workflows/run.sh";
-local kfCtlPath = srcDir + "/bootstrap/bin/kfctl";
+local kfCtlPath = srcDir + "/bin/kfctl";
 local kubeConfig = testDir + "/kfctl_test/.kube/kubeconfig";
 
 // Name for the Kubeflow app.
@@ -202,7 +202,7 @@ local dagTemplates = [
                             env_vars=[{
                               name: "EXTRA_REPOS",
                               // TODO(jlewi): Stop pinning to 341 once its submitted.
-                              value: "kubeflow/kubeflow@HEAD;kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
+                              value: "kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
                             }]),
     dependencies: null,
   },  // checkout
@@ -236,7 +236,7 @@ local dagTemplates = [
         "-o", "junit_suite_name=test_kfctl_go_deploy_" + nameSuffix, 
         "--app_path=" + appDir,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: ["checkout"],
   },
