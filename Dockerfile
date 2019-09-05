@@ -2,11 +2,11 @@
 # Builder
 # 
 # Create a go runtime suitable for building and testing kfctl
-ARG GOLANG_VERSION=1.12.7
+ARG ALPINE_VERSION=3.10.1
+ARG GOLANG_VERSION=1.12.9-alpine3.10
 FROM golang:$GOLANG_VERSION as builder
 
-RUN apt-get update
-RUN apt-get install -y git unzip
+RUN apk add --no-cache bash build-base git python unzip wget
 
 # junit report is used to conver go test output to junit for reporting
 RUN go get -u github.com/jstemmer/go-junit-report
@@ -48,7 +48,8 @@ RUN make build-kfctl
 # Final image base
 #
 
-FROM alpine:3.10.1 as barebones_base
+FROM alpine:$ALPINE_VERSION as barebones_base
+RUN apk add --no-cache ca-certificates  # needed by kfctl
 RUN mkdir -p /opt/kubeflow
 WORKDIR /opt/kubeflow
 
@@ -60,4 +61,4 @@ FROM barebones_base as kfctl
 
 COPY --from=kfctl_base /go/src/github.com/kubeflow/kfctl/bin/kfctl /usr/local/bin
 
-CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]
+CMD ["/bin/sh", "-c", "trap : TERM INT; sleep 2147483647 & wait"]
