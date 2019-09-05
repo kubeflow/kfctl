@@ -49,7 +49,8 @@ RUN make build-kfctl
 #
 
 FROM alpine:$ALPINE_VERSION as barebones_base
-RUN apk add --no-cache ca-certificates  # needed by kfctl
+# ca-certificates is needed by kfctl to download archives from HTTPS URIs
+RUN apk add --no-cache ca-certificates
 RUN mkdir -p /opt/kubeflow
 WORKDIR /opt/kubeflow
 
