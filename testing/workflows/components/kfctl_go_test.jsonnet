@@ -260,7 +260,7 @@ local dagTemplates = [
         "-o", "junit_suite_name=test_kf_is_ready_" + nameSuffix,         
         "--app_path=" + appDir,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: ["kfctl-build-deploy"],
   },
@@ -293,7 +293,7 @@ local deleteStep = if deleteKubeflow then
         "--app_path=" + appDir,
         "--kfctl_path=" + kfCtlPath,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: null,
   }]
