@@ -90,7 +90,7 @@
     nfsVolumeClaim: "nfs-external",
     // The name to use for the volume to use to contain test data.
     dataVolume: "kubeflow-test-volume",
-    kubeflowPy: self.kfctlDir,
+    kubeflowPy: self.srcDir,
     // The directory within the kubeflow_testing submodule containing
     // py scripts to use.
     kubeflowTestingPy: self.srcRootDir + "/kubeflow/testing/py",
