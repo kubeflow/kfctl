@@ -2,15 +2,18 @@ package kustomize
 
 import (
 	"bytes"
+	"io/ioutil"
+	"path"
+	"reflect"
+	"testing"
+
 	"github.com/kubeflow/kfctl/v3/config"
 	kfdefsv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/otiai10/copy"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"path"
-	"reflect"
-	"testing"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func TestKustomize_BackfillOptions(t *testing.T) {
@@ -147,5 +150,28 @@ func TestGenerateKustomizationFile(t *testing.T) {
 		if bytes.Compare(data, expected) != 0 {
 			t.Fatalf("kustomization.yaml is different from expected.")
 		}
+	}
+}
+
+func Test_setRegistryHostname(t *testing.T) {
+	type args struct {
+		reponame string
+		hostname string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{name: "docker registry without username", args: args{reponame: "mysql", hostname: "test.io"}, want: "test.io/mysql"},
+		{name: "docker registry with username", args: args{reponame: "argoproj/argoui", hostname: "test.io"}, want: "test.io/argoproj/argoui"},
+		{name: "private registry", args: args{reponame: "gcr.io/kubeflow-images-public/ingress-setup", hostname: "test.io"}, want: "test.io/kubeflow-images-public/ingress-setup"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := setRegistryHostname(tt.args.reponame, tt.args.hostname); got != tt.want {
+				t.Errorf("setRegistryHostname() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -20,6 +20,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
@@ -32,7 +39,6 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	rbacv2 "k8s.io/api/rbac/v1"
 	crdclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,9 +46,6 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	"os"
-	"path"
-	"path/filepath"
 	"sigs.k8s.io/kustomize/k8sdeps"
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/image"
@@ -51,8 +54,6 @@ import (
 	"sigs.k8s.io/kustomize/pkg/resmap"
 	"sigs.k8s.io/kustomize/pkg/target"
 	"sigs.k8s.io/kustomize/pkg/types"
-	"strings"
-	"time"
 
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -901,6 +902,12 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 			return comp, nil
 		}
 	} else {
+		if kfDef.Spec.ImageRegistry != "" {
+			// use ImageRegistry as base kustomization
+			for _, img := range base.Images {
+				kustomization.Images = append(kustomization.Images, image.Image{Name: img.Name, NewName: setRegistryHostname(img.Name, kfDef.Spec.ImageRegistry)})
+			}
+		}
 		err := MergeKustomization(compDir, baseDir, kfDef, params, kustomization, base, kustomizationMaps)
 		if err != nil {
 			return nil, &kfapisv3.KfError{
@@ -1147,6 +1154,19 @@ func writeLines(lines []string, path string) error {
 func extractSuffix(dirPath string, subDirPath string) string {
 	suffix := strings.TrimPrefix(subDirPath, dirPath)[1:]
 	return suffix
+}
+
+func setRegistryHostname(reponame, hostname string) string {
+	i := strings.IndexRune(reponame, '/')
+	var result []string
+	if i == -1 || (!strings.ContainsAny(reponame[:i], ".:") && reponame[:i] != "localhost") {
+		// no hostname present, prepend
+		result = []string{hostname, reponame}
+	} else {
+		result = []string{hostname, reponame[i+1:]}
+	}
+
+	return strings.Join(result, "/")
 }
 
 func CreateKustomizationMaps() map[MapType]map[string]bool {

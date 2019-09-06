@@ -16,6 +16,11 @@ package v1alpha1
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	gogetter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
@@ -23,14 +28,10 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	valid "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
-	"path"
-	"strings"
 )
 
 const (
@@ -63,6 +64,7 @@ type KfDefSpec struct {
 	SkipInitProject    bool     `json:"skipInitProject,omitempty"`
 	UseIstio           bool     `json:"useIstio"`
 	EnableApplications bool     `json:"enableApplications"`
+	ImageRegistry      string   `json:"imageRegistry,omitempty"`
 	ServerVersion      string   `json:"serverVersion,omitempty"`
 	DeleteStorage      bool     `json:"deleteStorage,omitempty"`
 	PackageManager     string   `json:"packageManager,omitempty"`
