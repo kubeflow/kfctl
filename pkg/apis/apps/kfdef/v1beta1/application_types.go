@@ -15,7 +15,6 @@
 package v1beta1
 
 import (
-	"github.com/kubeflow/kfctl/v3/config"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,14 +50,20 @@ type Application struct {
 }
 
 type KustomizeConfig struct {
-	RepoRef    *RepoRef           `json:"repoRef,omitempty"`
-	Overlays   []string           `json:"overlays,omitempty"`
-	Parameters []config.NameValue `json:"parameters,omitempty"`
+	RepoRef    *RepoRef    `json:"repoRef,omitempty"`
+	Overlays   []string    `json:"overlays,omitempty"`
+	Parameters []NameValue `json:"parameters,omitempty"`
 }
 
 type RepoRef struct {
 	Name string `json:"name,omitempty"`
 	Path string `json:"path,omitempty"`
+}
+
+type NameValue struct {
+	Name         string `json:"name,omitempty"`
+	Value        string `json:"value,omitempty"`
+	InitRequired bool   `json:"initRequired,omitempty"`
 }
 
 // Plugin can be used to customize the generation and deployment of Kubeflow
