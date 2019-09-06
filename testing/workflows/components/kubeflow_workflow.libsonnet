@@ -77,8 +77,10 @@
     artifactsDir: self.outputDir + "/artifacts",
     // Source directory where all repos should be checked out
     srcRootDir: self.testDir + "/src",
-    // The directory containing the kubeflow/kfct repo
-    srcDir: self.srcRootDir + "/kubeflow/kfctl",
+    // The directory containing the kubeflow/kubeflow repo
+    srcDir: self.srcRootDir + "/kubeflow/kubeflow",
+    // The directory containing the kubeflow/kfctl repo
+    kfctlDir: self.srcRootDir + "/kubeflow/kfctl",
     image: "gcr.io/kubeflow-ci/test-worker:latest",
 
     // value of KUBECONFIG environment variable. This should be  a full path.
@@ -88,7 +90,7 @@
     nfsVolumeClaim: "nfs-external",
     // The name to use for the volume to use to contain test data.
     dataVolume: "kubeflow-test-volume",
-    kubeflowPy: self.srcDir,
+    kubeflowPy: self.kfctlDir,
     // The directory within the kubeflow_testing submodule containing
     // py scripts to use.
     kubeflowTestingPy: self.srcRootDir + "/kubeflow/testing/py",
