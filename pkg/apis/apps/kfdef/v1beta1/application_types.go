@@ -128,19 +128,36 @@ const (
 	// KfCreated means the KfDef spec has been created.
 	KfCreated KfDefConditionType = "Created"
 
-	// KfDeploying means Kubeflow is in the process of being deployed.
-	KfDeploying KfDefConditionType = "Deploying"
+	// KfPluginsRunning means kfctl is applying plugins.
+	KfPluginsRunning KfDefConditionType = "PluginsRunning"
+
+	// KfAllPluginsSucceeded means all plugins were applied successfully.
+	KfAllPluginsSucceeded KfDefConditionType = "AllPluginsSucceeded"
+
+	// KfKustomizeSucceeded means package manager successfully generated manifests needed.
+	KfKustomizeSucceeded KfDefConditionType = "KustomizeSucceeded"
 
 	// KfSucceeded means Kubeflow was successfully deployed.
 	KfSucceeded KfDefConditionType = "Succeeded"
 
 	// KfFailed meansthere was a problem deploying Kubeflow.
 	KfFailed KfDefConditionType = "Failed"
+)
 
-	// Reasons for conditions
+type KfDefConditionReason string
 
+const (
 	// InvalidKfDefSpecReason indicates the KfDef was not valid.
 	InvalidKfDefSpecReason = "InvalidKfDefSpec"
+
+	// InvalidPluginsReason indicates plugin(s) were not valid.
+	InvalidPluginsReason = "InvalidPlugins"
+
+	// InvalidSecretsReason indicates secret(s) were not valid.
+	InvalidSecretsReason = "InvalidSecrets"
+
+	// ApplyPluginsFailedReason indicates plugin(s) were not applied successfully.
+	ApplyPluginsFailedReason = "ApplyPluginsFailed"
 )
 
 type KfDefCondition struct {
@@ -153,7 +170,7 @@ type KfDefCondition struct {
 	// Last time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,7,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
-	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
+	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason,casttype=KfDefConditionReason"`
 	// A human readable message indicating details about the transition.
 	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
 }
