@@ -55,7 +55,7 @@ local nfsVolumeClaim = "nfs-external";
 // The name to use for the volume to use to contain test data.
 local dataVolume = "kubeflow-test-volume";
 local kfctlPy = srcDir;
-local kubeflowPy =  srcRootDir + "/kubeflow/kubeflow"
+local kubeflowPy =  srcRootDir + "/kubeflow/kubeflow";
 // The directory within the kubeflow_testing submodule containing
 // py scripts to use.
 local kubeflowTestingPy = srcRootDir + "/kubeflow/testing/py";
