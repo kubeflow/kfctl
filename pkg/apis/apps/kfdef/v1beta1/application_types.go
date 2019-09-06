@@ -125,23 +125,17 @@ type RepoCache struct {
 type KfDefConditionType string
 
 const (
-	// KfCreated means the KfDef spec has been created.
-	KfCreated KfDefConditionType = "Created"
+	// KfAvailable means Kubeflow is serving.
+	KfAvailable KfDefConditionType = "Available"
 
-	// KfPluginsRunning means kfctl is applying plugins.
-	KfPluginsRunning KfDefConditionType = "PluginsRunning"
+	// KfDegraded means functionality of Kubeflow is limited.
+	KfDegraded KfDefConditionType = "Degraded"
 
-	// KfAllPluginsSucceeded means all plugins were applied successfully.
-	KfAllPluginsSucceeded KfDefConditionType = "AllPluginsSucceeded"
+	// KfPluginsProgressing means kfctl is applying plugins.
+	KfPluginsProgressing KfDefConditionType = "PluginsProgressing"
 
-	// KfKustomizeSucceeded means package manager successfully generated manifests needed.
-	KfKustomizeSucceeded KfDefConditionType = "KustomizeSucceeded"
-
-	// KfSucceeded means Kubeflow was successfully deployed.
-	KfSucceeded KfDefConditionType = "Succeeded"
-
-	// KfFailed meansthere was a problem deploying Kubeflow.
-	KfFailed KfDefConditionType = "Failed"
+	// KfKustomizeProgressing means kfctl is running package manager.
+	KfKustomizeProgressing KfDefConditionType = "KustomizeProgressing"
 )
 
 type KfDefConditionReason string
