@@ -15,7 +15,7 @@ workflows:
       configPath: bootstrap/config/kfctl_gcp_iap.yaml
   - app_dir: kubeflow/kfctl/testing/workflows
     component: kfctl_go_test
-    name: k8s_cfg
+    name: k8s-cfg
     job_types:
       - presubmit
     params:
