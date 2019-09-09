@@ -155,10 +155,11 @@ type Repo struct {
 type KfDefStatus struct {
 	Conditions []KfDefCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 	// ReposCache is used to cache information about local caching of the URIs.
-	ReposCache map[string]RepoCache `json:"reposCache,omitempty"`
+	ReposCache []RepoCache `json:"reposCache,omitempty"`
 }
 
 type RepoCache struct {
+	Name      string `json:"name,omitempty"`
 	LocalPath string `json:"localPath,string"`
 }
 
