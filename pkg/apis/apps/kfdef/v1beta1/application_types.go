@@ -124,16 +124,11 @@ type Secret struct {
 
 type SecretSource struct {
 	LiteralSource *LiteralSource `json:"literalSource,omitempty"`
-	HashedSource  *HashedSource  `json:"hashedSource,omitempty"`
 	EnvSource     *EnvSource     `json:"envSource,omitempty"`
 }
 
 type LiteralSource struct {
 	Value string `json:"value,omitempty"`
-}
-
-type HashedSource struct {
-	HashedValue string `json:"value,omitempty"`
 }
 
 type EnvSource struct {
