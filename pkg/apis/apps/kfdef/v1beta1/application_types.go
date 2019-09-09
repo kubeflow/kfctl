@@ -115,8 +115,7 @@ type Plugin struct {
 }
 
 // Secret provides information about secrets needed to configure Kubeflow.
-// Secrets can be provided via references e.g. a URI so that they won't
-// be serialized as part of the KfDefSpec which is intended to be written into source control.
+// Secrets can be provided via references.
 type Secret struct {
 	Name         string        `json:"name,omitempty"`
 	SecretSource *SecretSource `json:"secretSource,omitempty"`
