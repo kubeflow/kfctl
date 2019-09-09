@@ -182,16 +182,16 @@ type KfDefConditionReason string
 
 const (
 	// InvalidKfDefSpecReason indicates the KfDef was not valid.
-	InvalidKfDefSpecReason = "InvalidKfDefSpec"
+	InvalidKfDefSpecReason KfDefConditionReason = "InvalidKfDefSpec"
 
 	// InvalidPluginsReason indicates plugin(s) were not valid.
-	InvalidPluginsReason = "InvalidPlugins"
+	InvalidPluginsReason KfDefConditionReason = "InvalidPlugins"
 
 	// InvalidSecretsReason indicates secret(s) were not valid.
-	InvalidSecretsReason = "InvalidSecrets"
+	InvalidSecretsReason KfDefConditionReason = "InvalidSecrets"
 
 	// ApplyPluginsFailedReason indicates plugin(s) were not applied successfully.
-	ApplyPluginsFailedReason = "ApplyPluginsFailed"
+	ApplyPluginsFailedReason KfDefConditionReason = "ApplyPluginsFailed"
 )
 
 type KfDefCondition struct {
