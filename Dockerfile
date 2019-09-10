@@ -4,7 +4,7 @@
 # Create a go runtime suitable for building and testing kfctl
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
-ENV KUSTOMIZE_VERSION 2.0.3
+ENV KUSTOMIZE_VERSION 3.1.0
 
 RUN apt-get update
 RUN apt-get install -y git unzip
@@ -37,6 +37,7 @@ WORKDIR ${GOPATH}/src/github.com/kubeflow/kfctl
 # Download dependencies first to optimize Docker caching.
 COPY go.mod .
 COPY go.sum .
+RUN go mod download
 # Copy in the source
 COPY . .
 

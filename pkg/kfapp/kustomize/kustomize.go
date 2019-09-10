@@ -41,9 +41,6 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	kubectlapply "k8s.io/kubernetes/pkg/kubectl/cmd/apply"
-	kubectldelete "k8s.io/kubernetes/pkg/kubectl/cmd/delete"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"math/rand"
 	"os"
 	"path"
@@ -754,7 +751,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfdefsv3.KfDef,
 	if child.Bases == nil {
 		basePath := extractSuffix(compDir, targetDir)
 		if _, ok := kustomizationMaps[basesMap][basePath]; !ok {
-			parent.Resources = append(parent.Resources, basePath)
+			parent.Bases = append(parent.Bases, basePath)
 			kustomizationMaps[basesMap][basePath] = true
 		}
 		return nil
