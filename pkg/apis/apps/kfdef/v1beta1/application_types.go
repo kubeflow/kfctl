@@ -165,12 +165,6 @@ const (
 
 	// KfDegraded means functionality of Kubeflow is limited.
 	KfDegraded KfDefConditionType = "Degraded"
-
-	// KfPluginsProgressing means kfctl is applying plugins.
-	KfPluginsProgressing KfDefConditionType = "PluginsProgressing"
-
-	// KfKustomizeProgressing means kfctl is running package manager.
-	KfKustomizeProgressing KfDefConditionType = "KustomizeProgressing"
 )
 
 type KfDefConditionReason string
@@ -178,15 +172,6 @@ type KfDefConditionReason string
 const (
 	// InvalidKfDefSpecReason indicates the KfDef was not valid.
 	InvalidKfDefSpecReason KfDefConditionReason = "InvalidKfDefSpec"
-
-	// InvalidPluginsReason indicates plugin(s) were not valid.
-	InvalidPluginsReason KfDefConditionReason = "InvalidPlugins"
-
-	// InvalidSecretsReason indicates secret(s) were not valid.
-	InvalidSecretsReason KfDefConditionReason = "InvalidSecrets"
-
-	// ApplyPluginsFailedReason indicates plugin(s) were not applied successfully.
-	ApplyPluginsFailedReason KfDefConditionReason = "ApplyPluginsFailed"
 )
 
 type KfDefCondition struct {
