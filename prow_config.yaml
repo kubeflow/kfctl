@@ -1,20 +1,15 @@
 # This file configures the workflows to trigger in our Prow jobs.
 # see kubeflow/testing/py/run_e2e_workflow.py
 workflows:
-#- app_dir: kubeflow/kfctl/testing/workflows
-#  component: kfctl_go_test
-#  name: kfctl-go
-#  job_types:
-#  - presubmit
-#  params:
-#    platform: gke
-#    gkeApiVersion: v1
-#    workflowName: kfctl-go
-#    useIstio: true
-#    version: master
-#    configPath: bootstrap/config/kfctl_gcp_iap.yaml
-- name: run-e2e-pipelinerun
-  py_func: kubeflow.testing.tektoncd_client.run_pipeline
-  kwargs:
-    config: https://raw.githubusercontent.com/kkasravi/manifests/e2e-pipelineruns/kfdef/gcp/kfctl-gcp-e2e-pipelinerun.yaml
-    app_dir: /Users/kdkasrav/kubeflow-e2e
+  - app_dir: kubeflow/kfctl/testing/workflows
+    component: kfctl_go_test
+    name: kfctl-go
+    job_types:
+      - presubmit
+    params:
+      platform: gke
+      gkeApiVersion: v1
+      workflowName: kfctl-go
+      useIstio: true
+      version: master
+      configPath: bootstrap/config/kfctl_gcp_iap.yaml
