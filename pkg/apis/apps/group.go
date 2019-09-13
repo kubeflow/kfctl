@@ -336,7 +336,7 @@ func GetApiExtClientset(config *rest.Config) apiext.ApiextensionsV1beta1Interfac
 // Remove unvalid characters to compile a valid name for default Profile. To prevent
 // violation to the naming length restriction, ignore everything after `@`.
 func EmailToDefaultName(email string) string {
-	name := strings.NewReplacer(".", "-").Replace(email)
+	name := strings.NewReplacer(".", "-", "_", "-").Replace(email)
 	splitted := strings.Split(name, "@")
 	if len(splitted) > 1 {
 		return "kubeflow-" + splitted[0]
