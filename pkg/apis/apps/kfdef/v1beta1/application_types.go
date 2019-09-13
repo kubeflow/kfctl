@@ -70,40 +70,9 @@ const (
 	ParamTypeArray  ParamType = "array"
 )
 
-// ArrayOrString is a type that can hold a single string or string array.
-// Used in JSON unmarshalling so that a single JSON field can accept
-// either an individual string or an array of strings.
-type ArrayOrString struct {
-	Type      ParamType // Represents the stored type of ArrayOrString.
-	StringVal string
-	ArrayVal  []string
-}
-
-// UnmarshalJSON implements the json.Unmarshaller interface.
-func (arrayOrString *ArrayOrString) UnmarshalJSON(value []byte) error {
-	if value[0] == '"' {
-		arrayOrString.Type = ParamTypeString
-		return json.Unmarshal(value, &arrayOrString.StringVal)
-	}
-	arrayOrString.Type = ParamTypeArray
-	return json.Unmarshal(value, &arrayOrString.ArrayVal)
-}
-
-// MarshalJSON implements the json.Marshaller interface.
-func (arrayOrString ArrayOrString) MarshalJSON() ([]byte, error) {
-	switch arrayOrString.Type {
-	case ParamTypeString:
-		return json.Marshal(arrayOrString.StringVal)
-	case ParamTypeArray:
-		return json.Marshal(arrayOrString.ArrayVal)
-	default:
-		return []byte{}, fmt.Errorf("impossible ArrayOrString.Type: %q", arrayOrString.Type)
-	}
-}
-
 type NameValue struct {
-	Name  string        `json:"name,omitempty"`
-	Value ArrayOrString `json:"value,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // Plugin can be used to customize the generation and deployment of Kubeflow
