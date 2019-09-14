@@ -80,7 +80,7 @@ type Plugin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec *runtime.Object `json:"spec,omitempty"`
+	Spec *runtime.RawExtension `json:"spec,omitempty"`
 }
 
 // Secret provides information about secrets needed to configure Kubeflow.
