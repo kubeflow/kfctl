@@ -29,13 +29,6 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KfDefList contains a list of KfDef
-type KfDefList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KfDef `json:"items"`
-}
-
 // KfDef is the Schema for the applications API
 // +k8s:openapi-gen=true
 type KfDef struct {
@@ -44,6 +37,15 @@ type KfDef struct {
 
 	Spec   KfDefSpec   `json:"spec,omitempty"`
 	Status KfDefStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KfDefList contains a list of KfDef
+type KfDefList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KfDef `json:"items"`
 }
 
 type KfDefSpec struct {
