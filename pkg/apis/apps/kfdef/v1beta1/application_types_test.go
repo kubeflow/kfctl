@@ -1,6 +1,13 @@
 package v1beta1
 
 import (
+	"encoding/json"
+	"github.com/ghodss/yaml"
+	"github.com/prometheus/common/log"
+	"io/ioutil"
+	"os"
+	"path"
+	"reflect"
 	"testing"
 )
 
@@ -57,4 +64,16 @@ func TestKfDef_GetPluginSpec(t *testing.T) {
 			t.Errorf("Error parsing plugin spec got;\n%v\nwant;\n%v", pGot, pWant)
 		}
 	}
+}
+
+// Pformat returns a pretty format output of any value.
+func Pformat(value interface{}) (string, error) {
+	if s, ok := value.(string); ok {
+		return s, nil
+	}
+	valueJson, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(valueJson), nil
 }

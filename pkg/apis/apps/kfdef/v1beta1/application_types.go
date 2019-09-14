@@ -15,6 +15,9 @@
 package v1beta1
 
 import (
+	"fmt"
+	"github.com/ghodss/yaml"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +28,13 @@ const (
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KfDefList contains a list of KfDef
+type KfDefList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KfDef `json:"items"`
+}
 
 // KfDef is the Schema for the applications API
 // +k8s:openapi-gen=true
@@ -156,4 +166,55 @@ type KfDefCondition struct {
 	Reason string `json:"reason,omitempty"`
 	// A human readable message indicating details about the transition.
 	Message string `json:"message,omitempty"`
+}
+
+// GetPluginSpec will try to unmarshal the spec for the specified plugin to the supplied
+// interface. Returns an error if the plugin isn't defined or if there is a problem
+// unmarshaling it.
+func (d *KfDef) GetPluginSpec(pluginName string, s interface{}) error {
+	for _, p := range d.Spec.Plugins {
+		if p.Name != pluginName {
+			continue
+		}
+
+		// To deserialize it to a specific type we need to first serialize it to bytes
+		// and then unserialize it.
+		specBytes, err := yaml.Marshal(p.Spec)
+
+		if err != nil {
+			log.Errorf("Could not marshal plugin %v args; error %v", pluginName, err)
+			return err
+		}
+
+		err = yaml.Unmarshal(specBytes, s)
+
+		if err != nil {
+			log.Errorf("Could not unmarshal plugin %v to the provided type; error %v", pluginName, err)
+		}
+		return nil
+	}
+
+	return NewPluginNotFound(pluginName)
+}
+
+type PluginNotFound struct {
+	Name string
+}
+
+func (e *PluginNotFound) Error() string {
+	return fmt.Sprintf("Missing plugin %v", e.Name)
+}
+
+func NewPluginNotFound(n string) *PluginNotFound {
+	return &PluginNotFound{
+		Name: n,
+	}
+}
+
+func IsPluginNotFound(e error) bool {
+	if e == nil {
+		return false
+	}
+	_, ok := e.(*PluginNotFound)
+	return ok
 }
