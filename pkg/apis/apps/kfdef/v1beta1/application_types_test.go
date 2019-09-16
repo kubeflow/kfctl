@@ -11,9 +11,22 @@ import (
 	"testing"
 )
 
-type FakePluginSpec struct {
-	Param     string `json:"param,omitempty"`
-	BoolParam bool   `json:"boolParam,omitempty"`
+type FakeOAuthSecret struct {
+	Name string `json:"name,omitempty"`
+}
+
+type FakeIap struct {
+	OAuthClientId     string          `json:"oAuthClientId,omitempty"`
+	OAuthClientSecret FakeOAuthSecret `json::"oAuthClientSecret,omitempty"`
+}
+
+type FakeAuth struct {
+	Iap FakeIap `json:"iap,omitempty"`
+}
+
+type GcpFakePluginSpec struct {
+	Auth                            FakeAuth `json:"auth,omitempty"`
+	CreatePipelinePersistentStorage bool     `json:"createPipelinePersistentStorage,omitempty"`
 }
 
 func TestKfDef_GetPluginSpec(t *testing.T) {
@@ -21,16 +34,23 @@ func TestKfDef_GetPluginSpec(t *testing.T) {
 	type testCase struct {
 		Filename   string
 		PluginName string
-		Expected   *FakePluginSpec
+		Expected   *GcpFakePluginSpec
 	}
 
 	cases := []testCase{
 		{
 			Filename:   "kfctl_plugin_test.yaml",
-			PluginName: "fakeplugin",
-			Expected: &FakePluginSpec{
-				Param:     "someparam",
-				BoolParam: true,
+			PluginName: "gcp-fake-plugin",
+			Expected: &GcpFakePluginSpec{
+				Auth: FakeAuth{
+					Iap: FakeIap{
+						OAuthClientId: "foo-user",
+						OAuthClientSecret: FakeOAuthSecret{
+							Name: "CLIENT_SECRET",
+						},
+					},
+				},
+				CreatePipelinePersistentStorage: true,
 			},
 		},
 	}
@@ -51,7 +71,7 @@ func TestKfDef_GetPluginSpec(t *testing.T) {
 			t.Fatalf("Could not parse as KfDef error %v", err)
 		}
 
-		actual := &FakePluginSpec{}
+		actual := &GcpFakePluginSpec{}
 		err = d.GetPluginSpec(c.PluginName, actual)
 
 		if err != nil {
