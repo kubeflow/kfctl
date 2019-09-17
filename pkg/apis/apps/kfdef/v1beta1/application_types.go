@@ -113,7 +113,7 @@ type Repo struct {
 	// URI where repository can be obtained.
 	// Can use any URI understood by go-getter:
 	// https://github.com/hashicorp/go-getter/blob/master/README.md#installation-and-usage
-	Uri string `json:"uri,omitempty"`
+	URI string `json:"uri,omitempty"`
 }
 
 // KfDefStatus defines the observed state of KfDef
