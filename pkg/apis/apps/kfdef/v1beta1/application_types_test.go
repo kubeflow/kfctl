@@ -1,8 +1,8 @@
 package v1beta1
 
 import (
-	"encoding/json"
 	"github.com/ghodss/yaml"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"os"
@@ -79,21 +79,9 @@ func TestKfDef_GetPluginSpec(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(actual, c.Expected) {
-			pGot, _ := Pformat(actual)
-			pWant, _ := Pformat(c.Expected)
+			pGot := kfutils.PrettyPrint(actual)
+			pWant := kfutils.PrettyPrint(c.Expected)
 			t.Errorf("Error parsing plugin spec got;\n%v\nwant;\n%v", pGot, pWant)
 		}
 	}
-}
-
-// Pformat returns a pretty format output of any value.
-func Pformat(value interface{}) (string, error) {
-	if s, ok := value.(string); ok {
-		return s, nil
-	}
-	valueJson, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(valueJson), nil
 }
