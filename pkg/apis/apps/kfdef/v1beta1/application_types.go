@@ -17,14 +17,20 @@ package v1beta1
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
+	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 )
 
 const (
 	KfConfigFile = "app.yaml"
+
+	// Used for populating plugin missing errors and identifying those
+	// errors.
+	notFoundErrPrefix = "Missing plugin"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -186,20 +192,9 @@ func (d *KfDef) GetPluginSpec(pluginName string, s interface{}) error {
 		return nil
 	}
 
-	return NewPluginNotFound(pluginName)
-}
-
-type PluginNotFound struct {
-	Name string
-}
-
-func (e *PluginNotFound) Error() string {
-	return fmt.Sprintf("Missing plugin %v", e.Name)
-}
-
-func NewPluginNotFound(n string) *PluginNotFound {
-	return &PluginNotFound{
-		Name: n,
+	return &kfapis.KfError{
+		Code:    int(kfapis.NOT_FOUND),
+		Message: fmt.Sprintf("%v %v", notFoundErrPrefix, pluginName),
 	}
 }
 
@@ -207,6 +202,6 @@ func IsPluginNotFound(e error) bool {
 	if e == nil {
 		return false
 	}
-	_, ok := e.(*PluginNotFound)
-	return ok
+	err, ok := e.(*kfapis.KfError)
+	return ok && err.Code == int(kfapis.NOT_FOUND) && strings.HasPrefix(err.Message, notFoundErrPrefix)
 }
