@@ -72,16 +72,6 @@ type RepoRef struct {
 	Path string `json:"path,omitempty"`
 }
 
-// ParamType indicates the type of an input parameter;
-// Used to distinguish between a single string and an array of strings.
-type ParamType string
-
-// Valid ParamTypes:
-const (
-	ParamTypeString ParamType = "string"
-	ParamTypeArray  ParamType = "array"
-)
-
 type NameValue struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
