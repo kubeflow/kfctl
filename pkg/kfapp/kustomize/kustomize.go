@@ -100,6 +100,8 @@ type kustomize struct {
 	componentMap     map[string]bool
 	packageMap       map[string]*[]string
 	restConfig       *rest.Config
+	// when set to true, apply() will skip local kube config, directly build config from restConfig
+	configOverwrite bool
 }
 
 const (
@@ -246,7 +248,11 @@ func (kustomize *kustomize) initK8sClients() error {
 
 // Apply deploys kustomize generated resources to the kubenetes api server
 func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
-	apply, err := utils.NewApply(kustomize.kfDef.ObjectMeta.Namespace)
+	var restConfig *rest.Config = nil
+	if kustomize.configOverwrite && kustomize.restConfig != nil {
+		restConfig = kustomize.restConfig
+	}
+	apply, err := utils.NewApply(kustomize.kfDef.ObjectMeta.Namespace, restConfig)
 	if err != nil {
 		return err
 	}
@@ -588,6 +594,7 @@ func (kustomize *kustomize) mapDirs(dirPath string, root bool, depth int, leafMa
 
 func (kustomize *kustomize) SetK8sRestConfig(r *rest.Config) {
 	kustomize.restConfig = r
+	kustomize.configOverwrite = true
 }
 
 // GetKustomization will read a kustomization.yaml and return Kustomization type
