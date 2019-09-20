@@ -23,6 +23,12 @@ RUN \
 
 ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 
+# Install kubectl
+# We don't install via gcloud because we want the latest stable which is newer than what's in gcloud.
+RUN  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
+    mv kubectl /usr/local/bin && \
+    chmod a+x /usr/local/bin/kubectl
+
 # use go modules
 ENV GO111MODULE=on
 ENV GOPATH=/go
@@ -48,7 +54,7 @@ COPY . .
 #
 FROM builder as kfctl_base
 
-RUN make build-kfctl
+RUN make install
 
 #**********************************************************************
 #
