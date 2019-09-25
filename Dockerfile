@@ -4,13 +4,13 @@
 # Create a go runtime suitable for building and testing kfctl
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
-ENV KUSTOMIZE_VERSION 2.0.3
+ENV KUSTOMIZE_VERSION 3.2.0
 
 ARG BRANCH=master
 ARG REPO=https://github.com/kubeflow/kubeflow
 
 RUN apt-get update
-RUN apt-get install -y git unzip
+RUN apt-get install -y git unzip jq
 
 # junit report is used to conver go test output to junit for reporting
 RUN go get -u github.com/jstemmer/go-junit-report
