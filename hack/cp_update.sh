@@ -53,7 +53,7 @@ EOF
 updategomod()
 {
     ex -s go.mod <<EOF1
-%s#github.com/kubeflow/kubeflow/components/profile-controller/v2 =>.*$#github.com/kubeflow/kubeflow/components/profile-controller/v2 => ../kubeflow/components/profile-controller#g
+%s/^\(.*\)github.com\/kubeflow\/kubeflow\/components\/profile-controller\/v2 =>.*$/\1github.com\/kubeflow\/kubeflow\/components\/profile-controller\/v2 => ..\/kubeflow\/components\/profile-controller/g
 w
 q
 EOF1

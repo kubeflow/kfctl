@@ -83,6 +83,11 @@ const (
 	BASIC_AUTH_SECRET = "kubeflow-login"
 	KUBECONFIG_FORMAT = "gke_{project}_{zone}_{cluster}"
 
+	// The default path in kubeflow/kubeflow to the deployment manager configs.
+	// TODO(jlewi): This is only provided for legacy reasons. In 0.7 the path should be set explicitly
+	// in the KfDef spec.
+	DEFAULT_DM_PATH = "deployment/gke/deployment_manager_configs"
+
 	// Plugin parameter constants
 	GcpPluginName               = kftypesv3.GCP
 	GcpAccessTokenName          = "accessToken"
@@ -1283,15 +1288,15 @@ func (gcp *Gcp) generateDMConfigs() error {
 				gcpConfigDirErr, appDir),
 		}
 	}
-	repo, ok := gcp.kfDef.Status.ReposCache[kftypesv3.KubeflowRepoName]
+	repo, ok := gcp.kfDef.Status.ReposCache[pluginSpec.DeploymentManagerConfig.RepoRef.Name]
 
 	if !ok {
-		err := fmt.Errorf("Repo %v not found in KfDef.Status.ReposCache", kftypesv3.KubeflowRepoName)
+		err := fmt.Errorf("Repo %v not found in KfDef.Status.ReposCache", pluginSpec.DeploymentManagerConfig.RepoRef.Name)
 		log.Errorf("%v", err)
 		return errors.WithStack(err)
 	}
 
-	sourceDir := path.Join(repo.LocalPath, "deployment/gke/deployment_manager_configs")
+	sourceDir := path.Join(repo.LocalPath, pluginSpec.DeploymentManagerConfig.RepoRef.Path)
 	files := []string{"cluster.jinja", "cluster.jinja.schema", "storage.jinja",
 		"storage.jinja.schema"}
 	for _, file := range files {
@@ -1915,6 +1920,18 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 		}
 	}
 
+	// Initialize the deployment manager configs.
+	if pluginSpec.DeploymentManagerConfig == nil {
+		pluginSpec.DeploymentManagerConfig = &DeploymentManagerConfig{}
+	}
+
+	if pluginSpec.DeploymentManagerConfig.RepoRef == nil {
+		pluginSpec.DeploymentManagerConfig.RepoRef = &kfdefs.RepoRef{
+			Name: kftypesv3.KubeflowRepoName,
+			Path: DEFAULT_DM_PATH,
+		}
+	}
+
 	return gcp.kfDef.SetPluginSpec(GcpPluginName, pluginSpec)
 }
 
@@ -2114,9 +2131,6 @@ func (gcp *Gcp) gcpInitProject() error {
 
 // Init initializes a gcp kfapp
 func (gcp *Gcp) Init(resources kftypesv3.ResourceEnum) error {
-	// TODO(jlewi): Can we get rid of this now that we ware using kustomize?
-	swaggerFile := filepath.Join(path.Dir(gcp.kfDef.Spec.Repo), kftypesv3.DefaultSwaggerFile)
-	gcp.kfDef.Spec.ServerVersion = "file:" + swaggerFile
 	createConfigErr := gcp.kfDef.WriteToConfigFile()
 	if createConfigErr != nil {
 		return &kfapis.KfError{

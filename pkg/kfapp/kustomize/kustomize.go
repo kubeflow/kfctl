@@ -29,7 +29,7 @@ import (
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfdefsv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
-	profilev2 "github.com/kubeflow/kubeflow/components/profile-controller/pkg/apis/kubeflow/v1alpha1"
+	profilev2 "github.com/kubeflow/kubeflow/components/profile-controller/v2/pkg/apis/kubeflow/v1alpha1"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -45,14 +45,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sigs.k8s.io/kustomize/k8sdeps"
-	"sigs.k8s.io/kustomize/pkg/fs"
-	"sigs.k8s.io/kustomize/pkg/image"
-	"sigs.k8s.io/kustomize/pkg/loader"
-	"sigs.k8s.io/kustomize/pkg/patch"
-	"sigs.k8s.io/kustomize/pkg/resmap"
-	"sigs.k8s.io/kustomize/pkg/target"
-	"sigs.k8s.io/kustomize/pkg/types"
+	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
+	"sigs.k8s.io/kustomize/v3/k8sdeps/transformer"
+	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/v3/pkg/image"
+	"sigs.k8s.io/kustomize/v3/pkg/loader"
+	"sigs.k8s.io/kustomize/v3/pkg/plugins"
+	"sigs.k8s.io/kustomize/v3/pkg/resmap"
+	"sigs.k8s.io/kustomize/v3/pkg/resource"
+	"sigs.k8s.io/kustomize/v3/pkg/target"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/v3/pkg/validators"
+	"sigs.k8s.io/kustomize/v3/plugin/builtin"
 	"strings"
 	"time"
 
@@ -100,6 +104,8 @@ type kustomize struct {
 	componentMap     map[string]bool
 	packageMap       map[string]*[]string
 	restConfig       *rest.Config
+	// when set to true, apply() will skip local kube config, directly build config from restConfig
+	configOverwrite bool
 }
 
 const (
@@ -246,7 +252,11 @@ func (kustomize *kustomize) initK8sClients() error {
 
 // Apply deploys kustomize generated resources to the kubenetes api server
 func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
-	apply, err := utils.NewApply(kustomize.kfDef.ObjectMeta.Namespace)
+	var restConfig *rest.Config = nil
+	if kustomize.configOverwrite && kustomize.restConfig != nil {
+		restConfig = kustomize.restConfig
+	}
+	apply, err := utils.NewApply(kustomize.kfDef.ObjectMeta.Namespace, restConfig)
 	if err != nil {
 		return err
 	}
@@ -262,7 +272,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			}
 		}
 		//TODO this should be streamed
-		data, err := resMap.EncodeAsYaml()
+		data, err := resMap.AsYaml()
 		if err != nil {
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
@@ -588,6 +598,7 @@ func (kustomize *kustomize) mapDirs(dirPath string, root bool, depth int, leafMa
 
 func (kustomize *kustomize) SetK8sRestConfig(r *rest.Config) {
 	kustomize.restConfig = r
+	kustomize.configOverwrite = true
 }
 
 // GetKustomization will read a kustomization.yaml and return Kustomization type
@@ -856,14 +867,14 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfdefsv3.KfDef,
 		patchAbsoluteFile := filepath.Join(targetDir, string(value))
 		patchFile := extractSuffix(compDir, patchAbsoluteFile)
 		if _, ok := kustomizationMaps[patchesStrategicMergeMap][patchFile]; !ok {
-			patchFileCasted := patch.StrategicMerge(patchFile)
+			patchFileCasted := types.PatchStrategicMerge(patchFile)
 			parent.PatchesStrategicMerge = append(parent.PatchesStrategicMerge, patchFileCasted)
 			kustomizationMaps[patchesStrategicMergeMap][patchFile] = true
 		}
 	}
 	// json patches are aggregated and merged into local patch files
 	for _, value := range child.PatchesJson6902 {
-		patchJson := new(patch.Json6902)
+		patchJson := new(types.PatchJson6902)
 		patchJson.Target = value.Target
 		patchAbsolutePath := filepath.Join(targetDir, value.Path)
 		patchJson.Path = extractSuffix(compDir, patchAbsolutePath)
@@ -895,8 +906,8 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 		Bases:                 make([]string, 0),
 		CommonLabels:          make(map[string]string),
 		CommonAnnotations:     make(map[string]string),
-		PatchesStrategicMerge: make([]patch.StrategicMerge, 0),
-		PatchesJson6902:       make([]patch.Json6902, 0),
+		PatchesStrategicMerge: make([]types.PatchStrategicMerge, 0),
+		PatchesJson6902:       make([]types.PatchJson6902, 0),
 		Images:                make([]image.Image, 0),
 		Vars:                  make([]types.Var, 0),
 		Crds:                  make([]string, 0),
@@ -946,25 +957,25 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 		}
 	}
 	if len(kustomization.PatchesJson6902) > 0 {
-		patches := map[string][]patch.Json6902{}
+		patches := map[string][]types.PatchJson6902{}
 		for _, jsonPatch := range kustomization.PatchesJson6902 {
 			key := jsonPatch.Target.Name + "-" + jsonPatch.Target.Kind
 			if _, exists := patches[key]; !exists {
-				patchArray := make([]patch.Json6902, 0)
+				patchArray := make([]types.PatchJson6902, 0)
 				patchArray = append(patchArray, jsonPatch)
 				patches[key] = patchArray
 			} else {
 				patches[key] = append(patches[key], jsonPatch)
 			}
 		}
-		kustomization.PatchesJson6902 = make([]patch.Json6902, 0)
+		kustomization.PatchesJson6902 = make([]types.PatchJson6902, 0)
 		aggregatedPatchOps := make([]byte, 0)
 		patchFile := ""
 		for key, values := range patches {
-			aggregatedPatch := new(patch.Json6902)
+			aggregatedPatch := new(types.PatchJson6902)
 			aggregatedPatch.Path = key + ".yaml"
 			patchFile = path.Join(compDir, aggregatedPatch.Path)
-			aggregatedPatch.Target = new(patch.Target)
+			aggregatedPatch.Target = new(types.PatchTarget)
 			aggregatedPatch.Target.Name = values[0].Target.Name
 			aggregatedPatch.Target.Namespace = values[0].Target.Namespace
 			aggregatedPatch.Target.Group = values[0].Target.Group
@@ -1058,10 +1069,8 @@ func GenerateKustomizationFile(kfDef *kfdefsv3.KfDef, root string,
 			//TODO look at sort options
 			//See https://github.com/kubernetes-sigs/kustomize/issues/821
 			//TODO upgrade to v2.0.4 when available
-			if kfDef.Spec.EnableApplications {
-				baseKfDef.Spec.Components = moveToFront("application", baseKfDef.Spec.Components)
-				baseKfDef.Spec.Components = moveToFront("application-crds", baseKfDef.Spec.Components)
-			}
+			baseKfDef.Spec.Components = moveToFront("application", baseKfDef.Spec.Components)
+			baseKfDef.Spec.Components = moveToFront("application-crds", baseKfDef.Spec.Components)
 			if kfDef.Spec.UseIstio {
 				baseKfDef.Spec.Components = moveToFront("istio", baseKfDef.Spec.Components)
 				baseKfDef.Spec.Components = moveToFront("istio-install", baseKfDef.Spec.Components)
@@ -1085,14 +1094,16 @@ func GenerateKustomizationFile(kfDef *kfdefsv3.KfDef, root string,
 
 // EvaluateKustomizeManifest evaluates the kustomize dir compDir, and returns the resources.
 func EvaluateKustomizeManifest(compDir string) (resmap.ResMap, error) {
-	factory := k8sdeps.NewFactory()
 	fsys := fs.MakeRealFS()
-	_loader, loaderErr := loader.NewLoader(compDir, fsys)
-	if loaderErr != nil {
-		return nil, fmt.Errorf("could not load kustomize loader: %v", loaderErr)
+	lrc := loader.RestrictionRootOnly
+	ldr, err := loader.NewLoader(lrc, validators.MakeFakeValidator(), compDir, fsys)
+	if err != nil {
+		return nil, err
 	}
-	defer _loader.Cleanup()
-	kt, err := target.NewKustTarget(_loader, factory.ResmapF, factory.TransformerF)
+	defer ldr.Cleanup()
+	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), transformer.NewFactoryImpl())
+	pc := plugins.DefaultPluginConfig()
+	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl(), plugins.NewLoader(pc, rf))
 	if err != nil {
 		return nil, err
 	}
@@ -1100,12 +1111,19 @@ func EvaluateKustomizeManifest(compDir string) (resmap.ResMap, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = builtin.NewLegacyOrderTransformerPlugin().Transform(allResources)
+	if err != nil {
+		return nil, err
+	}
 	return allResources, nil
 }
 
 func WriteKustomizationFile(name string, kustomizeDir string, resMap resmap.ResMap) error {
+
 	// Output the objects.
-	yamlResources, yamlResourcesErr := resMap.EncodeAsYaml()
+
+	yamlResources, yamlResourcesErr := resMap.AsYaml()
+
 	if yamlResourcesErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),

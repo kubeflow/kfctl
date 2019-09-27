@@ -19,8 +19,8 @@ GOPATH ?= $(HOME)/go
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
 TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
-REPO ?= $(shell echo $$(pushd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
-BRANCH ?= $(shell pushd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
+REPO ?= $(shell echo $$(cd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
+BRANCH ?= $(shell cd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
 KFCTL_TARGET ?= kfctl
 MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
 MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
