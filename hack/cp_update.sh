@@ -50,4 +50,13 @@ EOF
   done
 }
 
-preclean && cpdirs && updatefiles
+updategomod()
+{
+    ex -s go.mod <<EOF1
+%s#github.com/kubeflow/kubeflow/components/profile-controller/v2 =>.*$#github.com/kubeflow/kubeflow/components/profile-controller/v2 => ../kubeflow/components/profile-controller#g
+w
+q
+EOF1
+}
+
+preclean && cpdirs && updatefiles && updategomod

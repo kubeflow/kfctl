@@ -19,6 +19,8 @@ GOPATH ?= $(HOME)/go
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
 TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
+REPO ?= $(shell echo $$(pushd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
+BRANCH ?= $(shell pushd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
 KFCTL_TARGET ?= kfctl
 MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
 MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
@@ -112,6 +114,8 @@ push-to-github-release: build-kfctl-tgz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
+                --build-arg REPO="$(REPO)" \
+                --build-arg BRANCH=$(BRANCH) \
 		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
 		--build-arg VERSION=$(TAG) \
 		--target=$(KFCTL_TARGET) \
