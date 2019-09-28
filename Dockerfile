@@ -9,7 +9,7 @@ ARG BRANCH=master
 ARG REPO=https://github.com/kubeflow/kubeflow
 
 RUN apt-get update
-RUN apt-get install -y git unzip
+RUN apt-get install -y git unzip jq vim
 
 # junit report is used to conver go test output to junit for reporting
 RUN go get -u github.com/jstemmer/go-junit-report
