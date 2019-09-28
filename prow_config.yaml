@@ -12,4 +12,4 @@ workflows:
       workflowName: kfctl-go
       useIstio: true
       version: master
-      configPath: ../manifests/kfdef/kfctl_gcp_iap.yaml
+      configPath: kubeflow/manifests/kfdef/kfctl_gcp_iap.yaml

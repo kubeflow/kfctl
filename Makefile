@@ -72,13 +72,16 @@ ${GOPATH}/bin/deepcopy-gen:
 	GO111MODULE=off ${GO} get k8s.io/code-generator/cmd/deepcopy-gen
 
 config/zz_generated.deepcopy.go: config/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy
+	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy && \
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/config/zz_generated.deepcopy.go config/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1alpha1/application_types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy
+	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1beta1/application_types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy
+	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/ && rm -rf v3
 
 deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go
 
