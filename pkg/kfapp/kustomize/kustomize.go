@@ -969,9 +969,9 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 			}
 		}
 		kustomization.PatchesJson6902 = make([]types.PatchJson6902, 0)
-		aggregatedPatchOps := make([]byte, 0)
 		patchFile := ""
 		for key, values := range patches {
+			aggregatedPatchOps := make([]byte, 0)
 			aggregatedPatch := new(types.PatchJson6902)
 			aggregatedPatch.Path = key + ".yaml"
 			patchFile = path.Join(compDir, aggregatedPatch.Path)
@@ -992,11 +992,11 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 					aggregatedPatchOps = append(aggregatedPatchOps, data...)
 				}
 			}
+			patchErr := ioutil.WriteFile(patchFile, aggregatedPatchOps, 0644)
+			if patchErr != nil {
+				return nil, patchErr
+			}
 			kustomization.PatchesJson6902 = append(kustomization.PatchesJson6902, *aggregatedPatch)
-		}
-		patchErr := ioutil.WriteFile(patchFile, aggregatedPatchOps, 0644)
-		if patchErr != nil {
-			return nil, patchErr
 		}
 	}
 	return kustomization, nil
