@@ -31,7 +31,7 @@ local artifactsDir = outputDir + "/artifacts";
 local srcRootDir = testDir + "/src";
 // The directory containing the kubeflow/kfctl repo
 local srcDir = srcRootDir + "/kubeflow/kfctl";
-local configDir = srcRootDir + "/kubeflow";
+local configDir = srcRootDir + "github.com/kubeflow";
 
 local runPath = srcDir + "/testing/workflows/run.sh";
 local kfCtlPath = srcDir + "/bin/kfctl";
