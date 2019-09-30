@@ -31,7 +31,6 @@ local artifactsDir = outputDir + "/artifacts";
 local srcRootDir = testDir + "/src";
 // The directory containing the kubeflow/kfctl repo
 local srcDir = srcRootDir + "/kubeflow/kfctl";
-local configDir = srcRootDir + "/github.com/kubeflow";
 
 local runPath = srcDir + "/testing/workflows/run.sh";
 local kfCtlPath = srcDir + "/bin/kfctl";
@@ -230,7 +229,7 @@ local dagTemplates = [
         "-s",
         "--use_basic_auth=" + params.useBasicAuth,
         "--use_istio=" + params.useIstio,
-        "--config_path=" + configDir + "/" + params.configPath,
+        "--config_path=" params.configPath,
         // Increase the log level so that info level log statements show up.
         "--log-cli-level=info",        
         "--junitxml=" + artifactsDir + "/junit_kfctl-build-test" + nameSuffix + ".xml",
