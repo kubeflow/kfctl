@@ -79,6 +79,8 @@
     srcRootDir: self.testDir + "/src",
     // The directory containing the kubeflow/kubeflow repo
     srcDir: self.srcRootDir + "/kubeflow/kubeflow",
+    // The directory containing the kubeflow/kfctl repo
+    kfctlDir: self.srcRootDir + "/kubeflow/kfctl",
     image: "gcr.io/kubeflow-ci/test-worker:latest",
 
     // value of KUBECONFIG environment variable. This should be  a full path.
@@ -409,11 +411,9 @@
       local artifactsDir = outputDir + "/artifacts";
       // Source directory where all repos should be checked out
       local srcRootDir = testDir + "/src";
-      // The directory containing the kubeflow/kubeflow repo
-      local srcDir = srcRootDir + "/kubeflow/kubeflow";
-      local bootstrapDir = srcDir + "/bootstrap";
+      // The directory containing the kubeflow/kfctl repo
+      local srcDir = srcRootDir + "/kubeflow/kfctl";
       local image = "gcr.io/kubeflow-ci/test-worker:latest";
-      local bootstrapperImage = "gcr.io/kubeflow-ci/bootstrapper:" + name;
       // The last 4 digits of the name should be a unique id.
       local deploymentName = "e2e-" + std.substr(name, std.length(name) - 4, 4);
       local v1alpha1Suffix = "-v1alpha1";
@@ -653,7 +653,7 @@
               ["/usr/local/bin/checkout.sh", srcRootDir],
               env_vars=[{
                 name: "EXTRA_REPOS",
-                value: "kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
+                value: "kubeflow/kubeflow@HEAD;kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
               }],
             ),
             buildTemplate("test-dir-delete", [

@@ -1,4 +1,4 @@
-// Uses test from kubeflow/kubeflow/testing/workflows/components/kfctl_go_test.jsonnet
+// Uses test from kubeflow/kfctl/testing/workflows/components/kfctl_go_test.jsonnet
 // Any changes should reflect here and there
 
 // E2E test for the new go based version of kfctl.
@@ -29,11 +29,12 @@ local outputDir = testDir + "/output";
 local artifactsDir = outputDir + "/artifacts";
 // Source directory where all repos should be checked out
 local srcRootDir = testDir + "/src";
-// The directory containing the kubeflow/kubeflow repo
-local srcDir = srcRootDir + "/kubeflow/kubeflow";
+// The directory containing the kubeflow/kfctl repo
+local srcDir = srcRootDir + "/kubeflow/kfctl";
+local configDir = srcRootDir + "/kubeflow/kubeflow";
 
 local runPath = srcDir + "/testing/workflows/run.sh";
-local kfCtlPath = srcDir + "/bootstrap/bin/kfctl";
+local kfCtlPath = srcDir + "/bin/kfctl";
 local kubeConfig = testDir + "/kfctl_test/.kube/kubeconfig";
 
 // Name for the Kubeflow app.
@@ -53,7 +54,8 @@ local testing_image = "gcr.io/kubeflow-ci/kubeflow-testing";
 local nfsVolumeClaim = "nfs-external";
 // The name to use for the volume to use to contain test data.
 local dataVolume = "kubeflow-test-volume";
-local kubeflowPy = srcDir;
+local kfctlPy = srcDir;
+local kubeflowPy =  srcRootDir + "/kubeflow/kubeflow";
 // The directory within the kubeflow_testing submodule containing
 // py scripts to use.
 local kubeflowTestingPy = srcRootDir + "/kubeflow/testing/py";
@@ -100,7 +102,7 @@ local buildTemplate(step_name, command, working_dir=null, env_vars=[], sidecars=
       {
         // Add the source directories to the python path.
         name: "PYTHONPATH",
-        value: kubeflowPy + ":" + kubeflowTestingPy,
+        value: kfctlPy + ":" + kubeflowPy + ":" + kubeflowTestingPy,
       },
       {
         name: "GOOGLE_APPLICATION_CREDENTIALS",
@@ -228,7 +230,7 @@ local dagTemplates = [
         "-s",
         "--use_basic_auth=" + params.useBasicAuth,
         "--use_istio=" + params.useIstio,
-        "--config_path=" + srcDir + "/" + params.configPath,
+        "--config_path=" + configDir + "/" + params.configPath,
         // Increase the log level so that info level log statements show up.
         "--log-cli-level=info",        
         "--junitxml=" + artifactsDir + "/junit_kfctl-build-test" + nameSuffix + ".xml",
@@ -236,7 +238,7 @@ local dagTemplates = [
         "-o", "junit_suite_name=test_kfctl_go_deploy_" + nameSuffix, 
         "--app_path=" + appDir,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: ["checkout"],
   },
@@ -259,7 +261,7 @@ local dagTemplates = [
         "-o", "junit_suite_name=test_kf_is_ready_" + nameSuffix,         
         "--app_path=" + appDir,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: ["kfctl-build-deploy"],
   },
@@ -292,7 +294,7 @@ local deleteStep = if deleteKubeflow then
         "--app_path=" + appDir,
         "--kfctl_path=" + kfCtlPath,
       ],
-      working_dir=srcDir+ "/testing/kfctl",
+      working_dir=srcDir+ "/testing/e2e",
     ),
     dependencies: null,
   }]

@@ -147,7 +147,7 @@ Flags:
   -h, --help                     help for init
   -n, --namespace string         namespace where kubeflow will be deployed (default "kubeflow")
       --package-manager string   'kustomize[@version]' (default "kustomize")
-  -p, --platform string          one of 'aws|gcp|minikube'
+  -p, --platform string          one of 'aws|gcp|minikube|existing_arrikto'
       --project string           name of the gcp project if --platform gcp
   -r, --repo string              local github kubeflow repo
       --skip-init-gcp-project    Set if you want to skip project initialization. Only meaningful if --platform gcp. Default to false
