@@ -19,6 +19,18 @@ type GcpPluginSpec struct {
 	// EnableWorkloadIdentity indicates whether to enable workload identity.
 	// Use a pointer so we can distinguish unset values.
 	EnableWorkloadIdentity *bool `json:"enableWorkloadIdentity,omitempty"`
+
+	// DeploymentManagerConfig provides location of the deployment manager configs.
+	DeploymentManagerConfig *DeploymentManagerConfig `json:"deploymentManagerConfig,omitempty"`
+
+	Project         string `json:"project,omitempty"`
+	Email           string `json:"email,omitempty"`
+	IpName          string `json:"ipName,omitempty"`
+	Hostname        string `json:"hostname,omitempty"`
+	Zone            string `json:"zone,omitempty"`
+	UseBasicAuth    bool   `json:"useBasicAuth"`
+	SkipInitProject bool   `json:"skipInitProject,omitempty"`
+	DeleteStorage   bool   `json:"deleteStorage,omitempty"`
 }
 
 type Auth struct {
@@ -34,6 +46,10 @@ type BasicAuth struct {
 type IAP struct {
 	OAuthClientId     string            `json:"oAuthClientId,omitempty"`
 	OAuthClientSecret *kfdefs.SecretRef `json:"oAuthClientSecret,omitempty"`
+}
+
+type DeploymentManagerConfig struct {
+	RepoRef *kfdefs.RepoRef `json:"repoRef,omitempty"`
 }
 
 // IsValid returns true if the spec is a valid and complete spec.

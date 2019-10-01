@@ -19,6 +19,8 @@ GOPATH ?= $(HOME)/go
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
 TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
+REPO ?= $(shell echo $$(cd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
+BRANCH ?= $(shell cd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
 KFCTL_TARGET ?= kfctl
 MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
 MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
@@ -71,15 +73,15 @@ ${GOPATH}/bin/deepcopy-gen:
 
 config/zz_generated.deepcopy.go: config/types.go
 	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy && \
-	mv v3/config/zz_generated.deepcopy.go config/ && rm -rf v3
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/config/zz_generated.deepcopy.go config/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1alpha1/application_types.go
 	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
-	mv v3/pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/ && rm -rf v3
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1beta1/application_types.go
 	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
-	mv v3/pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/ && rm -rf v3
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/ && rm -rf v3
 
 deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go
 
@@ -112,6 +114,8 @@ push-to-github-release: build-kfctl-tgz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
+                --build-arg REPO="$(REPO)" \
+                --build-arg BRANCH=$(BRANCH) \
 		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
 		--build-arg VERSION=$(TAG) \
 		--target=$(KFCTL_TARGET) \

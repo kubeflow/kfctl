@@ -653,7 +653,7 @@
               ["/usr/local/bin/checkout.sh", srcRootDir],
               env_vars=[{
                 name: "EXTRA_REPOS",
-                value: "kubeflow/kubeflow@HEAD;kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
+                value: "kubeflow/kubeflow@HEAD;kubeflow/manifests@HEAD;kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
               }],
             ),
             buildTemplate("test-dir-delete", [

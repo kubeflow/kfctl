@@ -5,8 +5,11 @@
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
 
+ARG BRANCH=master
+ARG REPO=https://github.com/kubeflow/kubeflow
+
 RUN apt-get update
-RUN apt-get install -y git unzip
+RUN apt-get install -y git unzip jq vim
 
 # junit report is used to conver go test output to junit for reporting
 RUN go get -u github.com/jstemmer/go-junit-report
@@ -26,6 +29,10 @@ ENV GOPATH=/go
 
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl
+WORKDIR ${GOPATH}/src/github.com/kubeflow
+RUN mkdir kubeflow
+RUN echo REPO=${REPO} branch=${BRANCH}
+RUN git clone ${REPO} --depth=1 --branch ${BRANCH} --single-branch kubeflow
 WORKDIR ${GOPATH}/src/github.com/kubeflow/kfctl
 
 # Download dependencies first to optimize Docker caching.
