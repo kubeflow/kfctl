@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -153,10 +154,7 @@ func setImageName(oldName string, newNameComponents map[string]string) string {
 	}
 	image := strings.Join(imageSlice, ":")
 
-	resultSlice := []string{domain}
-	if newNameComponents["components"] != "" {
-		resultSlice = append(resultSlice, newNameComponents["components"])
-	}
+	resultSlice := []string{domain, newNameComponents["components"]}
 
 	if !flatten {
 		resultSlice = append(resultSlice, oldNameComponents["components"])
@@ -164,5 +162,5 @@ func setImageName(oldName string, newNameComponents map[string]string) string {
 
 	resultSlice = append(resultSlice, image)
 
-	return strings.Join(resultSlice, "/")
+	return path.Join(resultSlice...)
 }

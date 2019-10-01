@@ -100,6 +100,12 @@ func Test_setImageName(t *testing.T) {
 			want:    "test.io/kubeflow-images-public/ingress-setup:latest",
 		},
 		{
+			name:    "add registry",
+			args:    args{oldName: "mysql:latest", newNameComponents: map[string]string{"host": "test.io"}},
+			flatten: false,
+			want:    "test.io/mysql:latest",
+		},
+		{
 			name: "replace registry/repository",
 			args: args{oldName: "gcr.io/kubeflow-images-public/ingress-setup:latest", newNameComponents: map[string]string{"host": "test.io", "components": "myrepository"}},
 			want: "test.io/myrepository/kubeflow-images-public/ingress-setup:latest",
