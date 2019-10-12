@@ -878,9 +878,11 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfdefsv3.KfDef,
 		patchJson.Target = value.Target
 		patchAbsolutePath := filepath.Join(targetDir, value.Path)
 		patchJson.Path = extractSuffix(compDir, patchAbsolutePath)
-		if _, ok := kustomizationMaps[patchesJson6902Map][patchJson.Path]; !ok {
+		// patchJson.Path can be used for multiple targets, hence kustomizationMaps key is patchJson.Path+"-"+patchJson.Target.Name"
+		patchJsonMapKey := patchJson.Path + "-" + patchJson.Target.Name
+		if _, ok := kustomizationMaps[patchesJson6902Map][patchJsonMapKey]; !ok {
 			parent.PatchesJson6902 = append(parent.PatchesJson6902, *patchJson)
-			kustomizationMaps[patchesJson6902Map][patchJson.Path] = true
+			kustomizationMaps[patchesJson6902Map][patchJsonMapKey] = true
 		}
 	}
 	for _, value := range child.Configurations {
@@ -969,7 +971,6 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 			}
 		}
 		kustomization.PatchesJson6902 = make([]types.PatchJson6902, 0)
-		aggregatedPatchOps := make([]byte, 0)
 		patchFile := ""
 		for key, values := range patches {
 			aggregatedPatch := new(types.PatchJson6902)
@@ -989,14 +990,20 @@ func MergeKustomizations(kfDef *kfdefsv3.KfDef, compDir string, overlayParams []
 					if err != nil {
 						return nil, err
 					}
-					aggregatedPatchOps = append(aggregatedPatchOps, data...)
+					f, patchErr := os.OpenFile(patchFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if patchErr != nil {
+						return nil, patchErr
+					}
+					if _, err := f.Write(data); err != nil {
+						f.Close()
+						return nil, err
+					}
+					if err := f.Close(); err != nil {
+						return nil, err
+					}
 				}
 			}
 			kustomization.PatchesJson6902 = append(kustomization.PatchesJson6902, *aggregatedPatch)
-		}
-		patchErr := ioutil.WriteFile(patchFile, aggregatedPatchOps, 0644)
-		if patchErr != nil {
-			return nil, patchErr
 		}
 	}
 	return kustomization, nil

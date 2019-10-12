@@ -7,7 +7,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
 	github.com/aws/aws-sdk-go v1.15.78
-	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
@@ -21,6 +21,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.1
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.7
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -34,7 +35,7 @@ require (
 	github.com/prometheus/client_golang v0.9.2
 	github.com/prometheus/common v0.2.0
 	github.com/russross/blackfriday v1.5.2 // indirect
-	github.com/sirupsen/logrus v1.3.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
@@ -42,19 +43,19 @@ require (
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
-	google.golang.org/api v0.6.0
+	google.golang.org/api v0.10.0
 	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/src-d/go-git.v4 v4.12.0
-	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
-	k8s.io/apiextensions-apiserver v0.0.0-20190228180357-d002e88f6236
-	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
+	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
+	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
+	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/cli-runtime v0.0.0-20190228180923-a9e421a79326
-	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/kubernetes v1.13.4
 	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6 // indirect
-	sigs.k8s.io/controller-runtime v0.1.12
+	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/kustomize/v3 v3.1.0
 )
 
