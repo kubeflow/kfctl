@@ -16,6 +16,12 @@ package v1alpha1
 
 import (
 	"fmt"
+	"io/ioutil"
+	netUrl "net/url"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	gogetter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
@@ -23,15 +29,10 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	valid "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	netUrl "net/url"
-	"os"
-	"path"
-	"strings"
 )
 
 const (
@@ -345,7 +346,6 @@ func LoadKFDefFromURI(configFile string) (*KfDef, error) {
 	// TODO(jlewi): Should we use hashicorp go-getter.GetAny here? We use that to download
 	// the tarballs for the repos. Maybe we should use that here as well to be consistent.
 	appFile := path.Join(appDir, KfConfigFile)
-
 	log.Infof("Downloading %v to %v", configFile, appFile)
 	configFileUri, err := netUrl.Parse(configFile)
 	if err != nil {

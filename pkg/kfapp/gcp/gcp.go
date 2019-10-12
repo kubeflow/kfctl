@@ -19,8 +19,20 @@ package gcp
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/cenkalti/backoff"
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/ghodss/yaml"
 	"github.com/gogo/protobuf/proto"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
@@ -38,9 +50,7 @@ import (
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/servicemanagement/v1"
 	"google.golang.org/api/serviceusage/v1"
-	"io"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,15 +65,6 @@ import (
 	restv2 "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"math/rand"
-	"net/http"
-	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // TODO: golint complains that we should not use all capital var name.
@@ -105,6 +106,8 @@ type Gcp struct {
 	// Function to get the GcpAccount.
 	// Support injection for testing.
 	gcpAccountGetter func() (string, error)
+	gcpProjectGetter func() (string, error)
+	gcpZoneGetter    func() (string, error)
 
 	runGetCredentials bool
 }
@@ -136,7 +139,8 @@ func GetPlatform(kfdef *kfdefs.KfDef) (kftypesv3.Platform, error) {
 	_gcp := &Gcp{
 		kfDef:            kfdef,
 		gcpAccountGetter: GetGcloudDefaultAccount,
-
+		gcpProjectGetter: GetGcloudDefaultProject,
+		gcpZoneGetter:    GetGcloudDefaultZone,
 		// Default to true for the CLI.
 		runGetCredentials: true,
 	}
@@ -222,6 +226,30 @@ func (gcp *Gcp) GetK8sConfig() (*rest.Config, *clientcmdapi.Config) {
 	}
 	apiConfig := utils.BuildClientCmdAPI(restConfig, accessToken)
 	return restConfig, apiConfig
+}
+
+// GetGcloudDefaultProject try to get the default project.
+func GetGcloudDefaultProject() (string, error) {
+	output, err := exec.Command("gcloud", "config", "get-value", "project").Output()
+	if err != nil {
+		return "", &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("could not call 'gcloud config get-value project': %v", err),
+		}
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// GetGcloudDefaultZone try to get the default zone.
+func GetGcloudDefaultZone() (string, error) {
+	output, err := exec.Command("gcloud", "config", "get-value", "compute/zone").Output()
+	if err != nil {
+		return "", &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("could not call 'gcloud config get-value compute/zone': %v", err),
+		}
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 // GetGcloudDefaultAccount try to get the default account.
@@ -1833,10 +1861,31 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 			log.Errorf("cannot get gcloud account email. Error: %v", err)
 			return err
 		}
-		email = strings.TrimSpace(email)
-		gcp.kfDef.Spec.Email = email
+		gcp.kfDef.Spec.Email = strings.TrimSpace(email)
 	} else {
 		log.Warnf("gcpAccountGetter not set; can't get default email")
+	}
+	// Set the project
+	if gcp.kfDef.Spec.Project == "" && gcp.gcpProjectGetter != nil {
+		project, err := gcp.gcpProjectGetter()
+		if err != nil {
+			log.Errorf("cannot get gcloud project. Error: %v", err)
+			return err
+		}
+		gcp.kfDef.Spec.Project = strings.TrimSpace(project)
+	} else {
+		log.Warnf("gcpProjectGetter not set; can't get default project")
+	}
+	// Set the zone
+	if gcp.kfDef.Spec.Zone == "" && gcp.gcpZoneGetter != nil {
+		zone, err := gcp.gcpZoneGetter()
+		if err != nil {
+			log.Errorf("cannot get gcloud compute/zone. Error: %v", err)
+			return err
+		}
+		gcp.kfDef.Spec.Zone = strings.TrimSpace(zone)
+	} else {
+		log.Warnf("gcpZoneGetter not set; can't get default zone")
 	}
 
 	// Set the defaults that will be used if not explicitly set.
@@ -1958,14 +2007,26 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 		log.Errorf("Could not get GcpPluginSpec; error %v", err)
 		return err
 	}
-
+	// the runGetGCPCredentials don't seem to work because those are shelled out commands
+	// Added an alternate way to set using enironment variables
+	if gcp.kfDef.Spec.Project == "" {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: "GCP Project is not set, please set it in KFDef.",
+		}
+	}
 	if gcp.kfDef.Spec.Email == "" {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: "email not specified.",
+			Message: "GCP account could not be determined, please set Email in KFDef.",
 		}
 	}
-
+	if gcp.kfDef.Spec.Zone == "" {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: "GCP Zone is not set, please set it in KFDef.",
+		}
+	}
 	// Set default IPName and Hostname
 	// This needs to happen before calling generateDM configs.
 	if gcp.kfDef.Spec.IpName == "" {

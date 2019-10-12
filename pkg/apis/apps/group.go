@@ -64,6 +64,13 @@ const (
 	YamlSeparator          = "(?m)^---[ \t]*$"
 )
 
+type SupportedResourceType string
+
+const (
+	KFDEF     SupportedResourceType = "KfDef"
+	KFUPGRADE SupportedResourceType = "KfUpgrade"
+)
+
 type ResourceEnum string
 
 const (
@@ -94,6 +101,7 @@ const (
 	DISABLE_USAGE_REPORT  CliOption = "disable_usage_report"
 	PACKAGE_MANAGER       CliOption = "package-manager"
 	CONFIG                CliOption = "config"
+	FILE                  CliOption = "file"
 )
 
 //
@@ -115,8 +123,6 @@ type KfApp interface {
 //
 type Platform interface {
 	KfApp
-	// Return k8s config built with platform-specific ways; or nil to use default kube config
-	GetK8sConfig() (*rest.Config, *clientcmdapi.Config)
 }
 
 //
