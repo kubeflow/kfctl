@@ -112,7 +112,7 @@ push-to-github-release: build-kfctl-tgz
 	    --name "kfctl_$(TAG)_darwin.tar.gz" \
 	    --file bin/kfctl_$(TAG)_darwin.tar.gz
 
-build-kfctl-container:
+build-kfctl-container: build-kfctl
 	DOCKER_BUILDKIT=1 docker build \
                 --build-arg REPO="$(REPO)" \
                 --build-arg BRANCH=$(BRANCH) \

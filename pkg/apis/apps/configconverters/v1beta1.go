@@ -4,12 +4,28 @@ import (
 	"fmt"
 	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 )
 
 // Empty struct - used to implement Converter interface.
 type V1beta1 struct {
+}
+
+func maybeGetPlatform(pluginKind string) string {
+	platforms := map[string]string{
+		string(kfconfig.AWS_PLUGIN_KIND):              kftypesv3.AWS,
+		string(kfconfig.GCP_PLUGIN_KIND):              kftypesv3.GCP,
+		string(kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND): kftypesv3.EXISTING_ARRIKTO,
+	}
+
+	p, ok := platforms[pluginKind]
+	if ok {
+		return p
+	} else {
+		return ""
+	}
 }
 
 func (v V1beta1) ToKfConfig(appdir string, kfdefBytes []byte) (*kfconfig.KfConfig, error) {
@@ -26,12 +42,14 @@ func (v V1beta1) ToKfConfig(appdir string, kfdefBytes []byte) (*kfconfig.KfConfi
 		Spec: kfconfig.KfConfigSpec{
 			AppDir:       appdir,
 			UseBasicAuth: false,
+			UseIstio:     true,
 		},
 	}
 	config.Name = kfdef.Name
 	config.Namespace = kfdef.Namespace
 	config.APIVersion = kfdef.APIVersion
 	config.Kind = "KfConfig"
+	config.Spec.Version = kfdef.Spec.Version
 	for _, app := range kfdef.Spec.Applications {
 		application := kfconfig.Application{
 			Name: app.Name,
@@ -101,9 +119,15 @@ func (v V1beta1) ToKfConfig(appdir string, kfdefBytes []byte) (*kfconfig.KfConfi
 			if h, ok := s["hostname"]; ok {
 				config.Spec.Hostname = h.(string)
 			}
+			if h, ok := s["skipInitProject"]; ok {
+				config.Spec.SkipInitProject = h.(bool)
+			}
 			if z, ok := s["zone"]; ok {
 				config.Spec.Zone = z.(string)
 			}
+		}
+		if p := maybeGetPlatform(plugin.Kind); p != "" {
+			config.Spec.Platform = p
 		}
 	}
 
@@ -166,6 +190,7 @@ func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	kfdef.Namespace = config.Namespace
 	kfdef.APIVersion = config.APIVersion
 	kfdef.Kind = "KfDef"
+	kfdef.Spec.Version = config.Spec.Version
 
 	for _, app := range config.Spec.Applications {
 		application := kfdeftypes.Application{
@@ -199,6 +224,7 @@ func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 			Spec: plugin.Spec,
 		}
 		p.Name = plugin.Name
+		p.Kind = string(plugin.Kind)
 		kfdef.Spec.Plugins = append(kfdef.Spec.Plugins, p)
 	}
 

@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	gogetter "github.com/hashicorp/go-getter"
 	configtypes "github.com/kubeflow/kfctl/v3/config"
@@ -40,6 +41,7 @@ import (
 	kubectldelete "k8s.io/kubernetes/pkg/kubectl/cmd/delete"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"math/rand"
+	netUrl "net/url"
 	"os"
 	"path"
 	"regexp"
@@ -47,6 +49,7 @@ import (
 	"strings"
 	"time"
 	// Auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth/azure"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -64,6 +67,14 @@ func generateRandStr(length int) string {
 		b[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(b)
+}
+
+func NewDefaultBackoff() *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 3 * time.Second
+	b.MaxInterval = 30 * time.Second
+	b.MaxElapsedTime = 5 * time.Minute
+	return b
 }
 
 func CreateResourceFromFile(config *rest.Config, filename string, elems ...configtypes.NameValue) error {
@@ -120,24 +131,48 @@ func CreateResourceFromFile(config *rest.Config, filename string, elems ...confi
 	return nil
 }
 
-func GetObjectKindFromUri(configFile string) (string, error) {
+// Checks if the path configFile is remote (e.g. http://github...)
+func IsRemoteFile(configFile string) (bool, error) {
 	if configFile == "" {
-		return "", fmt.Errorf("config file must be a URI or a path")
+		return false, fmt.Errorf("config file must be a URI or a path")
 	}
-
-	appDir, err := ioutil.TempDir("", "")
+	url, err := netUrl.Parse(configFile)
 	if err != nil {
-		return "", fmt.Errorf("Create a temporary directory to copy the file to.")
-	}
-	// Open config file
-	appFile := path.Join(appDir, "tmp.yaml")
-
-	log.Infof("Downloading %v to %v", configFile, appFile)
-	err = gogetter.GetFile(appFile, configFile)
-	if err != nil {
-		return "", &kfapis.KfError{
+		return false, &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("could not fetch specified config %s: %v", configFile, err),
+			Message: fmt.Sprintf("Error parsing file path: %v", err),
+		}
+	}
+	if url.Scheme != "" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func GetObjectKindFromUri(configFile string) (string, error) {
+	isRemoteFile, err := IsRemoteFile(configFile)
+	if err != nil {
+		return "", err
+	}
+
+	// We will read from appFile.
+	appFile := configFile
+	if isRemoteFile {
+		// Download it to a tmp file, and set appFile.
+		appDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			return "", fmt.Errorf("Create a temporary directory to copy the file to.")
+		}
+		// Open config file
+		appFile = path.Join(appDir, "tmp.yaml")
+
+		log.Infof("Downloading %v to %v", configFile, appFile)
+		err = gogetter.GetFile(appFile, configFile)
+		if err != nil {
+			return "", &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("could not fetch specified config %s: %v", configFile, err),
+			}
 		}
 	}
 
@@ -247,7 +282,7 @@ func NewApply(namespace string, restConfig *rest.Config) (*Apply, error) {
 	return apply, nil
 }
 
-func (a *Apply) DefaultProfileNamespace(name string) bool {
+func (a *Apply) IfNamespaceExist(name string) bool {
 	_, nsMissingErr := a.clientset.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 	if nsMissingErr != nil {
 		return false
