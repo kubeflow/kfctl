@@ -38,7 +38,6 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -1954,7 +1953,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				return errors.WithStack(fmt.Errorf("Could not configure basic auth; environment variable %s not set", kftypesv3.KUBEFLOW_USERNAME))
 			}
 
-			pluginSpec.Auth.BasicAuth.Password = &kfdefs.SecretRef{
+			pluginSpec.Auth.BasicAuth.Password = &kfconfig.SecretRef{
 				Name: BasicAuthPasswordSecretName,
 			}
 
@@ -1981,7 +1980,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				return errors.WithStack(fmt.Errorf("Could not configure IAP auth; environment variable %s not set", CLIENT_ID))
 			}
 
-			pluginSpec.Auth.IAP.OAuthClientSecret = &kfdefs.SecretRef{
+			pluginSpec.Auth.IAP.OAuthClientSecret = &kfconfig.SecretRef{
 				Name: CLIENT_SECRET,
 			}
 
@@ -2002,7 +2001,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 	}
 
 	if pluginSpec.DeploymentManagerConfig.RepoRef == nil {
-		pluginSpec.DeploymentManagerConfig.RepoRef = &kfdefs.RepoRef{
+		pluginSpec.DeploymentManagerConfig.RepoRef = &kfconfig.RepoRef{
 			Name: kftypesv3.KubeflowRepoName,
 			Path: DEFAULT_DM_PATH,
 		}
@@ -2182,7 +2181,7 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 	// TODO(jlewi): Why are we setting usage Id here (gcp.go) and not in kustomize.go so we do it for all platforms?
 	rand.Seed(time.Now().UnixNano())
 	if err := gcp.kfDef.SetApplicationParameter("spartakus", "usageId", strconv.Itoa(rand.Int())); err != nil {
-		if kfdefs.IsAppNotFound(err) {
+		if kfconfig.IsAppNotFound(err) {
 			log.Infof("Spartakus not included; not setting usageId")
 		}
 	}
