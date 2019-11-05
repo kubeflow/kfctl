@@ -1953,7 +1953,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				return errors.WithStack(fmt.Errorf("Could not configure basic auth; environment variable %s not set", kftypesv3.KUBEFLOW_USERNAME))
 			}
 
-			pluginSpec.Auth.BasicAuth.Password = &kfconfig.SecretRef{
+			pluginSpec.Auth.BasicAuth.Password = &SecretRef{
 				Name: BasicAuthPasswordSecretName,
 			}
 
@@ -1980,7 +1980,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				return errors.WithStack(fmt.Errorf("Could not configure IAP auth; environment variable %s not set", CLIENT_ID))
 			}
 
-			pluginSpec.Auth.IAP.OAuthClientSecret = &kfconfig.SecretRef{
+			pluginSpec.Auth.IAP.OAuthClientSecret = &SecretRef{
 				Name: CLIENT_SECRET,
 			}
 
@@ -2001,7 +2001,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 	}
 
 	if pluginSpec.DeploymentManagerConfig.RepoRef == nil {
-		pluginSpec.DeploymentManagerConfig.RepoRef = &kfconfig.RepoRef{
+		pluginSpec.DeploymentManagerConfig.RepoRef = &RepoRef{
 			Name: kftypesv3.KubeflowRepoName,
 			Path: DEFAULT_DM_PATH,
 		}
