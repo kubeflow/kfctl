@@ -58,7 +58,7 @@ func TestGcp_buildBasicAuthSecret(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "kfuser",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: "passwordSecret",
 						},
 					},
@@ -139,13 +139,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "someuser",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: BasicAuthPasswordSecretName,
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -168,13 +168,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "someclient",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -197,13 +197,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "someclient",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -242,13 +242,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "someclient",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -281,13 +281,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "someclient",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -310,7 +310,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "original_client",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: "original_secret",
 						},
 					},
@@ -325,13 +325,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "original_client",
-						OAuthClientSecret: &kfconfig.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -349,7 +349,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "original_user",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: "original_secret",
 						},
 					},
@@ -364,13 +364,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "original_user",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
 					},
@@ -388,13 +388,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "original_user",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "somerepo",
 						Path: "somepath",
 					},
@@ -409,13 +409,13 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "original_user",
-						Password: &kfconfig.SecretRef{
+						Password: &SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
 				DeploymentManagerConfig: &DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
+					RepoRef: &RepoRef{
 						Name: "somerepo",
 						Path: "somepath",
 					},
