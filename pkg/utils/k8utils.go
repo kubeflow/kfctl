@@ -14,9 +14,13 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
+	gogetter "github.com/hashicorp/go-getter"
 	configtypes "github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
@@ -28,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/kubernetes"
@@ -36,6 +41,7 @@ import (
 	kubectldelete "k8s.io/kubernetes/pkg/kubectl/cmd/delete"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"math/rand"
+	netUrl "net/url"
 	"os"
 	"path"
 	"regexp"
@@ -43,13 +49,15 @@ import (
 	"strings"
 	"time"
 	// Auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth/azure"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 const (
-	YamlSeparator = "(?m)^---[ \t]*$"
-	CertDir       = "/opt/ca"
+	YamlSeparator              = "(?m)^---[ \t]*$"
+	CertDir                    = "/opt/ca"
+	katibMetricsCollectorLabel = "katib-metricscollector-injection"
 )
 
 func generateRandStr(length int) string {
@@ -59,6 +67,14 @@ func generateRandStr(length int) string {
 		b[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(b)
+}
+
+func NewDefaultBackoff() *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 3 * time.Second
+	b.MaxInterval = 30 * time.Second
+	b.MaxElapsedTime = 5 * time.Minute
+	return b
 }
 
 func CreateResourceFromFile(config *rest.Config, filename string, elems ...configtypes.NameValue) error {
@@ -113,6 +129,75 @@ func CreateResourceFromFile(config *rest.Config, filename string, elems ...confi
 		}
 	}
 	return nil
+}
+
+// Checks if the path configFile is remote (e.g. http://github...)
+func IsRemoteFile(configFile string) (bool, error) {
+	if configFile == "" {
+		return false, fmt.Errorf("config file must be a URI or a path")
+	}
+	url, err := netUrl.Parse(configFile)
+	if err != nil {
+		return false, &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("Error parsing file path: %v", err),
+		}
+	}
+	if url.Scheme != "" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func GetObjectKindFromUri(configFile string) (string, error) {
+	isRemoteFile, err := IsRemoteFile(configFile)
+	if err != nil {
+		return "", err
+	}
+
+	// We will read from appFile.
+	appFile := configFile
+	if isRemoteFile {
+		// Download it to a tmp file, and set appFile.
+		appDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			return "", fmt.Errorf("Create a temporary directory to copy the file to.")
+		}
+		// Open config file
+		appFile = path.Join(appDir, "tmp.yaml")
+
+		log.Infof("Downloading %v to %v", configFile, appFile)
+		err = gogetter.GetFile(appFile, configFile)
+		if err != nil {
+			return "", &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("could not fetch specified config %s: %v", configFile, err),
+			}
+		}
+	}
+
+	// Read contents
+	configFileBytes, err := ioutil.ReadFile(appFile)
+	if err != nil {
+		return "", &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("could not read from config file %s: %v", configFile, err),
+		}
+	}
+
+	BUFSIZE := 1024
+	buf := bytes.NewBufferString(string(configFileBytes))
+
+	job := &unstructured.Unstructured{}
+	err = k8syaml.NewYAMLOrJSONDecoder(buf, BUFSIZE).Decode(job)
+	if err != nil {
+		return "", &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("could not decode specified config %s: %v", configFile, err),
+		}
+	}
+
+	return job.GetKind(), nil
 }
 
 func DeleteResourceFromFile(config *rest.Config, filename string) error {
@@ -194,10 +279,16 @@ func NewApply(namespace string, restConfig *rest.Config) (*Apply, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Change behaviour of error from exit to panic.
+	cmdutil.BehaviorOnFatal(func(s string, i int) {
+		panic(fmt.Errorf("Encountered error: %s. Exiting with code: %d.", s, i))
+	})
+
 	return apply, nil
 }
 
-func (a *Apply) DefaultProfileNamespace(name string) bool {
+func (a *Apply) IfNamespaceExist(name string) bool {
 	_, nsMissingErr := a.clientset.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 	if nsMissingErr != nil {
 		return false
@@ -220,7 +311,15 @@ func (a *Apply) Apply(data []byte) error {
 			Message: fmt.Sprintf("could not initialize  Error %v", initializeErr),
 		}
 	}
-	err := a.run()
+	var err error
+	func() {
+		defer func() {
+			if temp := recover(); temp != nil {
+				err = temp.(error)
+			}
+		}()
+		err = a.run()
+	}()
 	if err != nil {
 		return err
 	}
@@ -230,7 +329,6 @@ func (a *Apply) Apply(data []byte) error {
 func (a *Apply) run() error {
 	resourcesErr := a.options.Run()
 	if resourcesErr != nil {
-		cmdutil.CheckErr(resourcesErr)
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("Apply.Run  Error %v", resourcesErr),
@@ -300,18 +398,62 @@ func (a *Apply) init() error {
 	return nil
 }
 
+func (a *Apply) patchNamespaceWithLabel(namespace string, labelKey string,
+	labelValue string) error {
+	var labelPatchMap = map[string]metav1.ObjectMeta{
+		"metadata": metav1.ObjectMeta{
+			Labels: map[string]string{labelKey: labelValue},
+		},
+	}
+	labelPatchJSON, err := json.Marshal(labelPatchMap)
+	if err != nil {
+		return err
+	}
+	log.Infof("Labeling Namespace: %v", namespace)
+	_, err = a.clientset.CoreV1().Namespaces().Patch(
+		namespace,
+		"application/strategic-merge-patch+json",
+		[]byte(labelPatchJSON),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *Apply) namespace(namespace string) error {
 	log.Infof(string(kftypes.NAMESPACE)+": %v", namespace)
-	_, nsMissingErr := a.clientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	namespaceInstance, nsMissingErr := a.clientset.CoreV1().Namespaces().Get(
+		namespace, metav1.GetOptions{},
+	)
 	if nsMissingErr != nil {
 		log.Infof("Creating namespace: %v", namespace)
-		nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+		nsSpec := &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+				Labels: map[string]string{
+					katibMetricsCollectorLabel: "enabled",
+				},
+			},
+		}
 		_, nsErr := a.clientset.CoreV1().Namespaces().Create(nsSpec)
 		if nsErr != nil {
 			return &kfapis.KfError{
 				Code: int(kfapis.INVALID_ARGUMENT),
 				Message: fmt.Sprintf("couldn't create %v %v Error: %v",
 					string(kftypes.NAMESPACE), namespace, nsErr),
+			}
+		}
+	} else {
+		if _, ok := namespaceInstance.ObjectMeta.Labels[katibMetricsCollectorLabel]; !ok {
+			patchErr := a.patchNamespaceWithLabel(
+				namespace, katibMetricsCollectorLabel, "enabled",
+			)
+			if patchErr != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INTERNAL_ERROR),
+					Message: fmt.Sprintf("couldn't patch %v Error: %v", namespace, patchErr),
+				}
 			}
 		}
 	}

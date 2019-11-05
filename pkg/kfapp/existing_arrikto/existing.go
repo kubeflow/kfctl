@@ -11,7 +11,7 @@ import (
 	"fmt"
 	kfapisv3 "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ const (
 )
 
 type Existing struct {
-	kfdefs.KfDef
+	*kfconfig.KfConfig
 	istioManifests    []manifest
 	authOIDCManifests []manifest
 }
@@ -54,10 +54,9 @@ type manifest struct {
 	path string
 }
 
-func GetPlatform(kfdef *kfdefs.KfDef) (kftypesv3.Platform, error) {
+func GetPlatform(kfdef *kfconfig.KfConfig) (kftypesv3.Platform, error) {
 
-	kfRepoDir := kfdef.Status.ReposCache[kftypesv3.ManifestsRepoName].LocalPath
-	istioManifestsDir := path.Join(kfRepoDir, CONFIG_LOCAL_PATH, "istio")
+	istioManifestsDir := path.Join(CONFIG_LOCAL_PATH, "istio")
 	istioManifests := []manifest{
 		{
 			name: "Istio CRDs",
@@ -69,7 +68,7 @@ func GetPlatform(kfdef *kfdefs.KfDef) (kftypesv3.Platform, error) {
 		},
 	}
 
-	authOIDCManifestsDir := path.Join(kfRepoDir, CONFIG_LOCAL_PATH, "auth_oidc")
+	authOIDCManifestsDir := path.Join(CONFIG_LOCAL_PATH, "auth_oidc")
 	authOIDCManifests := []manifest{
 		{
 			name: "Istio Gateway",
@@ -90,7 +89,7 @@ func GetPlatform(kfdef *kfdefs.KfDef) (kftypesv3.Platform, error) {
 	}
 
 	existing := &Existing{
-		KfDef:             *kfdef,
+		KfConfig:          kfdef,
 		istioManifests:    istioManifests,
 		authOIDCManifests: authOIDCManifests,
 	}
@@ -110,6 +109,24 @@ func (existing *Existing) Generate(resources kftypesv3.ResourceEnum) error {
 }
 
 func (existing *Existing) Apply(resources kftypesv3.ResourceEnum) error {
+
+	if err := existing.SyncCache(); err != nil {
+		return internalError(err)
+	}
+
+	manifestRepo, ok := existing.GetRepoCache(kftypesv3.ManifestsRepoName)
+	if !ok {
+		return internalError(errors.New("Manifests repo is not defined."))
+	}
+	kfRepoDir := manifestRepo.LocalPath
+
+	for i := range existing.istioManifests {
+		existing.istioManifests[i].path = path.Join(kfRepoDir, existing.istioManifests[i].path)
+	}
+	for i := range existing.authOIDCManifests {
+		existing.authOIDCManifests[i].path = path.Join(kfRepoDir, existing.authOIDCManifests[i].path)
+	}
+
 	// Apply extra components
 	config := kftypesv3.GetConfig()
 
@@ -177,7 +194,6 @@ func (existing *Existing) Apply(resources kftypesv3.ResourceEnum) error {
 	}
 
 	// Generate YAML from the dex, authservice templates
-	kfRepoDir := existing.Status.ReposCache[kftypesv3.ManifestsRepoName].LocalPath
 	authOIDCManifestsDir := path.Join(kfRepoDir, CONFIG_LOCAL_PATH, "auth_oidc")
 	err = generateFromGoTemplate(
 		path.Join(authOIDCManifestsDir, "authservice.tmpl"),
@@ -407,7 +423,7 @@ func generateCert(addr string) ([]byte, []byte, error) {
 
 func getLBAddress(kubeclient client.Client) (string, error) {
 	// Get IngressGateway Service's address
-	const maxRetries = 40
+	const maxRetries = 80
 	var lbIngresses []corev1.LoadBalancerIngress
 	svc := &corev1.Service{}
 	lbServiceName := types.NamespacedName{Name: "istio-ingressgateway", Namespace: "istio-system"}

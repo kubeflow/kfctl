@@ -16,40 +16,76 @@ package cmd
 
 import (
 	"fmt"
+
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	"github.com/kubeflow/kfctl/v3/pkg/kfupgrade"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var applyCfg = viper.New()
+var kfApp kftypes.KfApp
+var err error
+
+// KFDef example configs to be printed out from apply --help
+const (
+	arritkoConfig = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_existing_arrikto.0.7.0.yaml"
+	awsConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_aws.0.7.0.yaml"
+	gcpConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_gcp_iap.0.7.0.yaml"
+	k8sConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_k8s_istio.0.7.0.yaml"
+)
 
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
-	Use:   "apply [all(=default)|k8s|platform]",
-	Short: "Deploy a generated kubeflow application.",
-	Long:  `Deploy a generated kubeflow application.`,
+	Use:   "apply -f ${CONFIG}",
+	Short: "deploys a kubeflow application.",
+	Long: `'kfctl apply' builds and deploys a kubeflow application from a KFDef config.` + "\n" +
+		`To install run -> ` + ColorPrint("kfctl apply -f ${CONFIG}") + "\n" +
+		`For more information, run 'kfctl apply -h' or read the docs at www.kubeflow.org.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetLevel(log.InfoLevel)
 		if applyCfg.GetBool(string(kftypes.VERBOSE)) != true {
 			log.SetLevel(log.WarnLevel)
 		}
-		resource, resourceErr := processResourceArg(args)
-		if resourceErr != nil {
-			return fmt.Errorf("invalid resource: %v", resourceErr)
+
+		// Load config from exisiting app.yaml
+		if configFilePath == "" {
+			return fmt.Errorf("Must pass in -f configFile")
 		}
-		kfApp, kfAppErr := coordinator.LoadKfApp(map[string]interface{}{})
-		if kfAppErr != nil {
-			return fmt.Errorf("couldn't load KfApp: %v", kfAppErr)
+
+		kind, err := utils.GetObjectKindFromUri(configFilePath)
+		if err != nil {
+			return fmt.Errorf("Cannot determine the object kind: %v", err)
 		}
-		applyErr := kfApp.Apply(resource)
-		if applyErr != nil {
-			return fmt.Errorf("couldn't apply KfApp: %v", applyErr)
+		switch kind {
+		case string(kftypes.KFDEF):
+			kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
+			}
+			if err := kfApp.Apply(kftypes.ALL); err != nil {
+				return fmt.Errorf("failed to apply: %s", err)
+			}
+			log.Info("Applied the configuration Successfully!")
+			return nil
+		case string(kftypes.KFUPGRADE):
+			kfUpgrade, err := kfupgrade.NewKfUpgrade(configFilePath)
+			if err != nil {
+				return fmt.Errorf("couldn't load KfUpgrade: %v", err)
+			}
+
+			err = kfUpgrade.Apply()
+			if err != nil {
+				return fmt.Errorf("couldn't apply KfUpgrade: %v", err)
+			}
+			return nil
+		default:
+			return fmt.Errorf("Unsupported object kind: %v", kind)
 		}
-		return nil
 	},
-	ValidArgs: []string{"all", "platform", "k8s"},
 }
 
 func init() {
@@ -57,6 +93,17 @@ func init() {
 
 	applyCfg.SetConfigName("app")
 	applyCfg.SetConfigType("yaml")
+
+	// Config file option
+	applyCmd.PersistentFlags().StringVarP(&configFilePath, string(kftypes.FILE), "f", "",
+		`Static config file to use. Can be either a local path:
+		export CONFIG=./kfctl_gcp_iap.yaml
+	or a URL:
+		export CONFIG=`+gcpConfig+`
+		export CONFIG=`+arritkoConfig+`
+		export CONFIG=`+awsConfig+`
+		export CONFIG=`+k8sConfig+`
+	kfctl apply -V --file=${CONFIG}`)
 
 	// verbose output
 	applyCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
