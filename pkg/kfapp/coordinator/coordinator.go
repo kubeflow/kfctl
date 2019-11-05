@@ -313,28 +313,6 @@ type coordinator struct {
 	KfDef           *kfconfig.KfConfig
 }
 
-// TODO: change this
-type KfDefGetter interface {
-	GetKfDef() *kfdefsv3.KfDef
-	GetPlugin(name string) (kftypesv3.KfApp, bool)
-}
-
-// GetKfDef returns a pointer to the KfDef used by this application.
-func (kfapp *coordinator) GetKfDef() *kfconfig.KfConfig {
-	return kfapp.KfDef
-}
-
-// GetPlatform returns the specified platform.
-func (kfapp *coordinator) GetPlugin(name string) (kftypesv3.KfApp, bool) {
-
-	if r, ok := kfapp.Platforms[name]; ok {
-		return r, ok
-	}
-
-	r, ok := kfapp.PackageManagers[name]
-	return r, ok
-}
-
 func (kfapp *coordinator) Apply(resources kftypesv3.ResourceEnum) error {
 	platform := func() error {
 		if kfapp.KfDef.Spec.Platform != "" {
