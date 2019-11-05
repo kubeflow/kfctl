@@ -41,7 +41,6 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -659,7 +658,7 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 	// Special handling for sparkakus
 	rand.Seed(time.Now().UnixNano())
 	if err := aws.kfDef.SetApplicationParameter("spartakus", "usageId", strconv.Itoa(rand.Int())); err != nil {
-		if kfdefs.IsAppNotFound(err) {
+		if kfconfig.IsAppNotFound(err) {
 			log.Infof("Spartakus not included; not setting usageId")
 		}
 	}
