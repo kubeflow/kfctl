@@ -1,9 +1,5 @@
 package aws
 
-import (
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
-)
-
 // AwsPlugin defines the extra data provided by the GCP Plugin in KfDef
 type AwsPluginSpec struct {
 	Auth *Auth `json:"auth,omitempty"`
@@ -19,9 +15,15 @@ type Auth struct {
 	Cognito   *Coginito  `json:"cognito,omitempty"`
 }
 
+// SecretRef is a reference to a secret
+type SecretRef struct {
+	// Name of the secret
+	Name string `json:"name,omitempty"`
+}
+
 type BasicAuth struct {
-	Username string              `json:"username,omitempty"`
-	Password *kfconfig.SecretRef `json:"password,omitempty"`
+	Username string     `json:"username,omitempty"`
+	Password *SecretRef `json:"password,omitempty"`
 }
 
 type OIDC struct {
