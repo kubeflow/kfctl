@@ -185,11 +185,11 @@ const (
 type ConditionType string
 
 const (
-	// KfAvailable means Kubeflow is serving.
-	Healthy ConditionType = "Healthy"
+	// Available means Kubeflow is serving.
+	Available ConditionType = "Available"
 
-	// Unhealthy means one or more Kubeflow services are not healthy.
-	Unhealthy ConditionType = "Unhealthy"
+	// Degraded means one or more Kubeflow services are not healthy.
+	Degraded ConditionType = "Degraded"
 
 	// Pending means Kubeflow services is being updated.
 	Pending ConditionType = "Pending"
