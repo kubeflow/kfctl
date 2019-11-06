@@ -314,8 +314,7 @@ type coordinator struct {
 	KfDef           *kfconfig.KfConfig
 }
 
-type KfDefGetter interface {
-	GetKfDef() *kfdefsv1alpha1.KfDef
+type KfDefGetterV1beta1 interface {
 	GetKfDefV1Beta1() *kfdefsv1beta1.KfDef
 	GetPlugin(name string) (kftypesv3.KfApp, bool)
 }
@@ -331,7 +330,7 @@ func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 	kfdefByte, err := configconverters.V1beta1{}.ToKfDefSerialized(*(kfapp.KfDef.DeepCopy()))
 	if err != nil {
 		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
-			Type:    kfdefsv1beta1.Unhealthy,
+			Type:    kfdefsv1beta1.KfDegraded,
 			Message: err.Error(),
 		})
 		return kfdefIns
@@ -339,7 +338,7 @@ func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 
 	if err := yaml.Unmarshal(kfdefByte, kfdefIns); err != nil {
 		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
-			Type:    kfdefsv1beta1.Unhealthy,
+			Type:    kfdefsv1beta1.KfDegraded,
 			Message: err.Error(),
 		})
 		return kfdefIns

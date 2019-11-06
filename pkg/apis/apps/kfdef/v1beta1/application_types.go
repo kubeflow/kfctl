@@ -139,10 +139,10 @@ type KfDefConditionType string
 
 const (
 	// KfAvailable means Kubeflow is serving.
-	Healthy KfDefConditionType = "Healthy"
+	KfAvailable KfDefConditionType = "Available"
 
-	// Unhealthy means one or more Kubeflow services are not healthy.
-	Unhealthy KfDefConditionType = "Unhealthy"
+	// KfDegraded means one or more Kubeflow services are not healthy.
+	KfDegraded KfDefConditionType = "KfDegraded"
 
 	// Pending means Kubeflow services is being updated.
 	Pending KfDefConditionType = "Pending"
