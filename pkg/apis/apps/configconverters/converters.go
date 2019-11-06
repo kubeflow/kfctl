@@ -2,18 +2,17 @@ package configconverters
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"io/ioutil"
 	netUrl "net/url"
-	"path"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	gogetter "github.com/hashicorp/go-getter"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -51,55 +50,30 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 		return nil, err
 	}
 
-	// appFile is configFile if configFile is local.
-	// Otherwise (configFile is remote), appFile points to a downloaded copy of configFile in tmp.
-	appFile := configFile
-	// If config is remote, download it to a temp dir.
+	var configFileBytes []byte
+	// If config is remote, get file content via http get.
 	if isRemoteFile {
-		// TODO(jlewi): We should check if configFile doesn't specify a protocol or the protocol
-		// is file:// then we can just read it rather than fetching with go-getter.
-		appDir, err := ioutil.TempDir("", "")
-		if err != nil {
-			return nil, fmt.Errorf("Create a temporary directory to copy the file to.")
+		var client http.Client
+		resp, err := client.Get(configFile)
+		if err != nil || resp == nil || resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Failed fetching file %v: %v", configFile, err)
 		}
-		// Open config file
-		//
-		// TODO(jlewi): Should we use hashicorp go-getter.GetAny here? We use that to download
-		// the tarballs for the repos. Maybe we should use that here as well to be consistent.
-		appFile = path.Join(appDir, "tmp_app.yaml")
-
-		log.Infof("Downloading %v to %v", configFile, appFile)
-		configFileUri, err := netUrl.Parse(configFile)
+		defer resp.Body.Close()
+		configFileBytes, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Errorf("could not parse configFile url")
-		}
-		if isValidUrl(configFile) {
-			errGet := gogetter.GetFile(appFile, configFile)
-			if errGet != nil {
-				return nil, &kfapis.KfError{
-					Code:    int(kfapis.INVALID_ARGUMENT),
-					Message: fmt.Sprintf("could not fetch specified config %s: %v", configFile, errGet),
-				}
-			}
-		} else {
-			g := new(gogetter.FileGetter)
-			g.Copy = true
-			errGet := g.GetFile(appFile, configFileUri)
-			if errGet != nil {
-				return nil, &kfapis.KfError{
-					Code:    int(kfapis.INVALID_ARGUMENT),
-					Message: fmt.Sprintf("could not fetch specified config %s: %v", configFile, err),
-				}
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not read from config file %s: %v", configFile, err),
 			}
 		}
-	}
-
-	// Read contents
-	configFileBytes, err := ioutil.ReadFile(appFile)
-	if err != nil {
-		return nil, &kfapis.KfError{
-			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not read from config file %s: %v", configFile, err),
+	} else {
+		// Read contents
+		configFileBytes, err = ioutil.ReadFile(configFile)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not read from config file %s: %v", configFile, err),
+			}
 		}
 	}
 
@@ -162,7 +136,6 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 		return nil, err
 	}
 
-	// Set the AppDir and ConfigFileName for kfconfig
 	if isRemoteFile {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -177,15 +150,6 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 	}
 	kfconfig.Spec.ConfigFileName = filepath.Base(configFile)
 	return kfconfig, nil
-}
-
-func isCwdEmpty() string {
-	cwd, _ := os.Getwd()
-	files, _ := ioutil.ReadDir(cwd)
-	if len(files) > 1 {
-		return ""
-	}
-	return cwd
 }
 
 func WriteConfigToFile(config kfconfig.KfConfig) error {
