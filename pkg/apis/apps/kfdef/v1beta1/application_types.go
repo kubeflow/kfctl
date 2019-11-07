@@ -142,7 +142,7 @@ const (
 	KfAvailable KfDefConditionType = "Available"
 
 	// KfDegraded means one or more Kubeflow services are not healthy.
-	KfDegraded KfDefConditionType = "KfDegraded"
+	KfDegraded KfDefConditionType = "Degraded"
 
 	// Pending means Kubeflow services is being updated.
 	Pending KfDefConditionType = "Pending"
