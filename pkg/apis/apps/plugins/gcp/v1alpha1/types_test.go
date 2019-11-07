@@ -1,4 +1,4 @@
-package gcp
+package v1alpha1
 
 import (
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
