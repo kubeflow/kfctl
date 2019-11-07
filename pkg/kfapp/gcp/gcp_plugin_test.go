@@ -2,8 +2,6 @@ package gcp
 
 import (
 	"testing"
-
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 )
 
 func TestGcpPluginSpec_IsValid(t *testing.T) {
@@ -27,13 +25,13 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "jlewi",
-						Password: &kfdefs.SecretRef{
+						Password: &SecretRef{
 							Name: "somesecret",
 						},
 					},
 					IAP: &IAP{
 						OAuthClientId: "jlewi",
-						OAuthClientSecret: &kfdefs.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: "somesecret",
 						},
 					},
@@ -48,7 +46,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
 						Username: "jlewi",
-						Password: &kfdefs.SecretRef{
+						Password: &SecretRef{
 							Name: "somesecret",
 						},
 					},
@@ -71,7 +69,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 			input: &GcpPluginSpec{
 				Auth: &Auth{
 					BasicAuth: &BasicAuth{
-						Password: &kfdefs.SecretRef{
+						Password: &SecretRef{
 							Name: "somesecret",
 						},
 					},
@@ -86,7 +84,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 				Auth: &Auth{
 					IAP: &IAP{
 						OAuthClientId: "jlewi",
-						OAuthClientSecret: &kfdefs.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: "somesecret",
 						},
 					},
@@ -108,7 +106,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 			input: &GcpPluginSpec{
 				Auth: &Auth{
 					IAP: &IAP{
-						OAuthClientSecret: &kfdefs.SecretRef{
+						OAuthClientSecret: &SecretRef{
 							Name: "somesecret",
 						},
 					},

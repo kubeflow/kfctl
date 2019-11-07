@@ -2,8 +2,6 @@ package gcp
 
 import (
 	"fmt"
-
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 )
 
 // GcpPlugin defines the extra data provided by the GCP Plugin in KfDef
@@ -35,23 +33,34 @@ type GcpPluginSpec struct {
 	DeleteStorage   bool   `json:"deleteStorage,omitempty"`
 }
 
+// SecretRef is a reference to a secret
+type SecretRef struct {
+	// Name of the secret
+	Name string `json:"name,omitempty"`
+}
+
 type Auth struct {
 	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
 	IAP       *IAP       `json:"iap,omitempty"`
 }
 
 type BasicAuth struct {
-	Username string            `json:"username,omitempty"`
-	Password *kfdefs.SecretRef `json:"password,omitempty"`
+	Username string     `json:"username,omitempty"`
+	Password *SecretRef `json:"password,omitempty"`
 }
 
 type IAP struct {
-	OAuthClientId     string            `json:"oAuthClientId,omitempty"`
-	OAuthClientSecret *kfdefs.SecretRef `json:"oAuthClientSecret,omitempty"`
+	OAuthClientId     string     `json:"oAuthClientId,omitempty"`
+	OAuthClientSecret *SecretRef `json:"oAuthClientSecret,omitempty"`
+}
+
+type RepoRef struct {
+	Name string `json:"name,omitempty"`
+	Path string `json:"path,omitempty"`
 }
 
 type DeploymentManagerConfig struct {
-	RepoRef *kfdefs.RepoRef `json:"repoRef,omitempty"`
+	RepoRef *RepoRef `json:"repoRef,omitempty"`
 }
 
 // IsValid returns true if the spec is a valid and complete spec.
