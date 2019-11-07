@@ -324,7 +324,7 @@ func (kfapp *coordinator) GetKfDef() *kfdefsv1beta1.KfDef {
 	return nil
 }
 
-// GetKfDefV1Beta1 returns a pointer to the KfDef V1Beta1 used by this application.
+// GetKfDefV1Beta1 returns a copy of KfDef V1Beta1 used by this application.
 func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 	kfdefIns := &kfdefsv1beta1.KfDef{}
 	kfdefByte, err := configconverters.V1beta1{}.ToKfDefSerialized(*(kfapp.KfDef.DeepCopy()))
