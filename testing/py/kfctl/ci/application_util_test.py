@@ -4,8 +4,8 @@ import shutil
 import tempfile
 import unittest
 
-from kubeflow.kubeflow.ci import application_util
-from kubeflow.kubeflow.ci import update_jupyter_web_app
+from kfctl.ci import application_util
+from kfctl.ci import update_jupyter_web_app
 
 import yaml
 
