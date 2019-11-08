@@ -131,8 +131,8 @@ class Builder:
     # Directory in kubeflow/kfctl containing the pytest files.
     self.kfctl_pytest_dir = os.path.join(self.src_dir, "testing/e2e")
 
-    # Top level directories for python code
-    self.kubeflow_py = self.kubeflow_dir
+    # Top level directories for python testing code in kfctl.
+    self.kfctl_py = os.path.join(self.src_dir, "testing/py")
 
     # The directory within the kubeflow_testing submodule containing
     # py scripts to use.
@@ -295,7 +295,7 @@ class Builder:
     # Define common environment variables to be added to all steps
     common_env = [
       {'name': 'PYTHONPATH',
-       'value': ":".join([self.kubeflow_py, self.kubeflow_py + "/py",
+       'value': ":".join([self.kfctl_py,
                           self.kubeflow_testing_py,
                           self.tf_operator_py])},
       {'name': 'GOPATH',
