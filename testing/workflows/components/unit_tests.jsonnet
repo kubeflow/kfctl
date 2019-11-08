@@ -32,7 +32,7 @@ local testing_image = "gcr.io/kubeflow-ci/kubeflow-testing";
 local nfsVolumeClaim = "nfs-external";
 // The name to use for the volume to use to contain test data.
 local dataVolume = "kubeflow-test-volume";
-local kubeflowPy = srcRootDir + "/kubeflow/kubeflow/py";
+local kubeflowPy = srcRootDir + "/kubeflow/kubeflow";
 // The directory within the kubeflow_testing submodule containing
 // py scripts to use.
 local kubeflowTestingPy = srcRootDir + "/kubeflow/testing/py";
