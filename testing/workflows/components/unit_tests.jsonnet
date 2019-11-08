@@ -107,15 +107,6 @@ local dagTemplates = [
     dependencies: ["checkout"],
   },  // create-pr-symlink
   {
-    template: buildTemplate("flake8-test", [
-      "python",
-      "-m",
-      "testing.test_flake8",
-      "--test_files_dirs=" + srcDir + "/testing",
-    ]),  // flake8-test
-    dependencies: ["checkout"],
-  },
-  {
     // Run the kfctl go unittests
     template: buildTemplate("go-kfctl-unit-tests", [
       "make",
