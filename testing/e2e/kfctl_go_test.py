@@ -36,7 +36,8 @@ def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
       util.run(["/bin/bash", "-c", cluster_creation_script])
 
 
-  kfctl_path = kfctl_util.build_kfctl_go()
+  logging.info("using kfctl repo: %s" % kfctl_repo_path)
+  kfctl_path = kfctl_util.build_kfctl_go(kfctl_repo_path)
   app_path = kfctl_util.kfctl_deploy_kubeflow(
                   app_path, project, use_basic_auth,
                   use_istio, config_path, kfctl_path, build_and_apply)
