@@ -47,7 +47,7 @@ from kubernetes.config import kube_config
 from oauth2client.client import GoogleCredentials
 
 from kubeflow.testing import test_util, util  # pylint: disable=no-name-in-module
-from testing import vm_util
+from . import vm_util
 
 # The ksonnet binary
 ks = "ks-13"
