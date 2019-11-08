@@ -20,7 +20,7 @@ Example running with E2E tool
 export PYTHONPATH=${PYTHONPATH}:${KUBEFLOW_REPO}/py:${KUBEFLOW_TESTING_REPO}/py
 
 python -m kubeflow.testing.e2e_tool apply \
-  kubeflow.kubeflow.ci.kfctl_e2e_workflow.create_workflow
+  kfctl.ci.kfctl_e2e_workflow.create_workflow
   --name=${USER}-kfctl-test-$(date +%Y%m%d-%H%M%S) \
   --namespace=kubeflow-test-infra \
   --test-endpoint=true \
