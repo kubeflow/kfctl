@@ -1,7 +1,7 @@
 # This file configures the workflows to trigger in our Prow jobs.
 # see kubeflow/testing/py/run_e2e_workflow.py
 python_paths:
-  - kubeflow/kubeflow/py
+  - kubeflow/kfctl/testing/py
 workflows:
   - app_dir: kubeflow/kfctl/testing/workflows
     component: unit_tests
@@ -17,7 +17,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
-  - py_func: kubeflow.kubeflow.ci.kfctl_e2e_workflow.create_workflow
+  - py_func: kfctl.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-iap
     job_types:
       - presubmit
@@ -37,7 +37,7 @@ workflows:
       test_endpoint: true
       config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_iap.yaml
   # Run basic auth test as part of every periodic and postsubmit run.
-  - py_func: kubeflow.kubeflow.ci.kfctl_e2e_workflow.create_workflow
+  - py_func: kfctl.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-basic-auth
     job_types:
       - postsubmit
