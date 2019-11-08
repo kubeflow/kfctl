@@ -14,6 +14,10 @@ def pytest_addoption(parser):
       help="Path to kfctl.")
 
   parser.addoption(
+      "--kfctl_repo_path", action="store", default="",
+      help="Path to kfctl repo.")
+
+  parser.addoption(
       "--namespace", action="store", default="kubeflow",
       help="Namespace to use.")
 
@@ -57,6 +61,10 @@ def app_name(request):
 @pytest.fixture
 def kfctl_path(request):
   return request.config.getoption("--kfctl_path")
+
+@pytest.fixture
+def kfctl_repo_path(request):
+  return request.config.getoption("--kfctl_repo_path")
 
 @pytest.fixture
 def namespace(request):
