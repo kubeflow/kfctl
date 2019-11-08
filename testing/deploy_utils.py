@@ -19,7 +19,7 @@ from kubernetes.config import kube_config
 from oauth2client.client import GoogleCredentials
 
 from kubeflow.testing import test_util, util  # pylint: disable=no-name-in-module  # noqa: E501
-from testing import vm_util
+from kfctl.testing import vm_util
 
 
 def get_gcp_identity():

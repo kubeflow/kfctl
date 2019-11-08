@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import yaml
 
-from testing import test_deploy
+from kfctl.testing import test_deploy
 
 
 class TestDeploy(unittest.TestCase):
