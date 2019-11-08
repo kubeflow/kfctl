@@ -16,5 +16,13 @@
       useIstio: "true",
       configPath: "bootstrap/config/kfctl_gcp_iap.yaml",
     },
+    unit_tests: {
+      bucket: "kubeflow-ci_temp",
+      name: "somefakename",
+      namespace: "kubeflow-test-infra",
+      prow_env: "",
+      gkeApiVersion: "",
+      workflowName: "unittest",
+    },
   },
 }

@@ -3,6 +3,20 @@
 python_paths:
   - kubeflow/kubeflow/py
 workflows:
+  - app_dir: kubeflow/kfctl/testing/workflows
+    component: unit_tests
+    name: unittests
+    params:
+      workflowName: unittest
+    job_types:
+      - presubmit
+      - postsubmit
+      - periodic
+    include_dirs:
+      - config/*
+      - cmd/*
+      - pkg/*
+      - testing/*
   - py_func: kubeflow.kubeflow.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-iap
     job_types:
