@@ -363,7 +363,7 @@ class Builder:
     step_name = "pytorch-job-deploy"
     command = [ "python",
                 "-m",
-                "testing.test_deploy",
+                "kfctl.testing.test_deploy",
                 "--project=kubeflow-ci",
                 "--namespace=" + self.steps_namespace,
                 "--test_dir=" + self.test_dir,
