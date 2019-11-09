@@ -28,7 +28,8 @@ import (
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/configconverters"
 	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
-	kfdefsv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
+	kfdefsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
+	kfdefsv1beta1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/aws"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/existing_arrikto"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
@@ -180,7 +181,7 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 				Message: fmt.Sprintf("current directory %v not empty, please switch directories", kfdef.Spec.AppDir),
 			}
 		}
-		_, err = createKfAppCfgFile(kfdef)
+		_, err = CreateKfAppCfgFile(kfdef)
 		if err != nil {
 			return nil, &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
@@ -243,7 +244,7 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 
 // TODO: remove this
 // This is for kfctlServer. We can remove this after kfctlServer uses kfconfig
-func CreateKfAppCfgFileWithKfDef(d *kfdefsv3.KfDef) (string, error) {
+func CreateKfAppCfgFileWithKfDef(d *kfdefsv1alpha1.KfDef) (string, error) {
 	alphaConverter := configconverters.V1alpha1{}
 	kfdefBytes, err := yaml.Marshal(d)
 	if err != nil {
@@ -254,15 +255,15 @@ func CreateKfAppCfgFileWithKfDef(d *kfdefsv3.KfDef) (string, error) {
 		return "", err
 	}
 	kfconfig.Spec.ConfigFileName = kftypesv3.KfConfigFile
-	return createKfAppCfgFile(kfconfig)
+	return CreateKfAppCfgFile(kfconfig)
 }
 
-// createKfAppCfgFile will create the application directory and persist
+// CreateKfAppCfgFile will create the application directory and persist
 // the KfDef to it as app.yaml.
 // This is only used when the config file is remote (https://github...)
 // Returns an error if the app.yaml file already exists
 // Returns path to the app.yaml file.
-func createKfAppCfgFile(d *kfconfig.KfConfig) (string, error) {
+func CreateKfAppCfgFile(d *kfconfig.KfConfig) (string, error) {
 	if _, err := os.Stat(d.Spec.AppDir); os.IsNotExist(err) {
 		log.Infof("Creating directory %v", d.Spec.AppDir)
 		appdirErr := os.MkdirAll(d.Spec.AppDir, os.ModePerm)
@@ -313,15 +314,36 @@ type coordinator struct {
 	KfDef           *kfconfig.KfConfig
 }
 
-// TODO: change this
-type KfDefGetter interface {
-	GetKfDef() *kfdefsv3.KfDef
+type KfDefGetterV1beta1 interface {
+	GetKfDefV1Beta1() *kfdefsv1beta1.KfDef
 	GetPlugin(name string) (kftypesv3.KfApp, bool)
 }
 
-// GetKfDef returns a pointer to the KfDef used by this application.
-func (kfapp *coordinator) GetKfDef() *kfconfig.KfConfig {
-	return kfapp.KfDef
+//TODO(kunming): remove after kfctlserver change (https://github.com/kubeflow/kubeflow/pull/4399) merged.
+func (kfapp *coordinator) GetKfDef() *kfdefsv1beta1.KfDef {
+	return nil
+}
+
+// GetKfDefV1Beta1 returns a copy of KfDef V1Beta1 used by this application.
+func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
+	kfdefIns := &kfdefsv1beta1.KfDef{}
+	kfdefByte, err := configconverters.V1beta1{}.ToKfDefSerialized(*(kfapp.KfDef.DeepCopy()))
+	if err != nil {
+		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
+			Type:    kfdefsv1beta1.KfDegraded,
+			Message: err.Error(),
+		})
+		return kfdefIns
+	}
+
+	if err := yaml.Unmarshal(kfdefByte, kfdefIns); err != nil {
+		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
+			Type:    kfdefsv1beta1.KfDegraded,
+			Message: err.Error(),
+		})
+		return kfdefIns
+	}
+	return kfdefIns
 }
 
 // GetPlatform returns the specified platform.

@@ -59,7 +59,6 @@ type KfConfigSpec struct {
 	Zone            string `json:"zone,omitempty"`
 
 	DeleteStorage bool `json:"deleteStorage,omitempty"`
-	UseIstio      bool `json:"useIstio"`
 
 	Applications []Application `json:"applications,omitempty"`
 	Plugins      []Plugin      `json:"plugins,omitempty"`
@@ -186,11 +185,14 @@ const (
 type ConditionType string
 
 const (
-	// KfAvailable means Kubeflow is serving.
+	// Available means Kubeflow is serving.
 	Available ConditionType = "Available"
 
-	// KfDegraded means functionality of Kubeflow is limited.
+	// Degraded means one or more Kubeflow services are not healthy.
 	Degraded ConditionType = "Degraded"
+
+	// Pending means Kubeflow services is being updated.
+	Pending ConditionType = "Pending"
 )
 
 // Define plugin related conditions to be the format:
@@ -248,7 +250,7 @@ func (c *KfConfig) GetPluginSpec(pluginKind PluginKindType, s interface{}) error
 	}
 }
 
-// SetPluginSpec sets the requested parameter. The plugin is added if it doesn't already exist.
+// SetPluginSpec sets the requested parameter: add the plugin if it doesn't already exist, or replace existing plugin.
 func (c *KfConfig) SetPluginSpec(pluginKind PluginKindType, spec interface{}) error {
 	// Convert spec to RawExtension
 	r := &runtime.RawExtension{}

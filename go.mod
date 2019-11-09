@@ -16,10 +16,13 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/go-kit/kit v0.8.0
+	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
 	github.com/go-openapi/swag v0.19.2 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/google/go-cmp v0.3.0
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.7
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -33,6 +36,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
+	go.uber.org/zap v1.12.0 // indirect
 	golang.org/x/crypto v0.0.0
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
@@ -62,6 +66,7 @@ require (
 	k8s.io/legacy-cloud-providers v0.0.0
 	k8s.io/metrics v0.0.0
 	k8s.io/sample-apiserver v0.0.0
+	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/kustomize/v3 v3.1.0
 )
