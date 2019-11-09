@@ -34,7 +34,7 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kubectlapply "k8s.io/kubernetes/pkg/kubectl/cmd/apply"
@@ -253,7 +253,7 @@ type Apply struct {
 }
 
 func NewApply(namespace string, restConfig *rest.Config) (*Apply, error) {
-	configFlags := genericclioptions.NewConfigFlags()
+	configFlags := genericclioptions.NewConfigFlags(false)
 	if restConfig != nil {
 		certFile := path.Join(CertDir, generateRandStr(10))
 		if err := ioutil.WriteFile(certFile, restConfig.TLSClientConfig.CAData, 0644); err != nil {
@@ -378,8 +378,7 @@ func (a *Apply) init() error {
 		return err
 	}
 	o.DeleteOptions = o.DeleteFlags.ToOptions(dynamicClient, o.IOStreams)
-	o.ShouldIncludeUninitialized = false
-	o.OpenApiPatch = true
+	o.OpenAPIPatch = true
 	o.OpenAPISchema, _ = f.OpenAPISchema()
 	o.Validator, err = f.Validator(false)
 	o.Builder = f.NewBuilder()
