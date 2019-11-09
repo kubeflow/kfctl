@@ -470,7 +470,7 @@ class Builder:
     step_name = "test-dir-delete"
     command = ["python",
                "-m",
-               "testing.run_with_retry",
+               "kfctl.testing.run_with_retry",
                "--retries=5",
                "--",
                "rm",
