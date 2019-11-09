@@ -2,8 +2,6 @@ module github.com/kubeflow/kfctl/v3
 
 require (
 	cloud.google.com/go v0.38.0
-	github.com/Azure/go-autorest/autorest v0.9.1 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.6.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect

@@ -59,6 +59,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -1873,7 +1874,7 @@ func (gcp *Gcp) ConfigPodDefault() error {
 			Message: fmt.Sprintf("build DiscoveryClient error: %v", err),
 		}
 	}
-	_cached := cached.NewMemCacheClient(_discoveryClient)
+	_cached := memory.NewMemCacheClient(_discoveryClient)
 	_cached.Invalidate()
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(_cached)
 	gk := schema.GroupKind{
