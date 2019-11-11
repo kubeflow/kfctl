@@ -17,10 +17,10 @@ Here are some pointers for rapidly iterating on the workflow during development.
 
 Example running with E2E tool
 
-export PYTHONPATH=${PYTHONPATH}:${KUBEFLOW_REPO}/py:${KUBEFLOW_TESTING_REPO}/py
+export PYTHONPATH=${PYTHONPATH}:${KFCTL_REPO}/py:${KUBEFLOW_TESTING_REPO}/py
 
 python -m kubeflow.testing.e2e_tool apply \
-  kfctl.ci.kfctl_e2e_workflow.create_workflow
+  kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
   --name=${USER}-kfctl-test-$(date +%Y%m%d-%H%M%S) \
   --namespace=kubeflow-test-infra \
   --test-endpoint=true \
