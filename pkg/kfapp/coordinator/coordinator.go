@@ -314,8 +314,13 @@ type coordinator struct {
 	KfDef           *kfconfig.KfConfig
 }
 
-type KfDefGetterV1beta1 interface {
-	GetKfDefV1Beta1() *kfdefsv1beta1.KfDef
+// Return a copy of kfdef v1beta1
+type DumpKfDefV1Beta1 interface {
+	DumpKfDefV1Beta1() *kfdefsv1beta1.KfDef
+}
+
+// Get reference to the plugin .
+type PluginGetter interface {
 	GetPlugin(name string) (kftypesv3.KfApp, bool)
 }
 
@@ -324,8 +329,8 @@ func (kfapp *coordinator) GetKfDef() *kfdefsv1beta1.KfDef {
 	return nil
 }
 
-// GetKfDefV1Beta1 returns a copy of KfDef V1Beta1 used by this application.
-func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
+// DumpKfDefV1Beta1 returns a copy of KfDef V1Beta1 used by this application.
+func (kfapp *coordinator) DumpKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 	kfdefIns := &kfdefsv1beta1.KfDef{}
 	kfdefByte, err := configconverters.V1beta1{}.ToKfDefSerialized(*(kfapp.KfDef.DeepCopy()))
 	if err != nil {
