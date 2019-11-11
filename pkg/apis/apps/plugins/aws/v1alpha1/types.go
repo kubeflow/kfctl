@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,15 +31,9 @@ type Auth struct {
 	Cognito   *Coginito  `json:"cognito,omitempty"`
 }
 
-// SecretRef is a reference to a secret
-type SecretRef struct {
-	// Name of the secret
-	Name string `json:"name,omitempty"`
-}
-
 type BasicAuth struct {
-	Username string     `json:"username,omitempty"`
-	Password *SecretRef `json:"password,omitempty"`
+	Username string                `json:"username,omitempty"`
+	Password *kfdeftypes.SecretRef `json:"password,omitempty"`
 }
 
 type OIDC struct {
