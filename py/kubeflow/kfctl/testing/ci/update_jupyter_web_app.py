@@ -16,7 +16,7 @@ import fire
 import git
 import httplib2
 
-from kfctl.ci import application_util
+from kubeflow.kfctl.testing.util import application_util
 from kubeflow.testing import util # pylint: disable=no-name-in-module
 
 from containerregistry.client import docker_creds
