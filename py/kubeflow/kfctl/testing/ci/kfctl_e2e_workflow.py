@@ -129,10 +129,10 @@ class Builder:
     self.kubeflow_dir = self.src_root_dir + "/kubeflow/kubeflow"
 
     # Directory in kubeflow/kfctl containing the pytest files.
-    self.kfctl_pytest_dir = os.path.join(self.src_dir, "testing/e2e")
+    self.kfctl_pytest_dir = os.path.join(self.src_dir, "py/kubeflow/kfctl/testing/pytests")
 
     # Top level directories for python testing code in kfctl.
-    self.kfctl_py = os.path.join(self.src_dir, "testing/py")
+    self.kfctl_py = os.path.join(self.src_dir, "py")
 
     # The directory within the kubeflow_testing submodule containing
     # py scripts to use.
@@ -363,7 +363,7 @@ class Builder:
     step_name = "pytorch-job-deploy"
     command = [ "python",
                 "-m",
-                "kfctl.testing.test_deploy",
+                "kubeflow.kfctl.testing.test_deploy",
                 "--project=kubeflow-ci",
                 "--namespace=" + self.steps_namespace,
                 "--test_dir=" + self.test_dir,
@@ -470,7 +470,7 @@ class Builder:
     step_name = "test-dir-delete"
     command = ["python",
                "-m",
-               "kfctl.testing.run_with_retry",
+               "kubeflow.kfctl.testing.util.run_with_retry",
                "--retries=5",
                "--",
                "rm",
