@@ -8,7 +8,7 @@ import (
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
-	kfgcp "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	kfgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 )
 
 // Empty struct - used to implement Converter interface.
@@ -36,7 +36,7 @@ func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
 		return nil
 	}
 
-	spec := kfgcp.GcpPluginSpec{}
+	spec := kfgcpplugin.GcpPluginSpec{}
 	if err := to.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, &spec); err != nil && !kfconfig.IsPluginNotFound(err) {
 		return err
 	}
@@ -202,7 +202,7 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	kfdef.Spec.UseIstio = true
 	kfdef.Spec.PackageManager = "kustomize"
 
-	gcpSpec := &kfgcp.GcpPluginSpec{}
+	gcpSpec := &kfgcpplugin.GcpPluginSpec{}
 	if err := config.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, gcpSpec); err == nil {
 		kfdef.Spec.Project = gcpSpec.Project
 		kfdef.Spec.Email = gcpSpec.Email

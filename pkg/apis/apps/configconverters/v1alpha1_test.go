@@ -6,7 +6,7 @@ import (
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
-	kfgcp "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	kfgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	"io/ioutil"
 	"os"
@@ -99,12 +99,12 @@ func TestV1alpha1_ConvertToKfDef(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error when unmarshaling to KfDef: %v", err)
 		}
-		gcpSpec := &kfgcp.GcpPluginSpec{}
+		gcpSpec := &kfgcpplugin.GcpPluginSpec{}
 		err = got.GetPluginSpec(kftypes.GCP, gcpSpec)
 		if err != nil {
 			t.Fatalf("Error when getting spec: %v", err)
 		}
-		newSpec := &kfgcp.GcpPluginSpec{}
+		newSpec := &kfgcpplugin.GcpPluginSpec{}
 		newSpec.CreatePipelinePersistentStorage = gcpSpec.CreatePipelinePersistentStorage
 		newSpec.EnableWorkloadIdentity = gcpSpec.EnableWorkloadIdentity
 		newSpec.DeploymentManagerConfig = gcpSpec.DeploymentManagerConfig
