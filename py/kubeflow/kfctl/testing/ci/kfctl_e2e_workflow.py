@@ -295,8 +295,8 @@ class Builder:
     # Define common environment variables to be added to all steps
     common_env = [
       {'name': 'PYTHONPATH',
-       'value': ":".join([self.kfctl_py,
-                          self.kubeflow_testing_py,
+       'value': ":".join([self.kubeflow_testing_py,
+                          self.kfctl_py,
                           self.tf_operator_py])},
       {'name': 'GOPATH',
         'value': self.go_path},
