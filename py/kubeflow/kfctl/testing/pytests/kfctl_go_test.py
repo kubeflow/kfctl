@@ -3,11 +3,11 @@ import os
 
 import pytest
 
-from kubeflow.kubeflow.ci import kfctl_go_test_utils as kfctl_util
+from kubeflow.kfctl.testing.util import kfctl_go_test_utils as kfctl_util
 from kubeflow.testing import util
 
 def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
-                        use_istio, config_path, build_and_apply,
+                        use_istio, config_path, build_and_apply, kfctl_repo_path,
                         cluster_creation_script):
   """Test building and deploying Kubeflow.
 
@@ -19,6 +19,7 @@ def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
     config_path: Path to the KFDef spec file.
     cluster_creation_script: script invoked to create a new cluster
     build_and_apply: whether to build and apply or apply
+    kfctl_repo_path: path to the kubeflow/kfctl repo.
   """
   util.set_pytest_junit(record_xml_attribute, "test_build_kfctl_go")
 
@@ -35,7 +36,8 @@ def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
       util.run(["/bin/bash", "-c", cluster_creation_script])
 
 
-  kfctl_path = kfctl_util.build_kfctl_go()
+  logging.info("using kfctl repo: %s" % kfctl_repo_path)
+  kfctl_path = kfctl_util.build_kfctl_go(kfctl_repo_path)
   app_path = kfctl_util.kfctl_deploy_kubeflow(
                   app_path, project, use_basic_auth,
                   use_istio, config_path, kfctl_path, build_and_apply)

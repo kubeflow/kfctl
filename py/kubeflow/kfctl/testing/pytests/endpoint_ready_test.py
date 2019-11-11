@@ -10,8 +10,8 @@ from retrying import retry
 import pytest
 
 from kubeflow.testing import util
-from testing import deploy_utils
-from testing import gcp_util
+from kubeflow.kfctl.testing.util import deploy_utils
+from kubeflow.kfctl.testing.util import gcp_util
 
 # There's really no good reason to run test_endpoint during presubmits.
 # We shouldn't need it to feel confident that kfctl is working.
