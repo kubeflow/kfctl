@@ -13,7 +13,7 @@ from oauth2client.client import GoogleCredentials
 import pytest
 
 from kubeflow.testing import util
-from kfctl.testing import deploy_utils
+from kubeflow.kfctl.testing.util import deploy_utils
 
 def set_logging():
   logging.basicConfig(level=logging.INFO,

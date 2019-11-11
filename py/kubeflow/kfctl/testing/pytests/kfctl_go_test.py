@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from kfctl.ci import kfctl_go_test_utils as kfctl_util
+from kubeflow.kfctl.testing.util import kfctl_go_test_utils as kfctl_util
 from kubeflow.testing import util
 
 def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
