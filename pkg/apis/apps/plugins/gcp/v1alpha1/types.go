@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,34 +46,23 @@ type GcpPluginSpec struct {
 	DeleteStorage   bool   `json:"deleteStorage,omitempty"`
 }
 
-// SecretRef is a reference to a secret
-type SecretRef struct {
-	// Name of the secret
-	Name string `json:"name,omitempty"`
-}
-
 type Auth struct {
 	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
 	IAP       *IAP       `json:"iap,omitempty"`
 }
 
 type BasicAuth struct {
-	Username string     `json:"username,omitempty"`
-	Password *SecretRef `json:"password,omitempty"`
+	Username string                `json:"username,omitempty"`
+	Password *kfdeftypes.SecretRef `json:"password,omitempty"`
 }
 
 type IAP struct {
-	OAuthClientId     string     `json:"oAuthClientId,omitempty"`
-	OAuthClientSecret *SecretRef `json:"oAuthClientSecret,omitempty"`
-}
-
-type RepoRef struct {
-	Name string `json:"name,omitempty"`
-	Path string `json:"path,omitempty"`
+	OAuthClientId     string                `json:"oAuthClientId,omitempty"`
+	OAuthClientSecret *kfdeftypes.SecretRef `json:"oAuthClientSecret,omitempty"`
 }
 
 type DeploymentManagerConfig struct {
-	RepoRef *RepoRef `json:"repoRef,omitempty"`
+	RepoRef *kfdeftypes.RepoRef `json:"repoRef,omitempty"`
 }
 
 // IsValid returns true if the spec is a valid and complete spec.
