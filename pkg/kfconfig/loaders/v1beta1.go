@@ -29,6 +29,10 @@ func maybeGetPlatform(pluginKind string) string {
 	}
 }
 
+func (v V1beta1) LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error) {
+	return nil, fmt.Errorf("Not implemented.")
+}
+
 func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
 	if err := yaml.Unmarshal(kfdefBytes, kfdef); err != nil {
@@ -180,6 +184,10 @@ func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 
 	return config, nil
 
+}
+
+func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out *interface{}) error {
+	return fmt.Errorf("Not implemented.")
 }
 
 func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {

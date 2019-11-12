@@ -51,6 +51,10 @@ func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
 	return to.SetPluginSpec(kfconfig.GCP_PLUGIN_KIND, spec)
 }
 
+func (v V1alpha1) LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error) {
+	return nil, fmt.Errorf("Not implemented.")
+}
+
 func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
 	if err := yaml.Unmarshal(kfdefBytes, kfdef); err != nil {
@@ -183,6 +187,10 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	}
 
 	return config, nil
+}
+
+func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out *interface{}) error {
+	return fmt.Errorf("Not implemented.")
 }
 
 func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {

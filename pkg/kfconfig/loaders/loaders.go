@@ -23,6 +23,11 @@ type Converter interface {
 	ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error)
 }
 
+type Loader interface {
+	LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error)
+	LoadKfDef(config kfconfig.KfConfig, out *interface{}) error
+}
+
 const (
 	Api = "kfdef.apps.kubeflow.org"
 )
