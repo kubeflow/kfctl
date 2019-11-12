@@ -1,4 +1,4 @@
-package configconverters
+package loaders
 
 import (
 	"github.com/ghodss/yaml"

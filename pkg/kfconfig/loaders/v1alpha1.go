@@ -1,4 +1,4 @@
-package configconverters
+package loaders
 
 import (
 	"fmt"
