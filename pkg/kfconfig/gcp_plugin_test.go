@@ -1,15 +1,17 @@
 package kfconfig
 
 import (
-	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	"testing"
+
+	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 )
 
 func TestGcpPluginSpec_IsValid(t *testing.T) {
 
 	type testCase struct {
 		input    *GcpPluginSpec
-		expected bool
+		expected error
 	}
 
 	cases := []testCase{
@@ -18,7 +20,9 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 			input: &GcpPluginSpec{
 				Auth: &Auth{},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 		{
 			// Both IAP and BasicAuth set
@@ -38,7 +42,9 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 
 		// Validate basic auth.
@@ -53,7 +59,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expected: nil,
 		},
 		{
 			input: &GcpPluginSpec{
@@ -63,7 +69,9 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 
 		{
@@ -76,7 +84,9 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 		// End Validate basic auth.
 		// End Validate IAP.
@@ -91,7 +101,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expected: nil,
 		},
 		{
 			input: &GcpPluginSpec{
@@ -101,7 +111,9 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 		{
 			input: &GcpPluginSpec{
@@ -113,23 +125,33 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 		{
 			input: &GcpPluginSpec{
 				Hostname: "this-kfApp-name-is-very-long.endpoints.my-gcp-project-for-kubeflow.cloud.goog",
 			},
-			expected: false,
+			expected: &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+			},
 		},
 	}
 
 	for _, c := range cases {
-		isValid, _ := c.input.IsValid()
-
-		// Test they are equal
-		if isValid != c.expected {
-			pSpec := kfutils.PrettyPrint(c.input)
-			t.Errorf("Spec %v;\n IsValid Got:%v %v", pSpec, isValid, c.expected)
+		err := c.input.IsValid()
+		pSpec := kfutils.PrettyPrint(c.input)
+		if err != nil {
+			if c.expected != nil {
+				if err.(*kfapis.KfError).Code != c.expected.(*kfapis.KfError).Code {
+					t.Errorf("Spec %v;\n IsValid Got:%v %v", pSpec, err, c.expected)
+				}
+			} else {
+				t.Errorf("Spec %v;\n IsValid Got:%v %v", pSpec, err, c.expected)
+			}
+		} else if c.expected != nil {
+			t.Errorf("Spec %v;\n IsValid Got:%v %v", pSpec, err, c.expected)
 		}
 	}
 }

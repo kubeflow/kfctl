@@ -2,6 +2,9 @@ package kfconfig
 
 import (
 	"fmt"
+	"strings"
+
+	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 )
 
 // GcpPlugin defines the extra data provided by the GCP Plugin in KfDef
@@ -54,53 +57,67 @@ type DeploymentManagerConfig struct {
 
 // IsValid returns true if the spec is a valid and complete spec.
 // If false it will also return a string providing a message about why its invalid.
-func (s *GcpPluginSpec) IsValid() (bool, string) {
+func (s *GcpPluginSpec) IsValid() error {
 	if len(s.Hostname) > 63 {
-		return false, fmt.Sprintf("Invaid host name: host name %s is longer than 63 characters. Please shorten the metadata.name.", s.Hostname)
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("Invaid host name: host name %s is longer than 63 characters. Please shorten the metadata.name.", s.Hostname),
+		}
 	}
 	basicAuthSet := s.Auth.BasicAuth != nil
 	iapAuthSet := s.Auth.IAP != nil
 
 	if basicAuthSet == iapAuthSet {
-		return false, "Exactly one of BasicAuth and IAP must be set; the other should be nil"
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: "Exactly one of BasicAuth and IAP must be set; the other should be nil",
+		}
 	}
 
 	if basicAuthSet {
-		msg := ""
-
-		isValid := true
-
+		msgs := []string{}
 		if s.Auth.BasicAuth.Username == "" {
-			isValid = false
-			msg += "BasicAuth requires username. "
+			msgs = append(msgs, "BasicAuth requires username.")
 		}
 
 		if s.Auth.BasicAuth.Password == nil {
-			isValid = false
-			msg += "BasicAuth requires password. "
+			msgs = append(msgs, "BasicAuth requires password.")
 		}
 
-		return isValid, msg
+		if len(msgs) > 0 {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: strings.Join(msgs, ";"),
+			}
+		} else {
+			return nil
+		}
 	}
 
 	if iapAuthSet {
-		msg := ""
-		isValid := true
-
+		msgs := []string{}
 		if s.Auth.IAP.OAuthClientId == "" {
-			isValid = false
-			msg += "IAP requires OAuthClientId. "
+			msgs = append(msgs, "IAP requires OAuthClientId.")
 		}
 
 		if s.Auth.IAP.OAuthClientSecret == nil {
-			isValid = false
-			msg += "IAP requires OAuthClientSecret. "
+			msgs = append(msgs, "IAP requires OAuthClientSecret.")
 		}
 
-		return isValid, msg
+		if len(msgs) > 0 {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: strings.Join(msgs, ";"),
+			}
+		} else {
+			return nil
+		}
 	}
 
-	return false, "Either BasicAuth or IAP must be set"
+	return &kfapis.KfError{
+		Code:    int(kfapis.INVALID_ARGUMENT),
+		Message: "Either BasicAuth or IAP must be set",
+	}
 }
 
 func (p *GcpPluginSpec) GetCreatePipelinePersistentStorage() bool {
