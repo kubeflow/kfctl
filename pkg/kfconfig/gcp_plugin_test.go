@@ -1,6 +1,7 @@
 package kfconfig
 
 import (
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	"testing"
 )
 
@@ -127,7 +128,7 @@ func TestGcpPluginSpec_IsValid(t *testing.T) {
 
 		// Test they are equal
 		if isValid != c.expected {
-			pSpec, _ := Pformat(c.input)
+			pSpec := kfutils.PrettyPrint(c.input)
 			t.Errorf("Spec %v;\n IsValid Got:%v %v", pSpec, isValid, c.expected)
 		}
 	}

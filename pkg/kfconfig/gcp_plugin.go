@@ -33,12 +33,6 @@ type GcpPluginSpec struct {
 	DeleteStorage   bool   `json:"deleteStorage,omitempty"`
 }
 
-// SecretRef is a reference to a secret
-type SecretRef struct {
-	// Name of the secret
-	Name string `json:"name,omitempty"`
-}
-
 type Auth struct {
 	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
 	IAP       *IAP       `json:"iap,omitempty"`
@@ -52,11 +46,6 @@ type BasicAuth struct {
 type IAP struct {
 	OAuthClientId     string     `json:"oAuthClientId,omitempty"`
 	OAuthClientSecret *SecretRef `json:"oAuthClientSecret,omitempty"`
-}
-
-type RepoRef struct {
-	Name string `json:"name,omitempty"`
-	Path string `json:"path,omitempty"`
 }
 
 type DeploymentManagerConfig struct {
