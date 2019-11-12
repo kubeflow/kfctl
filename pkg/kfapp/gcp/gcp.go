@@ -1873,7 +1873,7 @@ func (gcp *Gcp) ConfigPodDefault() error {
 			Message: fmt.Sprintf("build DiscoveryClient error: %v", err),
 		}
 	}
-	_cached := cached.NewMemCacheClient(_discoveryClient)
+	_cached := memory.NewMemCacheClient(_discoveryClient)
 	_cached.Invalidate()
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(_cached)
 	gk := schema.GroupKind{
