@@ -55,8 +55,8 @@ type DeploymentManagerConfig struct {
 	RepoRef *RepoRef `json:"repoRef,omitempty"`
 }
 
-// IsValid returns true if the spec is a valid and complete spec.
-// If false it will also return a string providing a message about why its invalid.
+// IsValid returns nil if the spec is a valid and complete spec.
+// If not nil it will return a `KfError` with an error message.
 func (s *GcpPluginSpec) IsValid() error {
 	if len(s.Hostname) > 63 {
 		return &kfapis.KfError{
