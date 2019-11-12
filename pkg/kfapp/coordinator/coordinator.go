@@ -314,8 +314,13 @@ type coordinator struct {
 	KfDef           *kfconfig.KfConfig
 }
 
+// Return a copy of kfdef v1beta1
 type KfDefGetterV1beta1 interface {
 	GetKfDefV1Beta1() *kfdefsv1beta1.KfDef
+}
+
+// Get reference to the plugin .
+type PluginGetter interface {
 	GetPlugin(name string) (kftypesv3.KfApp, bool)
 }
 
