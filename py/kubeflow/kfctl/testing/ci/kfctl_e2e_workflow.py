@@ -377,8 +377,12 @@ class Builder:
 
 
     dependences = []
-    pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-                                    command, dependences)
+    # TODO(https://github.com/kubeflow/kfctl/issues/94):
+    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
+    # converting it to Yaml.
+    #
+    # pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+    #                                 command, dependences)
 
     #***************************************************************************
     # Notebook test
@@ -396,11 +400,15 @@ class Builder:
              ]
 
     dependences = []
-    notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-                                     command, dependences)
 
-    notebook_test["container"]["workingDir"] =  os.path.join(
-      self.kubeflow_dir, "kubeflow/jupyter/tests")
+    # TODO(https://github.com/kubeflow/kfctl/issues/94):
+    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
+    # converting it to Yaml.
+    # notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+    #                                 command, dependences)
+
+    # notebook_test["container"]["workingDir"] =  os.path.join(
+    #  self.kubeflow_dir, "kubeflow/jupyter/tests")
 
     #***************************************************************************
     # Profiles test
