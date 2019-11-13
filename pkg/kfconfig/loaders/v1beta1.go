@@ -29,7 +29,7 @@ func maybeGetPlatform(pluginKind string) string {
 	}
 }
 
-func (v V1beta1) LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error) {
+func (v V1beta1) LoadKfConfig(kfdef interface{}) (*kfconfig.KfConfig, error) {
 	return nil, fmt.Errorf("Not implemented.")
 }
 
@@ -186,7 +186,7 @@ func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 
 }
 
-func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out *interface{}) error {
+func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	return fmt.Errorf("Not implemented.")
 }
 

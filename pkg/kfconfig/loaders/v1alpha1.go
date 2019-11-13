@@ -51,7 +51,22 @@ func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
 	return to.SetPluginSpec(kfconfig.GCP_PLUGIN_KIND, spec)
 }
 
-func (v V1alpha1) LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error) {
+func (v V1alpha1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
+	kfdef := &kfdeftypes.KfDef{}
+	if bytes, err := yaml.Marshal(def); err != nil {
+		return nil, &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("could not marshal kfdef into bytes: %v", err),
+		}
+	} else {
+		err = yaml.Unmarshal(bytes, kfdef)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not unpack kfdef: %v", err),
+			}
+		}
+	}
 	return nil, fmt.Errorf("Not implemented.")
 }
 
@@ -189,7 +204,7 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	return config, nil
 }
 
-func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out *interface{}) error {
+func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	return fmt.Errorf("Not implemented.")
 }
 

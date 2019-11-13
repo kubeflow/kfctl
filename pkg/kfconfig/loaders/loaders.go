@@ -24,8 +24,8 @@ type Converter interface {
 }
 
 type Loader interface {
-	LoadKfConfig(kfdef *interface{}) (*kfconfig.KfConfig, error)
-	LoadKfDef(config kfconfig.KfConfig, out *interface{}) error
+	LoadKfConfig(kfdef interface{}) (*kfconfig.KfConfig, error)
+	LoadKfDef(config kfconfig.KfConfig, out interface{}) error
 }
 
 const (
