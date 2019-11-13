@@ -35,6 +35,7 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/minikube"
+	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -245,12 +246,8 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 // TODO: remove this
 // This is for kfctlServer. We can remove this after kfctlServer uses kfconfig
 func CreateKfAppCfgFileWithKfDef(d *kfdefsv1alpha1.KfDef) (string, error) {
-	alphaConverter := configconverters.V1alpha1{}
-	kfdefBytes, err := yaml.Marshal(d)
-	if err != nil {
-		return "", err
-	}
-	kfconfig, err := alphaConverter.ToKfConfig(kfdefBytes)
+	alphaConverter := kfconfigloaders.V1alpha1{}
+	kfconfig, err := alphaConverter.LoadKfConfig(*d)
 	if err != nil {
 		return "", err
 	}
