@@ -343,7 +343,116 @@ func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 }
 
 func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
-	return fmt.Errorf("Not implemented.")
+	kfdef := &kfdeftypes.KfDef{}
+	kfdef.Name = config.Name
+	kfdef.Namespace = config.Namespace
+	kfdef.APIVersion = config.APIVersion
+	kfdef.Kind = "KfDef"
+	kfdef.Labels = config.Labels
+	kfdef.Annotations = config.Annotations
+	kfdef.Spec.Version = config.Spec.Version
+
+	for _, app := range config.Spec.Applications {
+		application := kfdeftypes.Application{
+			Name: app.Name,
+		}
+		if app.KustomizeConfig != nil {
+			kconfig := &kfdeftypes.KustomizeConfig{
+				Overlays: app.KustomizeConfig.Overlays,
+			}
+			if app.KustomizeConfig.RepoRef != nil {
+				kref := &kfdeftypes.RepoRef{
+					Name: app.KustomizeConfig.RepoRef.Name,
+					Path: app.KustomizeConfig.RepoRef.Path,
+				}
+				kconfig.RepoRef = kref
+			}
+			for _, param := range app.KustomizeConfig.Parameters {
+				p := kfdeftypes.NameValue{
+					Name:  param.Name,
+					Value: param.Value,
+				}
+				kconfig.Parameters = append(kconfig.Parameters, p)
+			}
+			application.KustomizeConfig = kconfig
+		}
+		kfdef.Spec.Applications = append(kfdef.Spec.Applications, application)
+	}
+
+	for _, plugin := range config.Spec.Plugins {
+		p := kfdeftypes.Plugin{
+			Spec: plugin.Spec,
+		}
+		p.Name = plugin.Name
+		p.Kind = string(plugin.Kind)
+		kfdef.Spec.Plugins = append(kfdef.Spec.Plugins, p)
+	}
+
+	for _, secret := range config.Spec.Secrets {
+		s := kfdeftypes.Secret{
+			Name: secret.Name,
+		}
+		if secret.SecretSource != nil {
+			s.SecretSource = &kfdeftypes.SecretSource{}
+			if secret.SecretSource.LiteralSource != nil {
+				s.SecretSource.LiteralSource = &kfdeftypes.LiteralSource{
+					Value: secret.SecretSource.LiteralSource.Value,
+				}
+			}
+			if secret.SecretSource.EnvSource != nil {
+				s.SecretSource.EnvSource = &kfdeftypes.EnvSource{
+					Name: secret.SecretSource.EnvSource.Name,
+				}
+			}
+		}
+		kfdef.Spec.Secrets = append(kfdef.Spec.Secrets, s)
+	}
+
+	for _, repo := range config.Spec.Repos {
+		r := kfdeftypes.Repo{
+			Name: repo.Name,
+			URI:  repo.URI,
+		}
+		kfdef.Spec.Repos = append(kfdef.Spec.Repos, r)
+	}
+
+	for _, cond := range config.Status.Conditions {
+		c := kfdeftypes.KfDefCondition{
+			Type:               kfdeftypes.KfDefConditionType(cond.Type),
+			Status:             cond.Status,
+			LastUpdateTime:     cond.LastUpdateTime,
+			LastTransitionTime: cond.LastTransitionTime,
+			Reason:             cond.Reason,
+			Message:            cond.Message,
+		}
+		kfdef.Status.Conditions = append(kfdef.Status.Conditions, c)
+	}
+
+	for _, cache := range config.Status.Caches {
+		c := kfdeftypes.RepoCache{
+			Name:      cache.Name,
+			LocalPath: cache.LocalPath,
+		}
+		kfdef.Status.ReposCache = append(kfdef.Status.ReposCache, c)
+	}
+
+	kfdefBytes, err := yaml.Marshal(kfdef)
+	if err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error when marshaling to KfDef: %v", err),
+		}
+	}
+
+	err = yaml.Unmarshal(kfdefBytes, out)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error when unmarshaling to KfDef: %v", err),
+		}
+	}
 }
 
 func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
