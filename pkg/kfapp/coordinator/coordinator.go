@@ -25,7 +25,6 @@ import (
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdefsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	kfdefsv1beta1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/aws"
@@ -33,6 +32,7 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/minikube"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"

@@ -25,9 +25,9 @@ import (
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfupgrade "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfupgrade/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	log "github.com/sirupsen/logrus"
 )

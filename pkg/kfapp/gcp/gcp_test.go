@@ -5,9 +5,9 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	kfgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 
 	"os"
 	"reflect"

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
