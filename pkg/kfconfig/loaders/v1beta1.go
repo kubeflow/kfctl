@@ -29,8 +29,164 @@ func maybeGetPlatform(pluginKind string) string {
 	}
 }
 
-func (v V1beta1) LoadKfConfig(kfdef interface{}) (*kfconfig.KfConfig, error) {
-	return nil, fmt.Errorf("Not implemented.")
+func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
+	kfdef := &kfdeftypes.KfDef{}
+	if bytes, err := yaml.Marshal(def); err != nil {
+		return nil, &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("could not marshal kfdef into bytes: %v", err),
+		}
+	} else {
+		err = yaml.Unmarshal(bytes, kfdef)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not unpack kfdef: %v", err),
+			}
+		}
+	}
+
+	// Set UseBasicAuth later.
+	config := &kfconfig.KfConfig{
+		Spec: kfconfig.KfConfigSpec{
+			UseBasicAuth: false,
+		},
+	}
+	config.Name = kfdef.Name
+	config.Namespace = kfdef.Namespace
+	config.APIVersion = kfdef.APIVersion
+	config.Kind = "KfConfig"
+	config.Labels = kfdef.Labels
+	config.Annotations = kfdef.Annotations
+	config.Spec.Version = kfdef.Spec.Version
+	for _, app := range kfdef.Spec.Applications {
+		application := kfconfig.Application{
+			Name: app.Name,
+		}
+		if app.KustomizeConfig != nil {
+			kconfig := &kfconfig.KustomizeConfig{
+				Overlays: app.KustomizeConfig.Overlays,
+			}
+			if app.KustomizeConfig.RepoRef != nil {
+				kref := &kfconfig.RepoRef{
+					Name: app.KustomizeConfig.RepoRef.Name,
+					Path: app.KustomizeConfig.RepoRef.Path,
+				}
+				kconfig.RepoRef = kref
+
+				// Use application to infer whether UseBasicAuth is true.
+				if kref.Path == "common/basic-auth" {
+					config.Spec.UseBasicAuth = true
+				}
+			}
+			for _, param := range app.KustomizeConfig.Parameters {
+				p := kfconfig.NameValue{
+					Name:  param.Name,
+					Value: param.Value,
+				}
+				kconfig.Parameters = append(kconfig.Parameters, p)
+			}
+			application.KustomizeConfig = kconfig
+		}
+		config.Spec.Applications = append(config.Spec.Applications, application)
+	}
+
+	for _, plugin := range kfdef.Spec.Plugins {
+		p := kfconfig.Plugin{
+			Name:      plugin.Name,
+			Namespace: kfdef.Namespace,
+			Kind:      kfconfig.PluginKindType(plugin.Kind),
+			Spec:      plugin.Spec,
+		}
+		config.Spec.Plugins = append(config.Spec.Plugins, p)
+
+		if plugin.Kind == string(kfconfig.GCP_PLUGIN_KIND) {
+			specBytes, err := yaml.Marshal(plugin.Spec)
+			if err != nil {
+				return nil, &kfapis.KfError{
+					Code:    int(kfapis.INTERNAL_ERROR),
+					Message: fmt.Sprintf("could not marshal GCP plugin spec: %v", err),
+				}
+			}
+			var s map[string]interface{}
+			err = yaml.Unmarshal(specBytes, &s)
+			if err != nil {
+				return nil, &kfapis.KfError{
+					Code:    int(kfapis.INTERNAL_ERROR),
+					Message: fmt.Sprintf("could not unmarshal GCP plugin spec: %v", err),
+				}
+			}
+			if p, ok := s["project"]; ok {
+				config.Spec.Project = p.(string)
+			}
+			if e, ok := s["email"]; ok {
+				config.Spec.Email = e.(string)
+			}
+			if i, ok := s["ipName"]; ok {
+				config.Spec.IpName = i.(string)
+			}
+			if h, ok := s["hostname"]; ok {
+				config.Spec.Hostname = h.(string)
+			}
+			if h, ok := s["skipInitProject"]; ok {
+				config.Spec.SkipInitProject = h.(bool)
+			}
+			if z, ok := s["zone"]; ok {
+				config.Spec.Zone = z.(string)
+			}
+		}
+		if p := maybeGetPlatform(plugin.Kind); p != "" {
+			config.Spec.Platform = p
+		}
+	}
+
+	for _, secret := range kfdef.Spec.Secrets {
+		s := kfconfig.Secret{
+			Name: secret.Name,
+		}
+		// We don't want to store literalSource explictly, becasue we want the config to be checked into source control and don't want secrets in source control.
+		if secret.SecretSource == nil || secret.SecretSource.LiteralSource != nil {
+			config.Spec.Secrets = append(config.Spec.Secrets, s)
+			continue
+		}
+		src := &kfconfig.SecretSource{}
+		if secret.SecretSource.EnvSource != nil {
+			src.EnvSource = &kfconfig.EnvSource{
+				Name: secret.SecretSource.EnvSource.Name,
+			}
+		}
+		s.SecretSource = src
+		config.Spec.Secrets = append(config.Spec.Secrets, s)
+	}
+
+	for _, repo := range kfdef.Spec.Repos {
+		r := kfconfig.Repo{
+			Name: repo.Name,
+			URI:  repo.URI,
+		}
+		config.Spec.Repos = append(config.Spec.Repos, r)
+	}
+
+	for _, cond := range kfdef.Status.Conditions {
+		c := kfconfig.Condition{
+			Type:               kfconfig.ConditionType(cond.Type),
+			Status:             cond.Status,
+			LastUpdateTime:     cond.LastUpdateTime,
+			LastTransitionTime: cond.LastTransitionTime,
+			Reason:             cond.Reason,
+			Message:            cond.Message,
+		}
+		config.Status.Conditions = append(config.Status.Conditions, c)
+	}
+	for _, cache := range kfdef.Status.ReposCache {
+		c := kfconfig.Cache{
+			Name:      cache.Name,
+			LocalPath: cache.LocalPath,
+		}
+		config.Status.Caches = append(config.Status.Caches, c)
+	}
+
+	return config, nil
 }
 
 func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
