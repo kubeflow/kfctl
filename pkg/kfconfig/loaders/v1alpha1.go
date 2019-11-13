@@ -67,7 +67,130 @@ func (v V1alpha1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("Not implemented.")
+
+	config := &kfconfig.KfConfig{
+		Spec: kfconfig.KfConfigSpec{
+			AppDir:          kfdef.Spec.AppDir,
+			Version:         kfdef.Spec.Version,
+			UseBasicAuth:    kfdef.Spec.UseBasicAuth,
+			Project:         kfdef.Spec.Project,
+			Email:           kfdef.Spec.Email,
+			IpName:          kfdef.Spec.IpName,
+			Hostname:        kfdef.Spec.Hostname,
+			SkipInitProject: kfdef.Spec.SkipInitProject,
+			Zone:            kfdef.Spec.Zone,
+			Platform:        kfdef.Spec.Platform,
+		},
+	}
+	config.Name = kfdef.Name
+	config.Namespace = kfdef.Namespace
+	config.APIVersion = kfdef.APIVersion
+	config.Kind = "KfConfig"
+	config.Labels = kfdef.Labels
+	config.Annotations = kfdef.Annotations
+	for _, app := range kfdef.Spec.Applications {
+		application := kfconfig.Application{
+			Name: app.Name,
+		}
+		if app.KustomizeConfig != nil {
+			kconfig := &kfconfig.KustomizeConfig{
+				Overlays: app.KustomizeConfig.Overlays,
+			}
+			if app.KustomizeConfig.RepoRef != nil {
+				kref := &kfconfig.RepoRef{
+					Name: app.KustomizeConfig.RepoRef.Name,
+					Path: app.KustomizeConfig.RepoRef.Path,
+				}
+				kconfig.RepoRef = kref
+			}
+			for _, param := range app.KustomizeConfig.Parameters {
+				p := kfconfig.NameValue{
+					Name:  param.Name,
+					Value: param.Value,
+				}
+				kconfig.Parameters = append(kconfig.Parameters, p)
+			}
+			application.KustomizeConfig = kconfig
+		}
+		config.Spec.Applications = append(config.Spec.Applications, application)
+	}
+
+	for _, plugin := range kfdef.Spec.Plugins {
+		p := kfconfig.Plugin{
+			Name:      plugin.Name,
+			Namespace: kfdef.Namespace,
+			Kind:      pluginNameToKind(plugin.Name),
+			Spec:      plugin.Spec,
+		}
+		config.Spec.Plugins = append(config.Spec.Plugins, p)
+	}
+	specCopiers := []func(*kfdeftypes.KfDef, *kfconfig.KfConfig) error{
+		copyGcpPluginSpec,
+	}
+	for _, copier := range specCopiers {
+		if err := copier(kfdef, config); err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("error copying plugin specs: %v", err),
+			}
+
+		}
+	}
+
+	for _, secret := range kfdef.Spec.Secrets {
+		s := kfconfig.Secret{
+			Name: secret.Name,
+		}
+		if secret.SecretSource == nil {
+			config.Spec.Secrets = append(config.Spec.Secrets, s)
+			continue
+		}
+		src := &kfconfig.SecretSource{}
+		if secret.SecretSource.LiteralSource != nil {
+			src.LiteralSource = &kfconfig.LiteralSource{
+				Value: secret.SecretSource.LiteralSource.Value,
+			}
+		} else if secret.SecretSource.EnvSource != nil {
+			src.EnvSource = &kfconfig.EnvSource{
+				Name: secret.SecretSource.EnvSource.Name,
+			}
+		} else if secret.SecretSource.HashedSource != nil {
+			src.HashedSource = &kfconfig.HashedSource{
+				HashedValue: secret.SecretSource.HashedSource.HashedValue,
+			}
+		}
+		s.SecretSource = src
+		config.Spec.Secrets = append(config.Spec.Secrets, s)
+	}
+
+	for _, repo := range kfdef.Spec.Repos {
+		r := kfconfig.Repo{
+			Name: repo.Name,
+			URI:  repo.Uri,
+		}
+		config.Spec.Repos = append(config.Spec.Repos, r)
+	}
+
+	for _, cond := range kfdef.Status.Conditions {
+		c := kfconfig.Condition{
+			Type:               kfconfig.ConditionType(cond.Type),
+			Status:             cond.Status,
+			LastUpdateTime:     cond.LastUpdateTime,
+			LastTransitionTime: cond.LastTransitionTime,
+			Reason:             cond.Reason,
+			Message:            cond.Message,
+		}
+		config.Status.Conditions = append(config.Status.Conditions, c)
+	}
+	for name, cache := range kfdef.Status.ReposCache {
+		c := kfconfig.Cache{
+			Name:      name,
+			LocalPath: cache.LocalPath,
+		}
+		config.Status.Caches = append(config.Status.Caches, c)
+	}
+
+	return config, nil
 }
 
 func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
