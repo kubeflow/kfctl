@@ -34,9 +34,13 @@ func TestV1beta1_expectedConfig(t *testing.T) {
 		if bufErr != nil {
 			t.Fatalf("Error reading file %v; error %v", fPath, bufErr)
 		}
+		var obj interface{}
+		if err := yaml.Unmarshal(buf, &obj); err != nil {
+			t.Fatalf("Error when unmarshaling file %v; error %v", fPath, err)
+		}
 
 		v1beta1 := V1beta1{}
-		config, err := v1beta1.ToKfConfig(buf)
+		config, err := v1beta1.LoadKfConfig(obj)
 		if err != nil {
 			t.Fatalf("Error converting to KfConfig: %v", err)
 		}

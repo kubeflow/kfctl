@@ -18,11 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Converter interface {
-	ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error)
-	ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error)
-}
-
 type Loader interface {
 	LoadKfConfig(kfdef interface{}) (*kfconfig.KfConfig, error)
 	LoadKfDef(config kfconfig.KfConfig, out interface{}) error
