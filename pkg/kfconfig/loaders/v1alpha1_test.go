@@ -94,14 +94,9 @@ func TestV1alpha1_ConvertToKfDef(t *testing.T) {
 		}
 
 		v1alpha1 := V1alpha1{}
-		kfdefBytes, err := v1alpha1.ToKfDefSerialized(*config)
-		if err != nil {
-			t.Fatalf("Error converting to KfDef: %v", err)
-		}
 		got := &kfdeftypes.KfDef{}
-		err = yaml.Unmarshal(kfdefBytes, got)
-		if err != nil {
-			t.Fatalf("Error when unmarshaling to KfDef: %v", err)
+		if err = v1alpha1.LoadKfDef(*config, got); err != nil {
+			t.Fatalf("Error converting to KfDef: %v", err)
 		}
 		gcpSpec := &kfgcpplugin.GcpPluginSpec{}
 		err = got.GetPluginSpec(kftypes.GCP, gcpSpec)
