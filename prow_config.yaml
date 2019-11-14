@@ -20,6 +20,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-iap
     job_types:
@@ -31,6 +32,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     kwargs:
       use_basic_auth: false
       # Run build and then apply rather than just apply
@@ -50,6 +52,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     kwargs:
       use_basic_auth: true
       build_and_apply: true
@@ -71,6 +74,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     params:
       platform: gke
       gkeApiVersion: v1
