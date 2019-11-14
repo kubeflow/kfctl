@@ -7,6 +7,7 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	kfdefgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
 
@@ -101,39 +102,20 @@ func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		config.Spec.Plugins = append(config.Spec.Plugins, p)
 
 		if plugin.Kind == string(kfconfig.GCP_PLUGIN_KIND) {
-			specBytes, err := yaml.Marshal(plugin.Spec)
-			if err != nil {
+			spec := kfdefgcpplugin.GcpPluginSpec{}
+			if err := kfdef.GetPluginSpec(plugin.Kind, &spec); err != nil {
 				return nil, &kfapis.KfError{
 					Code:    int(kfapis.INTERNAL_ERROR),
-					Message: fmt.Sprintf("could not marshal GCP plugin spec: %v", err),
+					Message: fmt.Sprintf("could not retrieve GCP plugin spec: %v", err),
 				}
 			}
-			var s map[string]interface{}
-			err = yaml.Unmarshal(specBytes, &s)
-			if err != nil {
-				return nil, &kfapis.KfError{
-					Code:    int(kfapis.INTERNAL_ERROR),
-					Message: fmt.Sprintf("could not unmarshal GCP plugin spec: %v", err),
-				}
-			}
-			if p, ok := s["project"]; ok {
-				config.Spec.Project = p.(string)
-			}
-			if e, ok := s["email"]; ok {
-				config.Spec.Email = e.(string)
-			}
-			if i, ok := s["ipName"]; ok {
-				config.Spec.IpName = i.(string)
-			}
-			if h, ok := s["hostname"]; ok {
-				config.Spec.Hostname = h.(string)
-			}
-			if h, ok := s["skipInitProject"]; ok {
-				config.Spec.SkipInitProject = h.(bool)
-			}
-			if z, ok := s["zone"]; ok {
-				config.Spec.Zone = z.(string)
-			}
+
+			config.Spec.Project = spec.Project
+			config.Spec.Email = spec.Email
+			config.Spec.IpName = spec.IpName
+			config.Spec.Hostname = spec.Hostname
+			config.Spec.SkipInitProject = spec.SkipInitProject
+			config.Spec.Zone = spec.Zone
 		}
 		if p := maybeGetPlatform(plugin.Kind); p != "" {
 			config.Spec.Platform = p
