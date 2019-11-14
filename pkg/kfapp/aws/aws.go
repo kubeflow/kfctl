@@ -40,7 +40,6 @@ import (
 	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfawsplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/aws/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -124,8 +123,8 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 }
 
 // GetPluginSpec gets the plugin spec.
-func (aws *Aws) GetPluginSpec() (*kfawsplugin.AwsPluginSpec, error) {
-	awsPluginSpec := &kfawsplugin.AwsPluginSpec{}
+func (aws *Aws) GetPluginSpec() (*kfconfig.AwsPluginSpec, error) {
+	awsPluginSpec := &kfconfig.AwsPluginSpec{}
 
 	err := aws.kfDef.GetPluginSpec(AwsPluginName, awsPluginSpec)
 
