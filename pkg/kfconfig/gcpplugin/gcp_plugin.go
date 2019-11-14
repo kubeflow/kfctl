@@ -1,10 +1,11 @@
-package kfconfig
+package gcpplugin
 
 import (
 	"fmt"
 	"strings"
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
 
 // GcpPlugin defines the extra data provided by the GCP Plugin in KfDef
@@ -42,17 +43,17 @@ type Auth struct {
 }
 
 type BasicAuth struct {
-	Username string     `json:"username,omitempty"`
-	Password *SecretRef `json:"password,omitempty"`
+	Username string              `json:"username,omitempty"`
+	Password *kfconfig.SecretRef `json:"password,omitempty"`
 }
 
 type IAP struct {
-	OAuthClientId     string     `json:"oAuthClientId,omitempty"`
-	OAuthClientSecret *SecretRef `json:"oAuthClientSecret,omitempty"`
+	OAuthClientId     string              `json:"oAuthClientId,omitempty"`
+	OAuthClientSecret *kfconfig.SecretRef `json:"oAuthClientSecret,omitempty"`
 }
 
 type DeploymentManagerConfig struct {
-	RepoRef *RepoRef `json:"repoRef,omitempty"`
+	RepoRef *kfconfig.RepoRef `json:"repoRef,omitempty"`
 }
 
 // IsValid returns nil if the spec is a valid and complete spec.

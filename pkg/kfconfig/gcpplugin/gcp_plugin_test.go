@@ -1,4 +1,4 @@
-package kfconfig
+package gcpplugin
 
 import (
 	"testing"

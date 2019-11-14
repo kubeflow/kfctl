@@ -1,7 +1,7 @@
-package v1alpha1
+package awsplugin
 
 import (
-	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,8 +32,8 @@ type Auth struct {
 }
 
 type BasicAuth struct {
-	Username string                `json:"username,omitempty"`
-	Password *kfdeftypes.SecretRef `json:"password,omitempty"`
+	Username string              `json:"username,omitempty"`
+	Password *kfconfig.SecretRef `json:"password,omitempty"`
 }
 
 type OIDC struct {
