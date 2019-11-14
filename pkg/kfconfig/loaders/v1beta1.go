@@ -1,4 +1,4 @@
-package configconverters
+package loaders
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
 
 // Empty struct - used to implement Converter interface.
@@ -29,12 +29,20 @@ func maybeGetPlatform(pluginKind string) string {
 	}
 }
 
-func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
+func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
-	if err := yaml.Unmarshal(kfdefBytes, kfdef); err != nil {
+	if bytes, err := yaml.Marshal(def); err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not unmarshal config file onto KfDef struct: %v", err),
+			Message: fmt.Sprintf("could not marshal kfdef into bytes: %v", err),
+		}
+	} else {
+		err = yaml.Unmarshal(bytes, kfdef)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not unpack kfdef: %v", err),
+			}
 		}
 	}
 
@@ -136,15 +144,15 @@ func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 		s := kfconfig.Secret{
 			Name: secret.Name,
 		}
+		// We don't want to store literalSource explictly, becasue we want the config to be checked into source control and don't want secrets in source control.
+		if secret.SecretSource == nil || secret.SecretSource.LiteralSource != nil {
+			config.Spec.Secrets = append(config.Spec.Secrets, s)
+			continue
+		}
 		src := &kfconfig.SecretSource{}
 		if secret.SecretSource.EnvSource != nil {
 			src.EnvSource = &kfconfig.EnvSource{
 				Name: secret.SecretSource.EnvSource.Name,
-			}
-		}
-		if secret.SecretSource.LiteralSource != nil {
-			src.LiteralSource = &kfconfig.LiteralSource{
-				Value: secret.SecretSource.LiteralSource.Value,
 			}
 		}
 		s.SecretSource = src
@@ -179,10 +187,9 @@ func (v V1beta1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	}
 
 	return config, nil
-
 }
 
-func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
+func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	kfdef := &kfdeftypes.KfDef{}
 	kfdef.Name = config.Name
 	kfdef.Namespace = config.Namespace
@@ -277,12 +284,20 @@ func (v V1beta1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	}
 
 	kfdefBytes, err := yaml.Marshal(kfdef)
-	if err == nil {
-		return kfdefBytes, nil
-	} else {
-		return nil, &kfapis.KfError{
+	if err != nil {
+		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("error when marshaling to KfDef: %v", err),
+		}
+	}
+
+	err = yaml.Unmarshal(kfdefBytes, out)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error when unmarshaling to KfDef: %v", err),
 		}
 	}
 }

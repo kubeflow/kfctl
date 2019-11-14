@@ -3,13 +3,14 @@ package fake
 
 import (
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfdefsv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	gcpFake "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp/fake"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	"path"
 )
 
 type FakeCoordinator struct {
-	KfDef   *kfdefsv3.KfDef
+	KfDef   *kfconfig.KfConfig
 	Plugins map[string]kftypes.KfApp
 }
 
@@ -29,7 +30,7 @@ func (f *FakeCoordinator) Init(resources kftypes.ResourceEnum) error {
 	return nil
 }
 
-func (f *FakeCoordinator) GetKfDef() *kfdefsv3.KfDef {
+func (f *FakeCoordinator) GetKfDef() *kfconfig.KfConfig {
 	return f.KfDef
 }
 
@@ -41,12 +42,12 @@ func (f *FakeCoordinator) GetPlugin(name string) (kftypes.KfApp, bool) {
 type FakeBuilder struct {
 }
 
-func (b *FakeBuilder) CreateKfAppCfgFile(def *kfdefsv3.KfDef) (string, error) {
+func (b *FakeBuilder) CreateKfAppCfgFile(def *kfconfig.KfConfig) (string, error) {
 	return path.Join(def.Spec.AppDir, kftypes.KfConfigFile), nil
 }
 
 func (b *FakeBuilder) LoadKfAppCfgFile(cfgFile string) (kftypes.KfApp, error) {
-	d, err := kfdefsv3.LoadKFDefFromURI(cfgFile)
+	d, err := kfloaders.LoadConfigFromURI(cfgFile)
 
 	if err != nil {
 		return nil, err

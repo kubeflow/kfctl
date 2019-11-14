@@ -1,4 +1,4 @@
-package configconverters
+package loaders
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	configsv3 "github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
-	kfgcp "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	kfgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
 
 // Empty struct - used to implement Converter interface.
@@ -36,7 +36,7 @@ func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
 		return nil
 	}
 
-	spec := kfgcp.GcpPluginSpec{}
+	spec := kfgcpplugin.GcpPluginSpec{}
 	if err := to.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, &spec); err != nil && !kfconfig.IsPluginNotFound(err) {
 		return err
 	}
@@ -51,12 +51,20 @@ func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
 	return to.SetPluginSpec(kfconfig.GCP_PLUGIN_KIND, spec)
 }
 
-func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
+func (v V1alpha1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
-	if err := yaml.Unmarshal(kfdefBytes, kfdef); err != nil {
+	if bytes, err := yaml.Marshal(def); err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not unmarshal config file onto KfDef struct: %v", err),
+			Message: fmt.Sprintf("could not marshal kfdef into bytes: %v", err),
+		}
+	} else {
+		err = yaml.Unmarshal(bytes, kfdef)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not unpack kfdef: %v", err),
+			}
 		}
 	}
 
@@ -185,7 +193,7 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	return config, nil
 }
 
-func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
+func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	kfdef := &kfdeftypes.KfDef{}
 	kfdef.Name = config.Name
 	kfdef.Namespace = config.Namespace
@@ -202,7 +210,7 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	kfdef.Spec.UseIstio = true
 	kfdef.Spec.PackageManager = "kustomize"
 
-	gcpSpec := &kfgcp.GcpPluginSpec{}
+	gcpSpec := &kfgcpplugin.GcpPluginSpec{}
 	if err := config.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, gcpSpec); err == nil {
 		kfdef.Spec.Project = gcpSpec.Project
 		kfdef.Spec.Email = gcpSpec.Email
@@ -254,13 +262,6 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 			platform = kftypesv3.GCP
 		}
 	}
-	// TODO: Platform is not always needed?
-	// if platform == "" {
-	// 	return []byte(""), &kfapis.KfError{
-	// 		Code:    int(kfapis.INVALID_ARGUMENT),
-	// 		Message: "Not able to find platform in plugins",
-	// 	}
-	// }
 	kfdef.Spec.Platform = platform
 
 	for _, secret := range config.Spec.Secrets {
@@ -317,12 +318,20 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	}
 
 	kfdefBytes, err := yaml.Marshal(kfdef)
-	if err == nil {
-		return kfdefBytes, nil
-	} else {
-		return nil, &kfapis.KfError{
+	if err != nil {
+		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("error when marshaling to KfDef: %v", err),
+		}
+	}
+
+	err = yaml.Unmarshal(kfdefBytes, out)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error when unmarshaling to KfDef: %v", err),
 		}
 	}
 }

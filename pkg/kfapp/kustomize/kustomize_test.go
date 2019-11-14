@@ -2,7 +2,7 @@ package kustomize
 
 import (
 	"bytes"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	"github.com/otiai10/copy"
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

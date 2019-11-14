@@ -15,7 +15,7 @@
 // Package v1alpha1 contains API Schema definitions for the kfconfig v1alpha1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig
+// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/kfconfig
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kfconfig.apps.kubeflow.org
 

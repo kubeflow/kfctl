@@ -25,10 +25,10 @@ import (
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/configconverters"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfupgrade "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfupgrade/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,7 +51,7 @@ func createNewKfApp(baseConfig string, version string, oldKfCfg *kfconfig.KfConf
 	}
 
 	// Load the new KfCfg from the base config
-	newKfCfg, err := configconverters.LoadConfigFromURI(baseConfig)
+	newKfCfg, err := kfconfigloaders.LoadConfigFromURI(baseConfig)
 	if err != nil {
 		return nil, "", &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
@@ -88,7 +88,7 @@ func createNewKfApp(baseConfig string, version string, oldKfCfg *kfconfig.KfConf
 		log.Infof("App directory %v already exists", newAppDir)
 	}
 
-	err = configconverters.WriteConfigToFile(*newKfCfg)
+	err = kfconfigloaders.WriteConfigToFile(*newKfCfg)
 	if err != nil {
 		return nil, "", err
 	}
@@ -183,7 +183,7 @@ func findKfCfg(kfDefRef *kfupgrade.KfDefRef) (*kfconfig.KfConfig, string, error)
 				return nil
 			}
 
-			kfCfg, err := configconverters.LoadConfigFromURI(config)
+			kfCfg, err := kfconfigloaders.LoadConfigFromURI(config)
 			if err != nil {
 				log.Warnf("Failed to load KfCfg from %v", config)
 				return nil

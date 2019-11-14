@@ -1,4 +1,4 @@
-package configconverters
+package loaders
 
 import (
 	"fmt"
@@ -13,14 +13,14 @@ import (
 	"github.com/ghodss/yaml"
 	gogetter "github.com/hashicorp/go-getter"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-type Converter interface {
-	ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error)
-	ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error)
+type Loader interface {
+	LoadKfConfig(kfdef interface{}) (*kfconfig.KfConfig, error)
+	LoadKfDef(config kfconfig.KfConfig, out interface{}) error
 }
 
 const (
@@ -138,7 +138,7 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 			)}
 	}
 
-	converters := map[string]Converter{
+	converters := map[string]Loader{
 		"v1alpha1": V1alpha1{},
 		"v1beta1":  V1beta1{},
 	}
@@ -156,7 +156,7 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 		}
 	}
 
-	kfconfig, err := converter.ToKfConfig(configFileBytes)
+	kfconfig, err := converter.LoadKfConfig(obj)
 	if err != nil {
 		log.Errorf("Failed to convert kfdef to kfconfig: %v", err)
 		return nil, err
@@ -202,7 +202,7 @@ func WriteConfigToFile(config kfconfig.KfConfig) error {
 		}
 	}
 	filename := filepath.Join(config.Spec.AppDir, config.Spec.ConfigFileName)
-	converters := map[string]Converter{
+	converters := map[string]Loader{
 		"v1alpha1": V1alpha1{},
 		"v1beta1":  V1beta1{},
 	}
@@ -222,13 +222,21 @@ func WriteConfigToFile(config kfconfig.KfConfig) error {
 		}
 	}
 
-	kfdefBytes, err := converter.ToKfDefSerialized(config)
+	var kfdef interface{}
+	if err := converter.LoadKfDef(config, &kfdef); err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("error when loading KfDef: %v", err),
+		}
+	}
+	kfdefBytes, err := yaml.Marshal(kfdef)
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
 			Message: fmt.Sprintf("error when marshaling KfDef: %v", err),
 		}
 	}
+
 	err = ioutil.WriteFile(filename, kfdefBytes, 0644)
 	if err != nil {
 		return &kfapis.KfError{

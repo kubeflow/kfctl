@@ -23,11 +23,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/configconverters"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdefsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	kfdefsv1beta1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/aws"
@@ -35,6 +32,8 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/minikube"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -159,7 +158,7 @@ func isDirEmpty(dir string) bool {
 // NewLoadKfAppFromURI takes in a config file and constructs the KfApp
 // used by the build and apply semantics for kfctl
 func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
-	kfdef, err := configconverters.LoadConfigFromURI(configFile)
+	kfdef, err := kfconfigloaders.LoadConfigFromURI(configFile)
 	if err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
@@ -245,12 +244,8 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 // TODO: remove this
 // This is for kfctlServer. We can remove this after kfctlServer uses kfconfig
 func CreateKfAppCfgFileWithKfDef(d *kfdefsv1alpha1.KfDef) (string, error) {
-	alphaConverter := configconverters.V1alpha1{}
-	kfdefBytes, err := yaml.Marshal(d)
-	if err != nil {
-		return "", err
-	}
-	kfconfig, err := alphaConverter.ToKfConfig(kfdefBytes)
+	alphaConverter := kfconfigloaders.V1alpha1{}
+	kfconfig, err := alphaConverter.LoadKfConfig(*d)
 	if err != nil {
 		return "", err
 	}
@@ -276,7 +271,7 @@ func CreateKfAppCfgFile(d *kfconfig.KfConfig) (string, error) {
 	}
 
 	log.Infof("Writing KfDef to %v", d.Spec.ConfigFileName)
-	cfgFilePathErr := configconverters.WriteConfigToFile(*d)
+	cfgFilePathErr := kfconfigloaders.WriteConfigToFile(*d)
 	if cfgFilePathErr != nil {
 		log.Errorf("failed to write config: %v", cfgFilePathErr)
 	}
@@ -332,7 +327,7 @@ func (kfapp *coordinator) GetKfDef() *kfdefsv1beta1.KfDef {
 // GetKfDefV1Beta1 returns a copy of KfDef V1Beta1 used by this application.
 func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 	kfdefIns := &kfdefsv1beta1.KfDef{}
-	kfdefByte, err := configconverters.V1beta1{}.ToKfDefSerialized(*(kfapp.KfDef.DeepCopy()))
+	err := kfconfigloaders.V1beta1{}.LoadKfDef(*(kfapp.KfDef.DeepCopy()), kfdefIns)
 	if err != nil {
 		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
 			Type:    kfdefsv1beta1.KfDegraded,
@@ -341,13 +336,6 @@ func (kfapp *coordinator) GetKfDefV1Beta1() *kfdefsv1beta1.KfDef {
 		return kfdefIns
 	}
 
-	if err := yaml.Unmarshal(kfdefByte, kfdefIns); err != nil {
-		kfdefIns.Status.Conditions = append(kfdefIns.Status.Conditions, kfdefsv1beta1.KfDefCondition{
-			Type:    kfdefsv1beta1.KfDegraded,
-			Message: err.Error(),
-		})
-		return kfdefIns
-	}
 	return kfdefIns
 }
 
@@ -532,7 +520,7 @@ func (kfapp *coordinator) Generate(resources kftypesv3.ResourceEnum) error {
 							kfapp.KfDef.Spec.Platform, platformErr),
 					}
 				}
-				createConfigErr := configconverters.WriteConfigToFile(*kfapp.KfDef)
+				createConfigErr := kfconfigloaders.WriteConfigToFile(*kfapp.KfDef)
 				if createConfigErr != nil {
 					return &kfapis.KfError{
 						Code: createConfigErr.(*kfapis.KfError).Code,
@@ -602,7 +590,7 @@ func (kfapp *coordinator) Init(resources kftypesv3.ResourceEnum) error {
 							kfapp.KfDef.Spec.Platform, platformErr),
 					}
 				}
-				createConfigErr := configconverters.WriteConfigToFile(*kfapp.KfDef)
+				createConfigErr := kfconfigloaders.WriteConfigToFile(*kfapp.KfDef)
 				if createConfigErr != nil {
 					return &kfapis.KfError{
 						Code: createConfigErr.(*kfapis.KfError).Code,

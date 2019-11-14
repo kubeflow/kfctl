@@ -1,4 +1,20 @@
-package aws
+package awsplugin
+
+import (
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// +k8s:openapi-gen=true
+// Placeholder for the plugin API.
+type KfAwsPlugin struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec AwsPluginSpec `json:"spec,omitempty"`
+}
 
 // AwsPlugin defines the extra data provided by the GCP Plugin in KfDef
 type AwsPluginSpec struct {
@@ -15,15 +31,9 @@ type Auth struct {
 	Cognito   *Coginito  `json:"cognito,omitempty"`
 }
 
-// SecretRef is a reference to a secret
-type SecretRef struct {
-	// Name of the secret
-	Name string `json:"name,omitempty"`
-}
-
 type BasicAuth struct {
-	Username string     `json:"username,omitempty"`
-	Password *SecretRef `json:"password,omitempty"`
+	Username string              `json:"username,omitempty"`
+	Password *kfconfig.SecretRef `json:"password,omitempty"`
 }
 
 type OIDC struct {
