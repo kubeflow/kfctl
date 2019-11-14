@@ -7,7 +7,7 @@ import kfctl_go_test_utils as kfctl_util
 from kubeflow.testing import util
 
 def test_deploy_kfctl_go(record_xml_attribute, app_path, project,
-                         use_basic_auth, use_istio, config_path):
+                         use_basic_auth, use_istio, config_path, kfctl_path):
   """Test deploying Kubeflow.
 
   Args:
@@ -22,8 +22,6 @@ def test_deploy_kfctl_go(record_xml_attribute, app_path, project,
       "gcloud", "auth", "activate-service-account",
       "--key-file=" + os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
     ])
-
-  _, kfctl_path = kfctl_util.get_kfctl_go_build_dir_binary_path()
 
   kfctl_util.kfctl_deploy_kubeflow(app_path, project, use_basic_auth,
               use_istio, config_path, kfctl_path)
