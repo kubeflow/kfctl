@@ -417,7 +417,7 @@ func (kfapp *coordinator) Apply(resources kftypesv3.ResourceEnum) error {
 		}
 		// TODO(gabrielwen): Need to find a more proper way of injecting plugings.
 		// https://github.com/kubeflow/kubeflow/issues/3708
-		return gcpAddedConfig()
+		return k8s() //gcpAddedConfig()
 	}
 	return nil
 }
