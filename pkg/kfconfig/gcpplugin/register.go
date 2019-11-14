@@ -14,7 +14,7 @@
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the kfdef v1alpha1 API group
+// Package v1alpha1 contains API Schema definitions for the KfGcpPlugin v1alpha1.
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin
@@ -49,7 +49,7 @@ func Resource(resource string) schema.GroupResource {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&KfConfig{},
+		&KfGcpPlugin{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

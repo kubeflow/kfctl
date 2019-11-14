@@ -6,6 +6,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin"
 
 	"os"
 	"reflect"
@@ -18,7 +19,7 @@ import (
 func TestGcp_buildBasicAuthSecret(t *testing.T) {
 	type testCase struct {
 		Gcp           *Gcp
-		GcpPluginSpec *kfconfig.GcpPluginSpec
+		GcpPluginSpec *gcpplugin.GcpPluginSpec
 		Expected      *v1.Secret
 	}
 
@@ -54,9 +55,9 @@ func TestGcp_buildBasicAuthSecret(t *testing.T) {
 					},
 				},
 			},
-			GcpPluginSpec: &kfconfig.GcpPluginSpec{
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+			GcpPluginSpec: &gcpplugin.GcpPluginSpec{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "kfuser",
 						Password: &kfconfig.SecretRef{
 							Name: "passwordSecret",
@@ -110,12 +111,12 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 	type testCase struct {
 		Name            string
 		Input           *kfconfig.KfConfig
-		InputSpec       *kfconfig.GcpPluginSpec
+		InputSpec       *gcpplugin.GcpPluginSpec
 		Env             map[string]string
 		EmailGetter     func() (string, error)
 		ProjectGetter   func() (string, error)
 		ZoneGetter      func() (string, error)
-		Expected        *kfconfig.GcpPluginSpec
+		Expected        *gcpplugin.GcpPluginSpec
 		ExpectedEmail   string
 		ExpectedProject string
 		ExpectedZone    string
@@ -133,18 +134,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 				kftypes.KUBEFLOW_USERNAME: "someuser",
 				kftypes.KUBEFLOW_PASSWORD: "password",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "someuser",
 						Password: &kfconfig.SecretRef{
 							Name: BasicAuthPasswordSecretName,
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -162,18 +163,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "someclient",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -191,18 +192,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "someclient",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -236,18 +237,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "someclient",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -269,24 +270,24 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 					UseBasicAuth: false,
 				},
 			},
-			InputSpec: &kfconfig.GcpPluginSpec{
+			InputSpec: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(false),
 			},
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(false),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "someclient",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -306,9 +307,9 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 					UseBasicAuth: false,
 				},
 			},
-			InputSpec: &kfconfig.GcpPluginSpec{
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+			InputSpec: &gcpplugin.GcpPluginSpec{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "original_client",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: "original_secret",
@@ -319,18 +320,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					IAP: &kfconfig.IAP{
+				Auth: &gcpplugin.Auth{
+					IAP: &gcpplugin.IAP{
 						OAuthClientId: "original_client",
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -345,9 +346,9 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 					UseBasicAuth: true,
 				},
 			},
-			InputSpec: &kfconfig.GcpPluginSpec{
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+			InputSpec: &gcpplugin.GcpPluginSpec{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "original_user",
 						Password: &kfconfig.SecretRef{
 							Name: "original_secret",
@@ -358,18 +359,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "original_user",
 						Password: &kfconfig.SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "kubeflow",
 						Path: "deployment/gke/deployment_manager_configs",
@@ -384,16 +385,16 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 					UseBasicAuth: true,
 				},
 			},
-			InputSpec: &kfconfig.GcpPluginSpec{
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+			InputSpec: &gcpplugin.GcpPluginSpec{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "original_user",
 						Password: &kfconfig.SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "somerepo",
 						Path: "somepath",
@@ -403,18 +404,18 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Env: map[string]string{
 				CLIENT_ID: "someclient",
 			},
-			Expected: &kfconfig.GcpPluginSpec{
+			Expected: &gcpplugin.GcpPluginSpec{
 				CreatePipelinePersistentStorage: proto.Bool(true),
 				EnableWorkloadIdentity:          proto.Bool(true),
-				Auth: &kfconfig.Auth{
-					BasicAuth: &kfconfig.BasicAuth{
+				Auth: &gcpplugin.Auth{
+					BasicAuth: &gcpplugin.BasicAuth{
 						Username: "original_user",
 						Password: &kfconfig.SecretRef{
 							Name: "original_secret",
 						},
 					},
 				},
-				DeploymentManagerConfig: &kfconfig.DeploymentManagerConfig{
+				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
 					RepoRef: &kfconfig.RepoRef{
 						Name: "somerepo",
 						Path: "somepath",
@@ -454,7 +455,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			continue
 		}
 
-		plugin := &kfconfig.GcpPluginSpec{}
+		plugin := &gcpplugin.GcpPluginSpec{}
 		err := i.GetPluginSpec(GcpPluginName, plugin)
 
 		if err != nil {

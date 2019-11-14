@@ -2,11 +2,22 @@ package gcpplugin
 
 import (
 	"fmt"
-	"strings"
-
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// +k8s:openapi-gen=true
+// Placeholder for the plugin API.
+type KfGcpPlugin struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec GcpPluginSpec `json:"spec,omitempty"`
+}
 
 // GcpPlugin defines the extra data provided by the GCP Plugin in KfDef
 type GcpPluginSpec struct {

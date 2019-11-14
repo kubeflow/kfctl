@@ -38,6 +38,7 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -151,9 +152,9 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypesv3.Platform, error) {
 }
 
 // GetPluginSpec gets the plugin spec.
-func (gcp *Gcp) GetPluginSpec() (*kfconfig.GcpPluginSpec, error) {
+func (gcp *Gcp) GetPluginSpec() (*gcpplugin.GcpPluginSpec, error) {
 	// Not passing a pointer interface is a common cause of deserialization problems
-	pluginSpec := &kfconfig.GcpPluginSpec{}
+	pluginSpec := &gcpplugin.GcpPluginSpec{}
 
 	err := gcp.kfDef.GetPluginSpec(GcpPluginName, pluginSpec)
 
@@ -1196,7 +1197,7 @@ func (gcp *Gcp) writeIamBindingsFile(src string, dest string) error {
 // Replace placeholders and write to cluster-kubeflow.yaml
 //
 // TODO(jlewi): Is it possible to deserialize YAML to a partially known struct?
-func (gcp *Gcp) writeClusterConfig(src string, dest string, gcpPluginSpec kfconfig.GcpPluginSpec) error {
+func (gcp *Gcp) writeClusterConfig(src string, dest string, gcpPluginSpec gcpplugin.GcpPluginSpec) error {
 	buf, err := ioutil.ReadFile(src)
 	if err != nil {
 		return &kfapis.KfError{
@@ -1919,7 +1920,7 @@ func (gcp *Gcp) ConfigPodDefault() error {
 func (gcp *Gcp) setGcpPluginDefaults() error {
 	// Set the defaults that will be used if not explicitly set.
 	// If the plugin is provided these values will be overwritten,
-	pluginSpec := &kfconfig.GcpPluginSpec{}
+	pluginSpec := &gcpplugin.GcpPluginSpec{}
 	err := gcp.kfDef.GetPluginSpec(GcpPluginName, pluginSpec)
 
 	if err != nil && !kfapis.IsNotFound(err) {
@@ -1938,14 +1939,14 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 	}
 
 	if pluginSpec.Auth == nil {
-		pluginSpec.Auth = &kfconfig.Auth{}
+		pluginSpec.Auth = &gcpplugin.Auth{}
 	}
 
 	if pluginSpec.Auth.BasicAuth == nil && pluginSpec.Auth.IAP == nil {
 		log.Warnf("Backfilling auth; this is deprecated; Auth should be explicitly set in Gcp plugin")
 
 		if gcp.kfDef.Spec.UseBasicAuth {
-			pluginSpec.Auth.BasicAuth = &kfconfig.BasicAuth{}
+			pluginSpec.Auth.BasicAuth = &gcpplugin.BasicAuth{}
 			pluginSpec.Auth.BasicAuth.Username = os.Getenv(kftypesv3.KUBEFLOW_USERNAME)
 
 			if pluginSpec.Auth.BasicAuth.Username == "" {
@@ -1971,7 +1972,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 				},
 			})
 		} else {
-			pluginSpec.Auth.IAP = &kfconfig.IAP{}
+			pluginSpec.Auth.IAP = &gcpplugin.IAP{}
 
 			pluginSpec.Auth.IAP.OAuthClientId = os.Getenv(CLIENT_ID)
 
@@ -1997,7 +1998,7 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 
 	// Initialize the deployment manager configs.
 	if pluginSpec.DeploymentManagerConfig == nil {
-		pluginSpec.DeploymentManagerConfig = &kfconfig.DeploymentManagerConfig{}
+		pluginSpec.DeploymentManagerConfig = &gcpplugin.DeploymentManagerConfig{}
 	}
 
 	if pluginSpec.DeploymentManagerConfig.RepoRef == nil {
@@ -2072,7 +2073,7 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 		return errors.WithStack(err)
 	}
 
-	pluginSpec := &kfconfig.GcpPluginSpec{}
+	pluginSpec := &gcpplugin.GcpPluginSpec{}
 	err := gcp.kfDef.GetPluginSpec(GcpPluginName, pluginSpec)
 
 	if err != nil {
