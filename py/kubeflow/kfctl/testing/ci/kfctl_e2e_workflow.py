@@ -623,6 +623,7 @@ class Builder:
            # Test suite name needs to be unique based on parameters
            "-o", "junit_suite_name=test_kfctl_second_apply_" + self.config_name,
            "--app_path=" + self.app_dir,
+           "--kfctl_path=" + self.kfctl_path,
          ]
     if self.test_endpoint:
       dependences = [kf_is_ready["name"], endpoint_ready["name"]]
