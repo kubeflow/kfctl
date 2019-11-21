@@ -51,41 +51,47 @@ var applyCmd = &cobra.Command{
 			log.SetLevel(log.WarnLevel)
 		}
 
-		// Load config from exisiting app.yaml
-		if configFilePath == "" {
-			return fmt.Errorf("Must pass in -f configFile")
-		}
-
-		kind, err := utils.GetObjectKindFromUri(configFilePath)
-		if err != nil {
-			return fmt.Errorf("Cannot determine the object kind: %v", err)
-		}
-		switch kind {
-		case string(kftypes.KFDEF):
-			kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
-			}
-			if err := kfApp.Apply(kftypes.ALL); err != nil {
-				return fmt.Errorf("failed to apply: %s", err)
-			}
-			log.Info("Applied the configuration Successfully!")
-			return nil
-		case string(kftypes.KFUPGRADE):
-			kfUpgrade, err := kfupgrade.NewKfUpgrade(configFilePath)
-			if err != nil {
-				return fmt.Errorf("couldn't load KfUpgrade: %v", err)
-			}
-
-			err = kfUpgrade.Apply()
-			if err != nil {
-				return fmt.Errorf("couldn't apply KfUpgrade: %v", err)
-			}
-			return nil
-		default:
-			return fmt.Errorf("Unsupported object kind: %v", kind)
-		}
+		// Generalize kfctl apply so that it can be used for kfctlServer
+		return ApplyKFDef(configFilePath)
 	},
+}
+
+// ApplyKFDef is a common function to be shared across implementations - the CLI, kfctlServer...
+func ApplyKFDef(configFilePath string) error {
+	// Load config from exisiting app.yaml
+	if configFilePath == "" {
+		return fmt.Errorf("Must pass in -f configFile")
+	}
+
+	kind, err := utils.GetObjectKindFromUri(configFilePath)
+	if err != nil {
+		return fmt.Errorf("Cannot determine the object kind: %v", err)
+	}
+	switch kind {
+	case string(kftypes.KFDEF):
+		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
+		}
+		if err := kfApp.Apply(kftypes.ALL); err != nil {
+			return fmt.Errorf("failed to apply: %s", err)
+		}
+		log.Info("Applied the configuration Successfully!")
+		return nil
+	case string(kftypes.KFUPGRADE):
+		kfUpgrade, err := kfupgrade.NewKfUpgrade(configFilePath)
+		if err != nil {
+			return fmt.Errorf("couldn't load KfUpgrade: %v", err)
+		}
+
+		err = kfUpgrade.Apply()
+		if err != nil {
+			return fmt.Errorf("couldn't apply KfUpgrade: %v", err)
+		}
+		return nil
+	default:
+		return fmt.Errorf("Unsupported object kind: %v", kind)
+	}
 }
 
 func init() {

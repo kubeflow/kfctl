@@ -1,0 +1,27 @@
+syntax = "proto3";
+package kfctl;
+
+
+service Kfctl {
+    rpc Deploy(KFDef) returns (Status);
+    rpc UploadKubeConfig(KubeContext) returns (UploadStatus);
+}
+
+message KFDef {
+    string ConfigFile = 1;
+    string Platform = 2; 
+}
+
+message KubeContext {
+    bytes KubeConfig = 1;
+}
+
+message UploadStatus {
+    bool Success = 1;
+}
+
+message Status {
+    bool Success = 1;
+    bool Failure = 2;
+    bool Pending = 3;
+}
