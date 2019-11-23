@@ -296,7 +296,7 @@ def push_kfctl_to_gcs(app_path):
   gcs_client = storage.Client()
   bucket_name, path =  util.split_gcs_uri(gcs_path)
   gcs_bucket = gcs_client.get_bucket(bucket_name)
-  blob = bucket.blob(gcs_bucket)
+  blob = gcs_bucket.blob(gcs_bucket)
   blob.upload_from_filename(os.path.join(app_path, "/bin/kfctl"))
 
 def apply_kubeflow(kfctl_path, app_path):
