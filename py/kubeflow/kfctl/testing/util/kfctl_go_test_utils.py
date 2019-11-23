@@ -291,7 +291,7 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
 def push_kfctl_to_gcs(kfctl_path):
   bucket = "PROW_RESULTS_BUCKET"
   gcs_path = prow_artifacts.get_gcs_dir(bucket) + "artifacts/kfctl/"
-  util.upload_to_gcs(gcs_path, kfctl_path)
+  util.upload_to_gcs(kfctl_path, gcs_path)
 
 def apply_kubeflow(kfctl_path, app_path):
   util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(app_path, "tmp.yaml")], cwd=app_path)
