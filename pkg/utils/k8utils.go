@@ -326,6 +326,15 @@ func (a *Apply) Apply(data []byte) error {
 	return nil
 }
 
+func (a *Apply) Host() string {
+	rest, err := a.matchVersionKubeConfigFlags.ToRESTConfig()
+	if err != nil {
+		log.Infof("error when getting Host: %v", err)
+		return ""
+	}
+	return rest.Host
+}
+
 func (a *Apply) run() error {
 	resourcesErr := a.options.Run()
 	if resourcesErr != nil {
