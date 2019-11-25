@@ -280,7 +280,7 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
   os.chdir(app_path)
 
   # push newly built kfctl to GCS
-  push_kfctl_to_gcs(app_path)
+  push_kfctl_to_gcs(kfctl_path)
   # Do not run with retries since it masks errors
   logging.info("Running kfctl with config:\n%s", yaml.safe_dump(config_spec))
   if build_and_apply:
@@ -289,15 +289,11 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
     apply_kubeflow(kfctl_path, app_path)
   return app_path
 
-def push_kfctl_to_gcs(app_path):
+def push_kfctl_to_gcs(kfctl_path):
   bucket = "kubernetes-jenkins"
   logging.info("Bucket name: %s", prow_artifacts.get_gcs_dir(bucket))
-  gcs_path = os.path.join(prow_artifacts.get_gcs_dir(bucket) + "/artifacts/kfctl/")
-  gcs_client = storage.Client()
-  bucket_name, path =  util.split_gcs_uri(gcs_path)
-  gcs_bucket = gcs_client.get_bucket(bucket_name)
-  blob = gcs_bucket.blob(gcs_bucket)
-  blob.upload_from_filename(os.path.join(app_path, "/bin/kfctl"))
+  gcs_path = os.path.join(prow_artifacts.get_gcs_dir(bucket) + "/artifacts/build_bin/kfctl")
+  util.upload_file_to_gcs(kfctl_path, gcs_path)
 
 def apply_kubeflow(kfctl_path, app_path):
   util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(app_path, "tmp.yaml")], cwd=app_path)
