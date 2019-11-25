@@ -155,6 +155,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	if err != nil {
 		return err
 	}
+	kustomize.kfDef.Status.ClusterIP = restConfig.Host
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
