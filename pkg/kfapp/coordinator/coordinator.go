@@ -385,6 +385,14 @@ func (kfapp *coordinator) Apply(resources kftypesv3.ResourceEnum) error {
 				}
 			}
 		}
+		updateConfigErr := kfconfigloaders.WriteConfigToFile(*kfapp.KfDef)
+		if updateConfigErr != nil {
+			return &kfapis.KfError{
+				Code: updateConfigErr.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("cannot update config file %v: %v", kftypesv3.KfConfigFile,
+					updateConfigErr.(*kfapis.KfError).Message),
+			}
+		}
 		return nil
 	}
 
