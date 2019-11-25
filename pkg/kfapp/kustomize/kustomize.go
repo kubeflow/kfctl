@@ -155,8 +155,13 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Writing k8s ClusterIP to %v", apply.Host())
-	kustomize.kfDef.Status.ClusterIP = apply.Host()
+	host := apply.Host()
+	if host == "" {
+		log.Errorf("couldn't find k8s host... this may be a problem when deleting the cluster.")
+	} else {
+		log.Infof("writing k8s ClusterIP to %v", apply.Host())
+	}
+	kustomize.kfDef.Status.ClusterIP = host
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
