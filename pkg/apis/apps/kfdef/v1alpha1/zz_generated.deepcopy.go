@@ -191,7 +191,7 @@ func (in *KfDefCondition) DeepCopy() *KfDefCondition {
 func (in *KfDefList) DeepCopyInto(out *KfDefList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KfDef, len(*in))
