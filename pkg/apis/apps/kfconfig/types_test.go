@@ -17,6 +17,7 @@ package kfconfig
 import (
 	"encoding/json"
 	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"os"
@@ -231,7 +232,7 @@ func TestKfConfig_SetPluginSpec(t *testing.T) {
 		if !reflect.DeepEqual(actual, c.Expected) {
 			pGot, _ := Pformat(actual)
 			pWant, _ := Pformat(c.Expected)
-			t.Errorf("Error parsing plugin spec got;\n%v\nwant;\n%v", pGot, pWant)
+			t.Errorf("Error parsing plugin, plugin spec doesn't match %v", cmp.Diff(pGot, pWant))
 		}
 	}
 }
@@ -285,7 +286,7 @@ func TestKfConfig_GetSecret(t *testing.T) {
 		}
 
 		if actual != c.ExpectedValue {
-			t.Errorf("Secret %v value is wrong; got %v; want %v", c.SecretName, actual, c.ExpectedValue)
+			t.Errorf("Secret %v value doesn't match %v", c.SecretName, cmp.Diff(actual, c.ExpectedValue))
 		}
 	}
 }
