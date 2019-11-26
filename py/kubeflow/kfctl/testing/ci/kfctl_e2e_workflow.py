@@ -439,6 +439,18 @@ class Builder:
 
     #***********************************************************************
     # Delete Kubeflow
+    step_name = "kfctl-delete-wrong-host"
+    command = [
+        "pytest",
+        "kfctl_delete_wrong_host.py",
+        "-s",
+        "--log-cli-level=info",
+        "--timeout=1000",
+        "--junitxml=" + self.artifacts_dir + "/junit_kfctl-go-delete-wrong-host-test.xml",
+        "--app_path=" + self.app_dir,
+        "--kfctl_path=" + self.kfctl_path,
+      ]
+
     step_name = "kfctl-delete"
     command = [
         "pytest",
@@ -452,9 +464,13 @@ class Builder:
       ]
 
     if self.delete_kf:
+      kfctl_delete_wrong_host = self._build_step(step_name, self.workflow, EXIT_DAG_NAME,
+                                                 task_template,
+                                                 command, [])
+      kfctl_delete_wrong_host["container"]["workingDir"] = self.kfctl_pytest_dir
       kfctl_delete = self._build_step(step_name, self.workflow, EXIT_DAG_NAME,
                                       task_template,
-                                      command, [])
+                                      command, ["kfctl-delete-wrong-host"])
 
       kfctl_delete["container"]["workingDir"] = self.kfctl_pytest_dir
 
