@@ -275,7 +275,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
 		}
 	}
-	if kustomize.restConfig.Host != kustomize.kfDef.Status.ClusterIP {
+	if kustomize.kfDef.Status.ClusterIP != "" && kustomize.restConfig.Host != kustomize.kfDef.Status.ClusterIP {
 		return &kfapisv3.KfError{
 			Code: int(kfapisv3.INVALID_ARGUMENT),
 			Message: fmt.Sprintf("k8s cluster host mismatch: RestConfig(%v), KfDef(%v); please check your .kube/config and your KfDef file",
