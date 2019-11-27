@@ -86,6 +86,7 @@ type RepoRef struct {
 type NameValue struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
+	Dummy string `json:"dummy,omitempty"`
 }
 
 type Plugin struct {
