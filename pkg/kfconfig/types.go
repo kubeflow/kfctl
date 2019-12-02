@@ -140,7 +140,6 @@ type Repo struct {
 type Status struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 	Caches     []Cache     `json:"caches,omitempty"`
-	ClusterIP  string      `json:"clusterIP,omitempty"`
 }
 
 type Condition struct {
