@@ -189,7 +189,6 @@ func (v V1alpha1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		}
 		config.Status.Caches = append(config.Status.Caches, c)
 	}
-	config.Status.ClusterIP = kfdef.Status.ClusterIP
 
 	return config, nil
 }
@@ -298,9 +297,7 @@ func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 		kfdef.Spec.Repos = append(kfdef.Spec.Repos, r)
 	}
 
-	kfdef.Status = kfdeftypes.KfDefStatus{
-		ClusterIP: config.Status.ClusterIP,
-	}
+	kfdef.Status = kfdeftypes.KfDefStatus{}
 	for _, cond := range config.Status.Conditions {
 		c := kfdeftypes.KfDefCondition{
 			Type:               kfdeftypes.KfDefConditionType(cond.Type),
