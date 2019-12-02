@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"sigs.k8s.io/kustomize/v3/pkg/validators"
 	"sigs.k8s.io/kustomize/v3/plugin/builtin"
+	"strconv"
 	"strings"
 	"time"
 
@@ -278,8 +279,22 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 	annotations := kustomize.kfDef.GetAnnotations()
+	forceDelete := false
+	if forceDel, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.ForceDelete}, "/")]; ok {
+		if forceDelBool, err := strconv.ParseBool(forceDel); err == nil {
+			forceDelete = forceDelBool
+		}
+	}
 	if host, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/")]; !ok {
-		log.Warnf("cannot find host URL in annotations.")
+		msg := "cannot find host URL in annotations, this may cause error deletion to clusters."
+		if forceDelete {
+			log.Warnf(msg + " running kfctl delete because force-deletion is set.")
+		} else {
+			return &kfapisv3.KfError{
+				Code:    int(kfapisv3.INVALID_ARGUMENT),
+				Message: msg,
+			}
+		}
 	} else if host != kustomize.restConfig.Host {
 		return &kfapisv3.KfError{
 			Code: int(kfapisv3.INVALID_ARGUMENT),
