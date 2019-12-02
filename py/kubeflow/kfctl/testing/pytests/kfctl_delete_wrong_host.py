@@ -58,7 +58,7 @@ def test_kfctl_delete_wrong_host(record_xml_attribute, kfctl_path, app_path, pro
         raise e
     finally:
       # Restore the correct host info.
-      kfdef["status"]["clusterIP"] = host[:]
+      kfdef["metadata"]["annotations"]["kfctl.kubeflow.io/host-url"] = host[:]
       with open(kfdef_path, "w") as f:
         yaml.dump(kfdef, f)
 
