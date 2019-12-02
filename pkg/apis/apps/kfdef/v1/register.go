@@ -14,13 +14,13 @@
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the kfdef v1alpha1 API group
+// Package v1 contains API Schema definitions for the kfdef v1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kfdef.apps.kubeflow.org
-package v1beta1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "kfdef.apps.kubeflow.org", Version: "v1beta1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "kfdef.apps.kubeflow.org", Version: "v1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
