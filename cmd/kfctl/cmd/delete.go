@@ -108,6 +108,13 @@ func setAnnotations(configPath string, annotations map[string]string) error {
 	if err != nil {
 		return err
 	}
-	config.SetAnnotations(annotations)
+	anns := config.GetAnnotations()
+	if anns == nil {
+		anns = map[string]string{}
+	}
+	for ann, val := range annotations {
+		anns[ann] = val
+	}
+	config.SetAnnotations(anns)
 	return kfloaders.WriteConfigToFile(*config)
 }
