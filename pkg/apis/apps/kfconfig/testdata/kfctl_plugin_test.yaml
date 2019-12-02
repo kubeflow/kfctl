@@ -1,0 +1,11 @@
+apiVersion: kfdef.apps.kubeflow.org/v1beta1
+kind: KfConfig
+spec:
+  applications:
+    - name: delete
+    - name: keep
+  plugins:
+    - kind: fakeplugin
+      spec:
+        param: someparam
+        boolParam: true
