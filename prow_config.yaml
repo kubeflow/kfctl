@@ -20,6 +20,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-iap
     job_types:
@@ -31,6 +32,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     kwargs:
       use_basic_auth: false
       # Run build and then apply rather than just apply
@@ -50,15 +52,16 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     kwargs:
       use_basic_auth: true
       build_and_apply: true
       test_endpoint: true
       config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_basic_auth.yaml
-  # E2E tests for kfctl_existing_arrikto
+  # E2E tests for kfctl_istio_dex
   - app_dir: kubeflow/kubeflow/testing/workflows
     component: kfctl_go_test
-    name: kfctl-go-existing
+    name: kfctl-go-dex
     job_types:
       # Enable once we have confirmed the stability of the test
       # - presubmit
@@ -71,6 +74,7 @@ workflows:
       - cmd/*
       - pkg/*
       - testing/*
+      - py/*
     params:
       platform: gke
       gkeApiVersion: v1
@@ -78,7 +82,7 @@ workflows:
       useBasicAuth: false
       useIstio: true
       testEndpoint: false
-      configPath: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_existing_arrikto.yaml
+      configPath: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_istio_dex.yaml
       cluster_creation_script: create_existing_cluster.sh
       cluster_deletion_script: delete_existing_cluster.py
-      nameSuffix: existing_arrikto
+      nameSuffix: dex

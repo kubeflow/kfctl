@@ -14,13 +14,13 @@
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the kfdef v1alpha1 API group
+// Package v1alpha1 contains API Schema definitions for the KfAwsPlugin v1alpha1.
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/kfconfig
+// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/aws
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=kfconfig.apps.kubeflow.org
-package kfconfig
+// +groupName=aws.plugins.kubeflow.org
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "kfconfig.apps.kubeflow.org", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "aws.plugins.kubeflow.org", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
@@ -49,7 +49,7 @@ func Resource(resource string) schema.GroupResource {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&KfConfig{},
+		&KfAwsPlugin{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

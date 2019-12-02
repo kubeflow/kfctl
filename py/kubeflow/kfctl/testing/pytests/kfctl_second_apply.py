@@ -9,14 +9,13 @@ from kubeflow.testing import util
 
 @pytest.mark.skipif(os.getenv("JOB_TYPE") == "presubmit",
                     reason="test second apply doesn't run in presubmits")
-def test_second_apply(record_xml_attribute, app_path):
+def test_second_apply(record_xml_attribute, app_path, kfctl_path):
   """Test that we can run kfctl apply again with error.
 
   Args:
-    kfctl_path: The path to kfctl binary.
     app_path: The app dir of kubeflow deployment.
+    kfctl_path: The path to kfctl binary.
   """
-  _, kfctl_path = kfctl_util.get_kfctl_go_build_dir_binary_path()
   if not os.path.exists(kfctl_path):
     msg = "kfctl Go binary not found: {path}".format(path=kfctl_path)
     logging.error(msg)

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains API Schema definitions for the kfconfig v1alpha1 API group
+// Package v1beta1 contains API Schema definitions for the kfdef v1beta1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/kfconfig
+// +k8s:conversion-gen=github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=kfconfig.apps.kubeflow.org
+// +groupName=awsplugin.internal.kubeflow.org
 
-package kfconfig
+package awsplugin

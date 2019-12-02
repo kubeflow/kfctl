@@ -1,12 +1,12 @@
-package configconverters
+package loaders
 
 import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
-	kfgcp "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	kfgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	"io/ioutil"
 	"os"
@@ -36,9 +36,13 @@ func TestV1alpha1_ConvertToKfConfigs(t *testing.T) {
 		if bufErr != nil {
 			t.Fatalf("Error reading file %v; error %v", fPath, bufErr)
 		}
+		var obj interface{}
+		if err := yaml.Unmarshal(buf, &obj); err != nil {
+			t.Fatalf("Error when unmarshaling file %v; error %v", fPath, err)
+		}
 
 		v1alpha1 := V1alpha1{}
-		config, err := v1alpha1.ToKfConfig(buf)
+		config, err := v1alpha1.LoadKfConfig(obj)
 		if err != nil {
 			t.Fatalf("Error converting to KfConfig: %v", err)
 		}
@@ -90,21 +94,16 @@ func TestV1alpha1_ConvertToKfDef(t *testing.T) {
 		}
 
 		v1alpha1 := V1alpha1{}
-		kfdefBytes, err := v1alpha1.ToKfDefSerialized(*config)
-		if err != nil {
+		got := &kfdeftypes.KfDef{}
+		if err = v1alpha1.LoadKfDef(*config, got); err != nil {
 			t.Fatalf("Error converting to KfDef: %v", err)
 		}
-		got := &kfdeftypes.KfDef{}
-		err = yaml.Unmarshal(kfdefBytes, got)
-		if err != nil {
-			t.Fatalf("Error when unmarshaling to KfDef: %v", err)
-		}
-		gcpSpec := &kfgcp.GcpPluginSpec{}
+		gcpSpec := &kfgcpplugin.GcpPluginSpec{}
 		err = got.GetPluginSpec(kftypes.GCP, gcpSpec)
 		if err != nil {
 			t.Fatalf("Error when getting spec: %v", err)
 		}
-		newSpec := &kfgcp.GcpPluginSpec{}
+		newSpec := &kfgcpplugin.GcpPluginSpec{}
 		newSpec.CreatePipelinePersistentStorage = gcpSpec.CreatePipelinePersistentStorage
 		newSpec.EnableWorkloadIdentity = gcpSpec.EnableWorkloadIdentity
 		newSpec.DeploymentManagerConfig = gcpSpec.DeploymentManagerConfig

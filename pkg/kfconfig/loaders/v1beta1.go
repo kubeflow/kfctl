@@ -1,77 +1,56 @@
-package configconverters
+package loaders
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
-	configsv3 "github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
-	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
-	kfgcp "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	kfdefgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
 
 // Empty struct - used to implement Converter interface.
-type V1alpha1 struct {
+type V1beta1 struct {
 }
 
-func pluginNameToKind(pluginName string) kfconfig.PluginKindType {
-	mapper := map[string]kfconfig.PluginKindType{
-		kftypesv3.AWS:              kfconfig.AWS_PLUGIN_KIND,
-		kftypesv3.GCP:              kfconfig.GCP_PLUGIN_KIND,
-		kftypesv3.MINIKUBE:         kfconfig.MINIKUBE_PLUGIN_KIND,
-		kftypesv3.EXISTING_ARRIKTO: kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND,
+func maybeGetPlatform(pluginKind string) string {
+	platforms := map[string]string{
+		string(kfconfig.AWS_PLUGIN_KIND):              kftypesv3.AWS,
+		string(kfconfig.GCP_PLUGIN_KIND):              kftypesv3.GCP,
+		string(kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND): kftypesv3.EXISTING_ARRIKTO,
 	}
-	kind, ok := mapper[pluginName]
+
+	p, ok := platforms[pluginKind]
 	if ok {
-		return kind
+		return p
 	} else {
-		return kfconfig.PluginKindType("KfUnknownPlugin")
+		return ""
 	}
 }
 
-// Copy GCP plugin spec. Will skip if platform is not GCP.
-func copyGcpPluginSpec(from *kfdeftypes.KfDef, to *kfconfig.KfConfig) error {
-	if from.Spec.Platform != kftypesv3.GCP {
-		return nil
-	}
-
-	spec := kfgcp.GcpPluginSpec{}
-	if err := to.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, &spec); err != nil && !kfconfig.IsPluginNotFound(err) {
-		return err
-	}
-	spec.Project = from.Spec.Project
-	spec.Email = from.Spec.Email
-	spec.IpName = from.Spec.IpName
-	spec.Hostname = from.Spec.Hostname
-	spec.Zone = from.Spec.Zone
-	spec.UseBasicAuth = from.Spec.UseBasicAuth
-	spec.SkipInitProject = from.Spec.SkipInitProject
-	spec.DeleteStorage = from.Spec.DeleteStorage
-	return to.SetPluginSpec(kfconfig.GCP_PLUGIN_KIND, spec)
-}
-
-func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
+func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
-	if err := yaml.Unmarshal(kfdefBytes, kfdef); err != nil {
+	if bytes, err := yaml.Marshal(def); err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not unmarshal config file onto KfDef struct: %v", err),
+			Message: fmt.Sprintf("could not marshal kfdef into bytes: %v", err),
+		}
+	} else {
+		err = yaml.Unmarshal(bytes, kfdef)
+		if err != nil {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("could not unpack kfdef: %v", err),
+			}
 		}
 	}
 
+	// Set UseBasicAuth later.
 	config := &kfconfig.KfConfig{
 		Spec: kfconfig.KfConfigSpec{
-			AppDir:          kfdef.Spec.AppDir,
-			Version:         kfdef.Spec.Version,
-			UseBasicAuth:    kfdef.Spec.UseBasicAuth,
-			Project:         kfdef.Spec.Project,
-			Email:           kfdef.Spec.Email,
-			IpName:          kfdef.Spec.IpName,
-			Hostname:        kfdef.Spec.Hostname,
-			SkipInitProject: kfdef.Spec.SkipInitProject,
-			Zone:            kfdef.Spec.Zone,
-			Platform:        kfdef.Spec.Platform,
+			UseBasicAuth: false,
 		},
 	}
 	config.Name = kfdef.Name
@@ -80,6 +59,7 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	config.Kind = "KfConfig"
 	config.Labels = kfdef.Labels
 	config.Annotations = kfdef.Annotations
+	config.Spec.Version = kfdef.Spec.Version
 	for _, app := range kfdef.Spec.Applications {
 		application := kfconfig.Application{
 			Name: app.Name,
@@ -94,6 +74,11 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 					Path: app.KustomizeConfig.RepoRef.Path,
 				}
 				kconfig.RepoRef = kref
+
+				// Use application to infer whether UseBasicAuth is true.
+				if kref.Path == "common/basic-auth" {
+					config.Spec.UseBasicAuth = true
+				}
 			}
 			for _, param := range app.KustomizeConfig.Parameters {
 				p := kfconfig.NameValue{
@@ -111,21 +96,29 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 		p := kfconfig.Plugin{
 			Name:      plugin.Name,
 			Namespace: kfdef.Namespace,
-			Kind:      pluginNameToKind(plugin.Name),
+			Kind:      kfconfig.PluginKindType(plugin.Kind),
 			Spec:      plugin.Spec,
 		}
 		config.Spec.Plugins = append(config.Spec.Plugins, p)
-	}
-	specCopiers := []func(*kfdeftypes.KfDef, *kfconfig.KfConfig) error{
-		copyGcpPluginSpec,
-	}
-	for _, copier := range specCopiers {
-		if err := copier(kfdef, config); err != nil {
-			return nil, &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("error copying plugin specs: %v", err),
+
+		if plugin.Kind == string(kfconfig.GCP_PLUGIN_KIND) {
+			spec := kfdefgcpplugin.GcpPluginSpec{}
+			if err := kfdef.GetPluginSpec(plugin.Kind, &spec); err != nil {
+				return nil, &kfapis.KfError{
+					Code:    int(kfapis.INTERNAL_ERROR),
+					Message: fmt.Sprintf("could not retrieve GCP plugin spec: %v", err),
+				}
 			}
 
+			config.Spec.Project = spec.Project
+			config.Spec.Email = spec.Email
+			config.Spec.IpName = spec.IpName
+			config.Spec.Hostname = spec.Hostname
+			config.Spec.SkipInitProject = spec.SkipInitProject
+			config.Spec.Zone = spec.Zone
+		}
+		if p := maybeGetPlatform(plugin.Kind); p != "" {
+			config.Spec.Platform = p
 		}
 	}
 
@@ -133,22 +126,15 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 		s := kfconfig.Secret{
 			Name: secret.Name,
 		}
-		if secret.SecretSource == nil {
+		// We don't want to store literalSource explictly, becasue we want the config to be checked into source control and don't want secrets in source control.
+		if secret.SecretSource == nil || secret.SecretSource.LiteralSource != nil {
 			config.Spec.Secrets = append(config.Spec.Secrets, s)
 			continue
 		}
 		src := &kfconfig.SecretSource{}
-		if secret.SecretSource.LiteralSource != nil {
-			src.LiteralSource = &kfconfig.LiteralSource{
-				Value: secret.SecretSource.LiteralSource.Value,
-			}
-		} else if secret.SecretSource.EnvSource != nil {
+		if secret.SecretSource.EnvSource != nil {
 			src.EnvSource = &kfconfig.EnvSource{
 				Name: secret.SecretSource.EnvSource.Name,
-			}
-		} else if secret.SecretSource.HashedSource != nil {
-			src.HashedSource = &kfconfig.HashedSource{
-				HashedValue: secret.SecretSource.HashedSource.HashedValue,
 			}
 		}
 		s.SecretSource = src
@@ -158,7 +144,7 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	for _, repo := range kfdef.Spec.Repos {
 		r := kfconfig.Repo{
 			Name: repo.Name,
-			URI:  repo.Uri,
+			URI:  repo.URI,
 		}
 		config.Spec.Repos = append(config.Spec.Repos, r)
 	}
@@ -174,9 +160,9 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 		}
 		config.Status.Conditions = append(config.Status.Conditions, c)
 	}
-	for name, cache := range kfdef.Status.ReposCache {
+	for _, cache := range kfdef.Status.ReposCache {
 		c := kfconfig.Cache{
-			Name:      name,
+			Name:      cache.Name,
 			LocalPath: cache.LocalPath,
 		}
 		config.Status.Caches = append(config.Status.Caches, c)
@@ -185,7 +171,7 @@ func (v V1alpha1) ToKfConfig(kfdefBytes []byte) (*kfconfig.KfConfig, error) {
 	return config, nil
 }
 
-func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
+func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	kfdef := &kfdeftypes.KfDef{}
 	kfdef.Name = config.Name
 	kfdef.Namespace = config.Namespace
@@ -193,25 +179,7 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	kfdef.Kind = "KfDef"
 	kfdef.Labels = config.Labels
 	kfdef.Annotations = config.Annotations
-
-	kfdef.Spec.AppDir = config.Spec.AppDir
 	kfdef.Spec.Version = config.Spec.Version
-	kfdef.Spec.UseBasicAuth = config.Spec.UseBasicAuth
-	// Should be deprecated, hardcode it just to be safe.
-	kfdef.Spec.EnableApplications = true
-	kfdef.Spec.UseIstio = true
-	kfdef.Spec.PackageManager = "kustomize"
-
-	gcpSpec := &kfgcp.GcpPluginSpec{}
-	if err := config.GetPluginSpec(kfconfig.GCP_PLUGIN_KIND, gcpSpec); err == nil {
-		kfdef.Spec.Project = gcpSpec.Project
-		kfdef.Spec.Email = gcpSpec.Email
-		kfdef.Spec.IpName = gcpSpec.IpName
-		kfdef.Spec.Hostname = gcpSpec.Hostname
-		kfdef.Spec.Zone = gcpSpec.Zone
-		kfdef.Spec.SkipInitProject = gcpSpec.SkipInitProject
-		kfdef.Spec.DeleteStorage = gcpSpec.DeleteStorage
-	}
 
 	for _, app := range config.Spec.Applications {
 		application := kfdeftypes.Application{
@@ -229,7 +197,7 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 				kconfig.RepoRef = kref
 			}
 			for _, param := range app.KustomizeConfig.Parameters {
-				p := configsv3.NameValue{
+				p := kfdeftypes.NameValue{
 					Name:  param.Name,
 					Value: param.Value,
 				}
@@ -240,28 +208,14 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 		kfdef.Spec.Applications = append(kfdef.Spec.Applications, application)
 	}
 
-	platform := ""
 	for _, plugin := range config.Spec.Plugins {
 		p := kfdeftypes.Plugin{
-			Name: plugin.Name,
 			Spec: plugin.Spec,
 		}
+		p.Name = plugin.Name
+		p.Kind = string(plugin.Kind)
 		kfdef.Spec.Plugins = append(kfdef.Spec.Plugins, p)
-
-		if plugin.Name == kftypesv3.AWS {
-			platform = kftypesv3.AWS
-		} else if plugin.Name == kftypesv3.GCP {
-			platform = kftypesv3.GCP
-		}
 	}
-	// TODO: Platform is not always needed?
-	// if platform == "" {
-	// 	return []byte(""), &kfapis.KfError{
-	// 		Code:    int(kfapis.INVALID_ARGUMENT),
-	// 		Message: "Not able to find platform in plugins",
-	// 	}
-	// }
-	kfdef.Spec.Platform = platform
 
 	for _, secret := range config.Spec.Secrets {
 		s := kfdeftypes.Secret{
@@ -279,11 +233,6 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 					Name: secret.SecretSource.EnvSource.Name,
 				}
 			}
-			if secret.SecretSource.HashedSource != nil {
-				s.SecretSource.HashedSource = &kfdeftypes.HashedSource{
-					HashedValue: secret.SecretSource.HashedSource.HashedValue,
-				}
-			}
 		}
 		kfdef.Spec.Secrets = append(kfdef.Spec.Secrets, s)
 	}
@@ -291,12 +240,11 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 	for _, repo := range config.Spec.Repos {
 		r := kfdeftypes.Repo{
 			Name: repo.Name,
-			Uri:  repo.URI,
+			URI:  repo.URI,
 		}
 		kfdef.Spec.Repos = append(kfdef.Spec.Repos, r)
 	}
 
-	kfdef.Status = kfdeftypes.KfDefStatus{}
 	for _, cond := range config.Status.Conditions {
 		c := kfdeftypes.KfDefCondition{
 			Type:               kfdeftypes.KfDefConditionType(cond.Type),
@@ -309,20 +257,29 @@ func (v V1alpha1) ToKfDefSerialized(config kfconfig.KfConfig) ([]byte, error) {
 		kfdef.Status.Conditions = append(kfdef.Status.Conditions, c)
 	}
 
-	kfdef.Status.ReposCache = make(map[string]kfdeftypes.RepoCache)
 	for _, cache := range config.Status.Caches {
-		kfdef.Status.ReposCache[cache.Name] = kfdeftypes.RepoCache{
+		c := kfdeftypes.RepoCache{
+			Name:      cache.Name,
 			LocalPath: cache.LocalPath,
 		}
+		kfdef.Status.ReposCache = append(kfdef.Status.ReposCache, c)
 	}
 
 	kfdefBytes, err := yaml.Marshal(kfdef)
-	if err == nil {
-		return kfdefBytes, nil
-	} else {
-		return nil, &kfapis.KfError{
+	if err != nil {
+		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("error when marshaling to KfDef: %v", err),
+		}
+	}
+
+	err = yaml.Unmarshal(kfdefBytes, out)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error when unmarshaling to KfDef: %v", err),
 		}
 	}
 }

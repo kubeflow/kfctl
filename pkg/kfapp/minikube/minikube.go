@@ -22,7 +22,7 @@ import (
 	//"github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	//kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"io/ioutil"
 	"k8s.io/client-go/rest"

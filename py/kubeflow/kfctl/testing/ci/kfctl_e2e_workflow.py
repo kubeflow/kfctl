@@ -511,9 +511,22 @@ class Builder:
     repos = util.combine_repos(list_of_repos)
     repos_str = ','.join(['%s@%s' % (key, value) for (key, value) in repos.items()])
 
+
+    # If we are using a specific branch (e.g. periodic tests for release branch)
+    # then we need to use depth = all; otherwise checkout out the branch
+    # will fail. Otherwise we checkout with depth=30. We want more than
+    # depth=1 because the depth will determine our ability to find the common
+    # ancestor which affects our ability to determine which files have changed
+    depth = 30
+    if os.getenv("BRANCH_NAME"):
+      logging.info("BRANCH_NAME=%s; setting detph=all",
+                   os.getenv("BRANCH_NAME"))
+      depth = "all"
+
     checkout["name"] = "checkout"
     checkout["container"]["command"] = ["/usr/local/bin/checkout_repos.sh",
                                         "--repos=" + repos_str,
+                                        "--depth={0}".format(depth),
                                         "--src_dir=" + self.src_root_dir]
 
     argo_build_util.add_task_to_dag(self.workflow, E2E_DAG_NAME, checkout, [])
@@ -623,6 +636,7 @@ class Builder:
            # Test suite name needs to be unique based on parameters
            "-o", "junit_suite_name=test_kfctl_second_apply_" + self.config_name,
            "--app_path=" + self.app_dir,
+           "--kfctl_path=" + self.kfctl_path,
          ]
     if self.test_endpoint:
       dependences = [kf_is_ready["name"], endpoint_ready["name"]]
