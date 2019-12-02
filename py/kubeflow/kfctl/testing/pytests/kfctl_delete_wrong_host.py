@@ -36,8 +36,8 @@ def test_kfctl_delete_wrong_host(record_xml_attribute, kfctl_path, app_path, pro
   with open(kfdef_path, "r") as f:
     kfdef = yaml.safe_load(f)
 
-  # Makre sure we copy the correct host instead of string reference.
-  host = kfdef.get("status", {}).get("clusterIP", "")[:]
+  # Make sure we copy the correct host instead of string reference.
+  host = kfdef.get("metadata", {}).get("annotations", {}).get("kfctl.kubeflow.io/host-url", "")[:]
   if not host:
     raise ValueError("host is not written to kfdef")
 
@@ -45,7 +45,7 @@ def test_kfctl_delete_wrong_host(record_xml_attribute, kfctl_path, app_path, pro
   def run_delete():
     try:
       # Put an obvious wrong host into KfDef
-      kfdef["status"]["clusterIP"] = "0.0.0.0"
+      kfdef["metadata"]["annotations"]["kfctl.kubeflow.io/host-url"] = "0.0.0.0"
       with open(kfdef_path, "w") as f:
         yaml.dump(kfdef, f)
       util.run([kfctl_path, "delete", "--delete_storage", "-V", "-f", kfdef_path],
