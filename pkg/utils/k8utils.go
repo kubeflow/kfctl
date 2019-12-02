@@ -58,6 +58,8 @@ const (
 	YamlSeparator              = "(?m)^---[ \t]*$"
 	CertDir                    = "/opt/ca"
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
+	KfDefAnnotation            = "kfctl.kubeflow.io"
+	HostUrl                    = "host-url"
 )
 
 func generateRandStr(length int) string {
