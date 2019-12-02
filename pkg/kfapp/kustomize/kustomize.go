@@ -107,10 +107,8 @@ type kustomize struct {
 }
 
 const (
-	defaultUserId   = "anonymous"
-	outputDir       = "kustomize"
-	kfdefAnnotation = "kfctl.kubeflow.io"
-	hostUrl         = "host-url"
+	defaultUserId = "anonymous"
+	outputDir     = "kustomize"
 )
 
 // Setter defines an interface for modifying the plugin.
@@ -164,7 +162,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 		log.Infof("writing k8s host URL to %v", host)
 	}
 	kustomize.kfDef.SetAnnotations(map[string]string{
-		strings.Join([]string{kfdefAnnotation, hostUrl}, "/"): host,
+		strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/"): host,
 	})
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
@@ -280,7 +278,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 	annotations := kustomize.kfDef.GetAnnotations()
-	if host, ok := annotations[strings.Join([]string{kfdefAnnotation, hostUrl}, "/")]; !ok {
+	if host, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/")]; !ok {
 		log.Warnf("cannot find host URL in annotations.")
 	} else if host != kustomize.restConfig.Host {
 		return &kfapisv3.KfError{

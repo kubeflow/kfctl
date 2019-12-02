@@ -59,6 +59,8 @@ const (
 	CertDir                    = "/opt/ca"
 	controlPlaneLabel          = "control-plane"
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
+	KfDefAnnotation            = "kfctl.kubeflow.io"
+	HostUrl                    = "host-url"
 )
 
 func generateRandStr(length int) string {
