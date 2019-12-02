@@ -16,9 +16,12 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,6 +49,16 @@ var deleteCmd = &cobra.Command{
 		if err != nil || kfApp == nil {
 			return fmt.Errorf("error loading kfapp: %v", err)
 		}
+
+		forceDeleteAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.ForceDelete}, "/")
+		annValue := "false"
+		if deleteCfg.GetBool(string(kftypes.FORCE_DELETION)) == true {
+			annValue = "true"
+		}
+		setAnnotations(configFilePath, map[string]string{
+			forceDeleteAnn: annValue,
+		})
+
 		deleteErr := kfApp.Delete(kftypes.ALL)
 		if deleteErr != nil {
 			return fmt.Errorf("couldn't delete KfApp: %v", deleteErr)
@@ -71,4 +84,30 @@ func init() {
 		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
+
+	// force deletion, runs best-effort deletion and skips non-fatal checks.
+	deleteCmd.Flags().Bool(string(kftypes.FORCE_DELETION), false,
+		string(kftypes.FORCE_DELETION)+" output default is false")
+	bindErr = deleteCfg.BindPFlag(string(kftypes.FORCE_DELETION), deleteCmd.Flags().Lookup(string(kftypes.FORCE_DELETION)))
+	if bindErr != nil {
+		log.Errorf("couldn't set flag --%v: %v", string(kftypes.FORCE_DELETION), bindErr)
+		return
+	}
+
+	deleteCmd.Flags().Bool(string(kftypes.DELETE_STORAGE), false,
+		"Set if you want to delete app's storage cluster used for mlpipeline.")
+	bindErr = deleteCfg.BindPFlag(string(kftypes.DELETE_STORAGE), deleteCmd.Flags().Lookup(string(kftypes.DELETE_STORAGE)))
+	if bindErr != nil {
+		log.Errorf("couldn't set flag --%v: %v", string(kftypes.DELETE_STORAGE), bindErr)
+		return
+	}
+}
+
+func setAnnotations(configPath string, annotations map[string]string) error {
+	config, err := kfloaders.LoadConfigFromURI(configPath)
+	if err != nil {
+		return err
+	}
+	config.SetAnnotations(annotations)
+	return kfloaders.WriteConfigToFile(*config)
 }

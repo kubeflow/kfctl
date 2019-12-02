@@ -103,6 +103,7 @@ const (
 	DISABLE_USAGE_REPORT  CliOption = "disable_usage_report"
 	PACKAGE_MANAGER       CliOption = "package-manager"
 	FILE                  CliOption = "file"
+	FORCE_DELETION        CliOption = "force-deletion"
 )
 
 //
