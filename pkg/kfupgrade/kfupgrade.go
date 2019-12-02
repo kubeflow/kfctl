@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"k8s.io/client-go/kubernetes/scheme"
@@ -38,7 +39,7 @@ import (
 	//corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	//"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	//"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -288,38 +289,40 @@ func (upgrader *KfUpgrader) Apply() error {
 	}
 
 	return kfApp.Apply(kftypesv3.K8S)
-	//return nil
 }
 
 func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	applicationsv1beta1.AddToScheme(scheme.Scheme)
-	//log.Warnf(">>>>AddToScheme<<<<<")
 
+	ver := upgrader.OldKfCfg.Spec.Version
+	log.Infof("Deleting resources in in namespace %v version %v", ns, ver)
+
+	objs := []runtime.Object{
+		&applicationsv1beta1.Application{},
+		&appsv1.Deployment{},
+		&appsv1.StatefulSet{},
+		&appsv1.ReplicaSet{},
+		&appsv1.DaemonSet{},
+	}
+
+	for _, obj := range objs {
+		err := upgrader.DeleteResources(ns, ver, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (upgrader *KfUpgrader) DeleteResources(ns string, ver string, obj runtime.Object) error {
 	config := kftypesv3.GetConfig()
 	kubeClient, err := client.New(config, client.Options{})
+	objKind := reflect.TypeOf(obj)
 
-	//ns := upgrader.OldKfCfg.ObjectMeta.Namespace
-	ver := upgrader.OldKfCfg.Spec.Version
-
-	log.Infof("Deleting applications in in namespace %v version %v", ns, ver)
-
-	//var policy client.PropagationPolicy //
-	//policy := client.PropagationPolicy(metav1.DeletePropagationBackground)
-	//opt := client.DeleteAllOfOptions{
-	//	PropagationPolicy: &policy,
-	//}
-
-	//u := &unstructured.Unstructured{}
-	//u.SetGroupVersionKind(schema.GroupVersionKind{
-	//	Group:   "app.k8s.io",
-	//	Kind:    "Application",
-	//	Version: "v1beta1",
-	//})
-
-	application := &applicationsv1beta1.Application{}
+	log.Infof("Deleting resources type %v in in namespace %v version %v", objKind, ns, ver)
 	err = kubeClient.DeleteAllOf(context.Background(),
-		application,
-		//u,
+		obj,
 		client.InNamespace(ns),
 		client.MatchingLabels{
 			"app.kubernetes.io/part-of": "kubeflow",
@@ -330,102 +333,7 @@ func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
-		}
-	}
-
-	log.Infof("Deleting deployments in in namespace %v version %v", ns, ver)
-	deployment := &appsv1.Deployment{}
-	err = kubeClient.DeleteAllOf(context.Background(),
-		deployment,
-		//u,
-		client.InNamespace(ns),
-		client.MatchingLabels{
-			"app.kubernetes.io/part-of": "kubeflow",
-			kftypesv3.DefaultAppVersion: ver,
-		},
-		client.PropagationPolicy(metav1.DeletePropagationBackground))
-
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
-		}
-	}
-
-	//log.Infof("Deleting services in in namespace %v version %v", ns, ver)
-	//service := &corev1.Service{}
-	//err = kubeClient.DeleteAllOf(context.Background(),
-	//	service,
-	//	//u,
-	//	client.InNamespace(ns),
-	//	client.MatchingLabels{
-	//		"app.kubernetes.io/part-of": "kubeflow",
-	//		kftypesv3.DefaultAppVersion: ver,
-	//	},
-	//	client.PropagationPolicy(metav1.DeletePropagationBackground))
-
-	//if err != nil {
-	//	return &kfapis.KfError{
-	//		Code:    int(kfapis.INVALID_ARGUMENT),
-	//		Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
-	//	}
-	//}
-
-	log.Infof("Deleting statefulsets in in namespace %v version %v", ns, ver)
-	ss := &appsv1.StatefulSet{}
-	err = kubeClient.DeleteAllOf(context.Background(),
-		ss,
-		//u,
-		client.InNamespace(ns),
-		client.MatchingLabels{
-			"app.kubernetes.io/part-of": "kubeflow",
-			kftypesv3.DefaultAppVersion: ver,
-		},
-		client.PropagationPolicy(metav1.DeletePropagationBackground))
-
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
-		}
-	}
-
-	log.Infof("Deleting replicasets in in namespace %v version %v", ns, ver)
-	rs := &appsv1.ReplicaSet{}
-	err = kubeClient.DeleteAllOf(context.Background(),
-		rs,
-		//u,
-		client.InNamespace(ns),
-		client.MatchingLabels{
-			"app.kubernetes.io/part-of": "kubeflow",
-			kftypesv3.DefaultAppVersion: ver,
-		},
-		client.PropagationPolicy(metav1.DeletePropagationBackground))
-
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
-		}
-	}
-
-	log.Infof("Deleting daemonsets in in namespace %v version %v", ns, ver)
-	ds := &appsv1.DaemonSet{}
-	err = kubeClient.DeleteAllOf(context.Background(),
-		ds,
-		//u,
-		client.InNamespace(ns),
-		client.MatchingLabels{
-			"app.kubernetes.io/part-of": "kubeflow",
-			kftypesv3.DefaultAppVersion: ver,
-		},
-		client.PropagationPolicy(metav1.DeletePropagationBackground))
-
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete applications Error: %v", err),
+			Message: fmt.Sprintf("couldn't delete %v Error: %v", objKind, err),
 		}
 	}
 
