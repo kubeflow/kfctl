@@ -152,7 +152,6 @@ func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		}
 		config.Status.Caches = append(config.Status.Caches, c)
 	}
-	config.Status.ClusterIP = kfdef.Status.ClusterIP
 
 	return config, nil
 }
@@ -250,8 +249,6 @@ func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 		}
 		kfdef.Status.ReposCache = append(kfdef.Status.ReposCache, c)
 	}
-
-	kfdef.Status.ClusterIP = config.Status.ClusterIP
 
 	kfdefBytes, err := yaml.Marshal(kfdef)
 	if err != nil {

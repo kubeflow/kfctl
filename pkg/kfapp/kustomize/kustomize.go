@@ -161,7 +161,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	} else {
 		log.Infof("writing k8s ClusterIP to %v", apply.Host())
 	}
-	kustomize.kfDef.Status.ClusterIP = host
+	// kustomize.kfDef.Status.ClusterIP = host
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
@@ -275,13 +275,13 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
 		}
 	}
-	if kustomize.kfDef.Status.ClusterIP != "" && kustomize.restConfig.Host != kustomize.kfDef.Status.ClusterIP {
-		return &kfapisv3.KfError{
-			Code: int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("k8s cluster host mismatch: RestConfig(%v), KfDef(%v); please check your .kube/config and your KfDef file",
-				kustomize.restConfig.Host, kustomize.kfDef.Status.ClusterIP),
-		}
-	}
+	// if kustomize.kfDef.Status.ClusterIP != "" && kustomize.restConfig.Host != kustomize.kfDef.Status.ClusterIP {
+	// 	return &kfapisv3.KfError{
+	// 		Code: int(kfapisv3.INVALID_ARGUMENT),
+	// 		Message: fmt.Sprintf("k8s cluster host mismatch: RestConfig(%v), KfDef(%v); please check your .kube/config and your KfDef file",
+	// 			kustomize.restConfig.Host, kustomize.kfDef.Status.ClusterIP),
+	// 	}
+	// }
 	if err := kustomize.deleteGlobalResources(); err != nil {
 		return err
 	}
