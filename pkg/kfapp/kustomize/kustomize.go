@@ -107,8 +107,10 @@ type kustomize struct {
 }
 
 const (
-	defaultUserId = "anonymous"
-	outputDir     = "kustomize"
+	defaultUserId   = "anonymous"
+	outputDir       = "kustomize"
+	kfdefAnnotation = "kfctl.kubeflow.io"
+	hostUrl         = "host-url"
 )
 
 // Setter defines an interface for modifying the plugin.
@@ -159,9 +161,11 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	if host == "" {
 		log.Errorf("couldn't find k8s host... this may be a problem when deleting the cluster.")
 	} else {
-		log.Infof("writing k8s ClusterIP to %v", apply.Host())
+		log.Infof("writing k8s host URL to %v", host)
 	}
-	// kustomize.kfDef.Status.ClusterIP = host
+	kustomize.kfDef.SetAnnotations(map[string]string{
+		strings.Join([]string{kfdefAnnotation, hostUrl}, "/"): host,
+	})
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
@@ -275,13 +279,16 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
 		}
 	}
-	// if kustomize.kfDef.Status.ClusterIP != "" && kustomize.restConfig.Host != kustomize.kfDef.Status.ClusterIP {
-	// 	return &kfapisv3.KfError{
-	// 		Code: int(kfapisv3.INVALID_ARGUMENT),
-	// 		Message: fmt.Sprintf("k8s cluster host mismatch: RestConfig(%v), KfDef(%v); please check your .kube/config and your KfDef file",
-	// 			kustomize.restConfig.Host, kustomize.kfDef.Status.ClusterIP),
-	// 	}
-	// }
+	annotations := kustomize.kfDef.GetAnnotations()
+	if host, ok := annotations[strings.Join([]string{kfdefAnnotation, hostUrl}, "/")]; !ok {
+		log.Warnf("cannot find host URL in annotations.")
+	} else if host != kustomize.restConfig.Host {
+		return &kfapisv3.KfError{
+			Code: int(kfapisv3.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("k8s cluster host mismatch: RestConfig(%v), KfDef(%v); please check your .kube/config and your KfDef file",
+				kustomize.restConfig.Host, host),
+		}
+	}
 	if err := kustomize.deleteGlobalResources(); err != nil {
 		return err
 	}
