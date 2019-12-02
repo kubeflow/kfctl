@@ -162,9 +162,12 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	} else {
 		log.Infof("writing k8s host URL to %v", host)
 	}
-	kustomize.kfDef.SetAnnotations(map[string]string{
-		strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/"): host,
-	})
+	annotations := kustomize.kfDef.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/")] = host
+	kustomize.kfDef.SetAnnotations(annotations)
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
