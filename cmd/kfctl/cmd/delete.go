@@ -45,6 +45,7 @@ var deleteCmd = &cobra.Command{
 			return fmt.Errorf("Must pass in -f configFile")
 		}
 
+		// Writes annotations to pass information to kfapps.
 		forceDeleteAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.ForceDelete}, "/")
 		annValue := "false"
 		if deleteCfg.GetBool(string(kftypes.FORCE_DELETION)) == true {
