@@ -128,8 +128,6 @@ type KfDefStatus struct {
 	Conditions []KfDefCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 	// ReposCache is used to cache information about local caching of the URIs.
 	ReposCache []RepoCache `json:"reposCache,omitempty"`
-	// IP address pointing to the k8s cluster.
-	ClusterIP string `json:"clusterIP,omitempty"`
 }
 
 type RepoCache struct {
