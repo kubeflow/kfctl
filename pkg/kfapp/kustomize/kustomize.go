@@ -288,6 +288,9 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			forceDelete = forceDelBool
 		}
 	}
+	if forceDelete {
+		log.Warnf("running force deletion.")
+	}
 	if host, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/")]; !ok {
 		msg := "cannot find host URL in annotations, this may cause error deletion to clusters."
 		if forceDelete {

@@ -44,11 +44,6 @@ var deleteCmd = &cobra.Command{
 		if configFilePath == "" {
 			return fmt.Errorf("Must pass in -f configFile")
 		}
-		// TODO: should we check if the configFilePath is local?
-		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
-		if err != nil || kfApp == nil {
-			return fmt.Errorf("error loading kfapp: %v", err)
-		}
 
 		forceDeleteAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.ForceDelete}, "/")
 		annValue := "false"
@@ -58,6 +53,12 @@ var deleteCmd = &cobra.Command{
 		setAnnotations(configFilePath, map[string]string{
 			forceDeleteAnn: annValue,
 		})
+
+		// TODO: should we check if the configFilePath is local?
+		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
+		if err != nil || kfApp == nil {
+			return fmt.Errorf("error loading kfapp: %v", err)
+		}
 
 		// TODO(lunkai): do we need set delete storage here?
 		// kfGetter, ok := kfApp.(coordinator.KfDefGetter)
