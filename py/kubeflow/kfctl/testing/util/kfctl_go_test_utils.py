@@ -290,7 +290,7 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
   return app_path
 
 def push_kfctl_to_gcs(kfctl_path):
-  bucket = "kubernetes-jenkins"
+  bucket = prow_artifacts.PROW_RESULTS_BUCKET
   logging.info("Bucket name: %s", prow_artifacts.get_gcs_dir(bucket))
   gcs_path = os.path.join(prow_artifacts.get_gcs_dir(bucket) + "/artifacts/build_bin/kfctl")
   util.upload_file_to_gcs(kfctl_path, gcs_path)
