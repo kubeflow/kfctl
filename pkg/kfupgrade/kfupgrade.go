@@ -83,7 +83,7 @@ func createNewKfApp(baseConfig string, version string, oldKfCfg *kfconfig.KfConf
 	newAppDir := filepath.Join(appDir, h)
 	newKfCfg.Spec.AppDir = newAppDir
 	newKfCfg.Spec.Version = version
-	outputFilePath := filepath.Join(newAppDir, kftypesv3.KfConfigFile)
+	outputFilePath := filepath.Join(newAppDir, newKfCfg.Spec.ConfigFileName)
 
 	// Make sure the directory is created.
 	if _, err := os.Stat(newAppDir); os.IsNotExist(err) {
@@ -175,39 +175,25 @@ func findKfCfg(kfDefRef *kfupgrade.KfDefRef) (*kfconfig.KfConfig, string, error)
 				return nil
 			}
 
-			if !info.Mode().IsDir() {
-				// Skip non-directories
-				return nil
-			}
-
 			if strings.Contains(path, ".cache") {
 				// Skip cache directories
 				return nil
 			}
 
-			config := filepath.Join(path, kftypesv3.KfConfigFile)
-			info, err = os.Stat(config)
-			if os.IsNotExist(err) {
-				// App.yaml does not exist, skip this directory
+			if !strings.HasSuffix(path, "yaml") {
+				// Skip everything that's not a yaml file
 				return nil
 			}
 
-			kfCfg, err := kfconfigloaders.LoadConfigFromURI(config)
+			kfCfg, err := kfconfigloaders.LoadConfigFromURI(path)
 			if err != nil {
-				log.Warnf("Failed to load KfCfg from %v", config)
 				return nil
 			}
 
-			if kfCfg.Name == kfDefRef.Name {
-				if kfDefRef.Version == "" {
-					log.Infof("Found KfCfg with matching name: %v at %v", kfCfg.Name, config)
-					target = kfCfg
-					targetPath = config
-				} else if kfCfg.Spec.Version == kfDefRef.Version {
-					log.Infof("Found KfCfg with matching name: %v version: %v at %v", kfCfg.Name, kfCfg.Spec.Version, config)
-					target = kfCfg
-					targetPath = config
-				}
+			if kfCfg.Name == kfDefRef.Name && kfCfg.Spec.Version == kfDefRef.Version {
+				log.Infof("Found KfCfg with matching name: %v version: %v at %v", kfCfg.Name, kfCfg.Spec.Version, path)
+				target = kfCfg
+				targetPath = path
 			}
 
 			return err
