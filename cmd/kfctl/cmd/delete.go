@@ -19,6 +19,7 @@ import (
 
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,17 +42,25 @@ var deleteCmd = &cobra.Command{
 		if configFilePath == "" {
 			return fmt.Errorf("Must pass in -f configFile")
 		}
+
+		// ****** Pass information to kfapps by writing to API. ******
+		config, err := kfloaders.LoadConfigFromURI(configFilePath)
+		if err != nil {
+			return err
+		}
+		if deleteCfg.GetBool(string(kftypes.DELETE_STORAGE)) {
+			config.Spec.DeleteStorage = true
+		}
+
+		if err = kfloaders.WriteConfigToFile(*config); err != nil {
+			return err
+		}
+
 		// TODO: should we check if the configFilePath is local?
 		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
 		if err != nil || kfApp == nil {
 			return fmt.Errorf("error loading kfapp: %v", err)
 		}
-		// TODO(lunkai): do we need set delete storage here?
-		// kfGetter, ok := kfApp.(coordinator.KfDefGetter)
-		// if !ok {
-		// 	return errors.New("internal error: coordinator does not implement KfDefGetter")
-		// }
-		// kfGetter.GetKfDef().Spec.DeleteStorage = deleteCfg.GetBool(string(kftypes.DELETE_STORAGE))
 		deleteErr := kfApp.Delete(kftypes.ALL)
 		if deleteErr != nil {
 			return fmt.Errorf("couldn't delete KfApp: %v", deleteErr)
