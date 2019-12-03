@@ -137,7 +137,7 @@ func TestKfConfig_GetPluginSpec(t *testing.T) {
 		{
 			Filename:   "kfctl_plugin_test.yaml",
 			PluginName: "fake",
-			PluginKind: "fakeplugin",
+			PluginKind: "fakepluginkind",
 			Expected: &FakePluginSpec{
 				Param:     "someparam",
 				BoolParam: true,
