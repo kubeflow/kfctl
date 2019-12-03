@@ -19,7 +19,6 @@ import (
 
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
-	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
