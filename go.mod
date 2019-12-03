@@ -10,6 +10,7 @@ require (
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
 	github.com/aws/aws-sdk-go v1.15.78
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
@@ -26,6 +27,9 @@ require (
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.7
 	github.com/kr/pty v1.1.3 // indirect
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
+	github.com/hashicorp/go-getter v1.0.2
+	github.com/imdario/mergo v0.3.7
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/kubeflow/kubeflow/components/profile-controller v0.0.0-20190614045418-7ca3cfb39368 // indirect
 	github.com/kubernetes-sigs/application v0.8.0

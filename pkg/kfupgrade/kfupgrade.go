@@ -33,6 +33,8 @@ import (
 	kfconfig "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfconfig"
 	kfupgrade "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfupgrade/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	applicationsv1beta1 "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"

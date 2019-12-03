@@ -2280,6 +2280,11 @@ func (gcp *Gcp) Init(resources kftypesv3.ResourceEnum) error {
 		if initProjectErr != nil {
 			return initProjectErr
 		}
+	} else {
+		if err := gcp.initGcpClient(); err != nil {
+			log.Errorf("There was a problem initializing the GCP client; %v", err)
+			return errors.WithMessagef(err, "Gcp.gcpInitProject Could not initatie a GCP client")
+		}
 	}
 
 	return nil
