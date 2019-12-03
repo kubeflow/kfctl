@@ -100,6 +100,7 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 			config.Spec.Hostname = spec.Hostname
 			config.Spec.SkipInitProject = spec.SkipInitProject
 			config.Spec.Zone = spec.Zone
+			config.Spec.DeleteStorage = spec.DeleteStorage
 		}
 		if p := maybeGetPlatform(plugin.Kind); p != "" {
 			config.Spec.Platform = p
