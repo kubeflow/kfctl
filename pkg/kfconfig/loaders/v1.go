@@ -11,10 +11,10 @@ import (
 )
 
 // Empty struct - used to implement Converter interface.
-type V1beta1 struct {
+type V1 struct {
 }
 
-func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
+func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	kfdef := &kfdeftypes.KfDef{}
 	if bytes, err := yaml.Marshal(def); err != nil {
 		return nil, &kfapis.KfError{
@@ -155,7 +155,7 @@ func (v V1beta1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	return config, nil
 }
 
-func (v V1beta1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
+func (v V1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	kfdef := &kfdeftypes.KfDef{}
 	kfdef.Name = config.Name
 	kfdef.Namespace = config.Namespace
