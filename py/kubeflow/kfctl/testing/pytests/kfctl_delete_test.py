@@ -70,7 +70,7 @@ def test_kfctl_delete(record_xml_attribute, kfctl_path, app_path, project,
     if plugin.get("kind", "") == "KfGcpPlugin":
       if not "spec" in plugin:
         raise ValueError("Invalid GCP plugin spec %s", str(plugin))
-      plugin["spec"]["deleteStorage"] = "true"
+      plugin["spec"]["deleteStorage"] = True
   with open(kfdef_path, "w") as f:
     yaml.dump(kfdef, f)
 
