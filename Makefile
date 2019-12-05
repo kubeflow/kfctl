@@ -235,7 +235,7 @@ test: build-kfctl
 # Run the unittests and output a junit report for use with prow
 test-junit: build-kfctl
 	echo Running tests ... junit_file=$(JUNIT_FILE)
-	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE)
+	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
 #***************************************************************************************************
 test-init: clean install dockerfordesktop.init minikube.init gcp.init none.init-no-platform
