@@ -15,13 +15,17 @@ package kfupgrade
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+
+	"k8s.io/client-go/kubernetes/scheme"
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
@@ -29,7 +33,12 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
+	applicationsv1beta1 "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type KfUpgrader struct {
@@ -74,7 +83,7 @@ func createNewKfApp(baseConfig string, version string, oldKfCfg *kfconfig.KfConf
 	newAppDir := filepath.Join(appDir, h)
 	newKfCfg.Spec.AppDir = newAppDir
 	newKfCfg.Spec.Version = version
-	outputFilePath := filepath.Join(newAppDir, kftypesv3.KfConfigFile)
+	outputFilePath := filepath.Join(newAppDir, newKfCfg.Spec.ConfigFileName)
 
 	// Make sure the directory is created.
 	if _, err := os.Stat(newAppDir); os.IsNotExist(err) {
@@ -166,39 +175,25 @@ func findKfCfg(kfDefRef *kfupgrade.KfDefRef) (*kfconfig.KfConfig, string, error)
 				return nil
 			}
 
-			if !info.Mode().IsDir() {
-				// Skip non-directories
-				return nil
-			}
-
 			if strings.Contains(path, ".cache") {
 				// Skip cache directories
 				return nil
 			}
 
-			config := filepath.Join(path, kftypesv3.KfConfigFile)
-			info, err = os.Stat(config)
-			if os.IsNotExist(err) {
-				// App.yaml does not exist, skip this directory
+			if !strings.HasSuffix(path, "yaml") {
+				// Skip everything that's not a yaml file
 				return nil
 			}
 
-			kfCfg, err := kfconfigloaders.LoadConfigFromURI(config)
+			kfCfg, err := kfconfigloaders.LoadConfigFromURI(path)
 			if err != nil {
-				log.Warnf("Failed to load KfCfg from %v", config)
 				return nil
 			}
 
-			if kfCfg.Name == kfDefRef.Name {
-				if kfDefRef.Version == "" {
-					log.Infof("Found KfCfg with matching name: %v at %v", kfCfg.Name, config)
-					target = kfCfg
-					targetPath = config
-				} else if kfCfg.Spec.Version == kfDefRef.Version {
-					log.Infof("Found KfCfg with matching name: %v version: %v at %v", kfCfg.Name, kfCfg.Spec.Version, config)
-					target = kfCfg
-					targetPath = config
-				}
+			if kfCfg.Name == kfDefRef.Name && kfCfg.Spec.Version == kfDefRef.Version {
+				log.Infof("Found KfCfg with matching name: %v version: %v at %v", kfCfg.Name, kfCfg.Spec.Version, path)
+				target = kfCfg
+				targetPath = path
 			}
 
 			return err
@@ -264,5 +259,66 @@ func (upgrader *KfUpgrader) Apply() error {
 		return err
 	}
 
+	err = upgrader.DeleteObsoleteResources(upgrader.OldKfCfg.ObjectMeta.Namespace)
+	if err != nil {
+		log.Errorf("Failed to delete obsolete resources: %v", err)
+		return err
+	}
+
+	err = upgrader.DeleteObsoleteResources("istio-system")
+	if err != nil {
+		log.Errorf("Failed to delete obsolete resources: %v", err)
+		return err
+	}
+
 	return kfApp.Apply(kftypesv3.K8S)
+}
+
+func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
+	applicationsv1beta1.AddToScheme(scheme.Scheme)
+
+	ver := upgrader.OldKfCfg.Spec.Version
+	log.Infof("Deleting resources in in namespace %v version %v", ns, ver)
+
+	objs := []runtime.Object{
+		&applicationsv1beta1.Application{},
+		&appsv1.Deployment{},
+		&appsv1.StatefulSet{},
+		&appsv1.ReplicaSet{},
+		&appsv1.DaemonSet{},
+	}
+
+	for _, obj := range objs {
+		err := upgrader.DeleteResources(ns, ver, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (upgrader *KfUpgrader) DeleteResources(ns string, ver string, obj runtime.Object) error {
+	config := kftypesv3.GetConfig()
+	kubeClient, err := client.New(config, client.Options{})
+	objKind := reflect.TypeOf(obj)
+
+	log.Infof("Deleting resources type %v in in namespace %v version %v", objKind, ns, ver)
+	err = kubeClient.DeleteAllOf(context.Background(),
+		obj,
+		client.InNamespace(ns),
+		client.MatchingLabels{
+			"app.kubernetes.io/part-of": "kubeflow",
+			kftypesv3.DefaultAppVersion: ver,
+		},
+		client.PropagationPolicy(metav1.DeletePropagationBackground))
+
+	if err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("couldn't delete %v Error: %v", objKind, err),
+		}
+	}
+
+	return nil
 }
