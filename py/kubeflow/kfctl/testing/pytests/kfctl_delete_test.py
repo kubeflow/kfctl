@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import uuid
 from retrying import retry
+import yaml
 
 import pytest
 
@@ -60,12 +61,25 @@ def test_kfctl_delete(record_xml_attribute, kfctl_path, app_path, project,
   logging.info("Using kfctl path %s", kfctl_path)
   logging.info("Using app path %s", app_path)
 
+  kfdef_path = os.path.join(app_path, "tmp.yaml")
+  logging.info("Using kfdef file path %s", kfdef_path)
+  kfdef = {}
+  with open(kfdef_path) as f:
+    kfdef = yaml.load(f)
+  for plugin in kfdef.get("spec", {}).get("plugins", []):
+    if plugin.get("kind", "") == "KfGcpPlugin":
+      if not "spec" in plugin:
+        raise ValueError("Invalid GCP plugin spec %s", str(plugin))
+      plugin["spec"]["deleteStorage"] = True
+  with open(kfdef_path, "w") as f:
+    yaml.dump(kfdef, f)
+
   # We see failures because delete will try to update the IAM policy which only allows
   # 1 update at a time. To deal with this we do retries.
   # This has a potential downside of hiding errors that are fixed by retrying.
   @retry(stop_max_delay=60*3*1000)
   def run_delete():
-    util.run([kfctl_path, "delete", "--delete_storage", "-V", "-f", os.path.join(app_path, "tmp.yaml")],
+    util.run([kfctl_path, "delete", "-V", "-f", os.path.join(app_path, "tmp.yaml")],
              cwd=app_path)
 
   run_delete()
