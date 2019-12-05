@@ -7,5 +7,5 @@ spec:
   plugins:
     - kind: fakeplugin
       spec:
-        param: someparam
+        param: someparam2
         boolParam: true
