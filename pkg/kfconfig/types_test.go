@@ -46,6 +46,7 @@ func TestSyncCache(t *testing.T) {
 
 	repoName := "testRepo"
 
+	// Dummy.
 	testCases := []testCase{
 		{
 			input: &KfConfig{
