@@ -41,17 +41,11 @@ var deleteCmd = &cobra.Command{
 		if configFilePath == "" {
 			return fmt.Errorf("Must pass in -f configFile")
 		}
-		// TODO: should we check if the configFilePath is local?
+
 		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
 		if err != nil || kfApp == nil {
 			return fmt.Errorf("error loading kfapp: %v", err)
 		}
-		// TODO(lunkai): do we need set delete storage here?
-		// kfGetter, ok := kfApp.(coordinator.KfDefGetter)
-		// if !ok {
-		// 	return errors.New("internal error: coordinator does not implement KfDefGetter")
-		// }
-		// kfGetter.GetKfDef().Spec.DeleteStorage = deleteCfg.GetBool(string(kftypes.DELETE_STORAGE))
 		deleteErr := kfApp.Delete(kftypes.ALL)
 		if deleteErr != nil {
 			return fmt.Errorf("couldn't delete KfApp: %v", deleteErr)
@@ -75,14 +69,6 @@ func init() {
 	bindErr := deleteCfg.BindPFlag(string(kftypes.VERBOSE), deleteCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
 		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
-		return
-	}
-
-	deleteCmd.Flags().Bool(string(kftypes.DELETE_STORAGE), false,
-		"Set if you want to delete app's storage cluster used for mlpipeline.")
-	bindErr = deleteCfg.BindPFlag(string(kftypes.DELETE_STORAGE), deleteCmd.Flags().Lookup(string(kftypes.DELETE_STORAGE)))
-	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.DELETE_STORAGE), bindErr)
 		return
 	}
 }
