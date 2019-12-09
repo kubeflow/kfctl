@@ -314,7 +314,8 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 				msg = "cannot find current-context in kubeconfig."
 			} else {
 				if kustomize.kfDef.ClusterName != ctx.Cluster {
-					msg = fmt.Sprintf("cluster name doens't match: %v v.s. %v", kustomize.kfDef.ClusterName, ctx.Cluster)
+					msg = fmt.Sprintf("cluster name doesn't match: KfDef(%v) v.s. current-context(%v)",
+						kustomize.kfDef.ClusterName, ctx.Cluster)
 				}
 			}
 		}
