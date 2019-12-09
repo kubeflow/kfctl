@@ -37,28 +37,28 @@ def test_kfctl_delete_wrong_cluster(record_xml_attribute, kfctl_path, app_path, 
     kfdef = yaml.safe_load(f)
 
   # Make sure we copy the correct host instead of string reference.
-  host = kfdef.get("metadata", {}).get("annotations", {}).get("kfctl.kubeflow.io/host-url", "")[:]
-  if not host:
-    raise ValueError("host is not written to kfdef")
+  cluster = kfdef.get("metadata", {}).get("clusterName", "")[:]
+  if not cluster:
+    raise ValueError("cluster is not written to kfdef")
 
   @retry(stop_max_delay=60*3*1000)
   def run_delete():
     try:
-      # Put an obvious wrong host into KfDef
-      kfdef["metadata"]["annotations"]["kfctl.kubeflow.io/host-url"] = "0.0.0.0"
+      # Put an obvious wrong cluster into KfDef
+      kfdef["metadata"]["clusterName"] = "dummy"
       with open(kfdef_path, "w") as f:
         yaml.dump(kfdef, f)
       util.run([kfctl_path, "delete", "--delete_storage", "-V", "-f", kfdef_path],
                cwd=app_path)
     except subprocess.CalledProcessError as e:
-      if e.output.find("k8s cluster host mismatch") != -1:
+      if e.output.find("cluster name doesn't match") != -1:
         return
       else:
         # Re-throw error if it's not expected.
         raise e
     finally:
       # Restore the correct host info.
-      kfdef["metadata"]["annotations"]["kfctl.kubeflow.io/host-url"] = host[:]
+      kfdef["metadata"]["clusterName"] = cluster[:]
       with open(kfdef_path, "w") as f:
         yaml.dump(kfdef, f)
 
