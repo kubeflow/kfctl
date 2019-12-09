@@ -156,18 +156,19 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	if err != nil {
 		return err
 	}
-	host := apply.Host()
-	if host == "" {
-		log.Errorf("couldn't find k8s host... this may be a problem when deleting the cluster.")
+
+	// Read clusterName and write to KfDef.
+	kubeconfig := kftypesv3.GetKubeConfig()
+	if kubeconfig == nil {
+		log.Warnf("unable to load .kubeconfig.")
 	} else {
-		log.Infof("writing k8s host URL to %v", host)
+		currentCtx := kubeconfig.CurrentContext
+		if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
+			log.Errorf("cannot find current-context in kubeconfig.")
+		} else {
+			kustomize.kfDef.ClusterName = ctx.Cluster
+		}
 	}
-	annotations := kustomize.kfDef.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations[strings.Join([]string{utils.KfDefAnnotation, utils.HostUrl}, "/")] = host
-	kustomize.kfDef.SetAnnotations(annotations)
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
