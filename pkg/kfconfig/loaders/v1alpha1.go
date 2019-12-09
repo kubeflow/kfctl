@@ -88,6 +88,7 @@ func (v V1alpha1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	config.Kind = "KfConfig"
 	config.Labels = kfdef.Labels
 	config.Annotations = kfdef.Annotations
+	config.ClusterName = kfdef.ClusterName
 	for _, app := range kfdef.Spec.Applications {
 		application := kfconfig.Application{
 			Name: app.Name,
@@ -201,6 +202,7 @@ func (v V1alpha1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 	kfdef.Kind = "KfDef"
 	kfdef.Labels = config.Labels
 	kfdef.Annotations = config.Annotations
+	kfdef.ClusterName = config.ClusterName
 
 	kfdef.Spec.AppDir = config.Spec.AppDir
 	kfdef.Spec.Version = config.Spec.Version
