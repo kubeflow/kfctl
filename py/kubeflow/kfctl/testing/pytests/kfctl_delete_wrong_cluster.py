@@ -19,9 +19,9 @@ from kubeflow.testing import util
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
-def test_kfctl_delete_wrong_host(record_xml_attribute, kfctl_path, app_path, project,
-                                 cluster_deletion_script):
-  util.set_pytest_junit(record_xml_attribute, "test_kfctl_delete_wrong_host")
+def test_kfctl_delete_wrong_cluster(record_xml_attribute, kfctl_path, app_path, project,
+                                    cluster_deletion_script):
+  util.set_pytest_junit(record_xml_attribute, "test_kfctl_delete_wrong_cluster")
   if not kfctl_path:
     raise ValueError("kfctl_path is required")
 
