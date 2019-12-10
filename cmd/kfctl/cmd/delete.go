@@ -55,7 +55,6 @@ var deleteCmd = &cobra.Command{
 			forceDeleteAnn: annValue,
 		})
 
-		// TODO: should we check if the configFilePath is local?
 		kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
 		if err != nil || kfApp == nil {
 			return fmt.Errorf("error loading kfapp: %v", err)
