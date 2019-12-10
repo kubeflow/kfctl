@@ -432,7 +432,7 @@ func (a *Apply) namespace(namespace string) error {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 				Labels: map[string]string{
-					controlPlaneLabel: "kubeflow",
+					controlPlaneLabel:          "kubeflow",
 					katibMetricsCollectorLabel: "enabled",
 				},
 			},

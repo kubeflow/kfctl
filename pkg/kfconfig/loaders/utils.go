@@ -7,9 +7,9 @@ import (
 
 func maybeGetPlatform(pluginKind string) string {
 	platforms := map[string]string{
-		string(kfconfig.AWS_PLUGIN_KIND):              kftypesv3.AWS,
-		string(kfconfig.GCP_PLUGIN_KIND):              kftypesv3.GCP,
-		string(kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND): kftypesv3.EXISTING_ARRIKTO,
+		string(kfconfig.AWS_PLUGIN_KIND): kftypesv3.AWS,
+		string(kfconfig.GCP_PLUGIN_KIND): kftypesv3.GCP,
+		string(kfconfig.DEX_PLUGIN_KIND): kftypesv3.DEX,
 	}
 
 	p, ok := platforms[pluginKind]

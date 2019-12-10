@@ -156,10 +156,10 @@ func RemoveItem(defaults []string, name string) []string {
 
 // Platforms
 const (
-	AWS              = "aws"
-	GCP              = "gcp"
-	MINIKUBE         = "minikube"
-	EXISTING_ARRIKTO = "existing_arrikto"
+	AWS      = "aws"
+	GCP      = "gcp"
+	MINIKUBE = "minikube"
+	DEX      = "dex"
 )
 
 // PackageManagers

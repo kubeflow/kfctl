@@ -28,7 +28,7 @@ import (
 	kfdefsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	kfdefsv1beta1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/aws"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/existing_arrikto"
+	"github.com/kubeflow/kfctl/v3/pkg/kfapp/dex"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/minikube"
@@ -59,8 +59,8 @@ func getPlatform(kfdef *kfconfig.KfConfig) (kftypesv3.Platform, error) {
 		return minikube.Getplatform(kfdef), nil
 	case string(kftypesv3.GCP):
 		return gcp.GetPlatform(kfdef)
-	case string(kftypesv3.EXISTING_ARRIKTO):
-		return existing_arrikto.GetPlatform(kfdef)
+	case string(kftypesv3.DEX):
+		return dex.GetPlatform(kfdef)
 	case string(kftypesv3.AWS):
 		return aws.GetPlatform(kfdef)
 	default:
