@@ -3,15 +3,17 @@ import os
 
 import pytest
 
+from kubernetes import client as k8s_client
 from kubeflow.kfctl.testing.util import kfctl_go_test_utils as kfctl_util
 from kubeflow.testing import util
 
-def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
+def test_build_kfctl_go(record_xml_attribute, app_name, app_path, project, use_basic_auth,
                         use_istio, config_path, build_and_apply, kfctl_repo_path,
-                        cluster_creation_script):
+                        cluster_creation_script, self_signed_cert):
   """Test building and deploying Kubeflow.
 
   Args:
+    app_name: kubeflow deployment name.
     app_path: The path to the Kubeflow app.
     project: The GCP project to use.
     use_basic_auth: Whether to use basic_auth.
@@ -20,6 +22,7 @@ def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
     cluster_creation_script: script invoked to create a new cluster
     build_and_apply: whether to build and apply or apply
     kfctl_repo_path: path to the kubeflow/kfctl repo.
+    self_signed_cert: whether to use self-signed cert for ingress.
   """
   util.set_pytest_junit(record_xml_attribute, "test_build_kfctl_go")
 
@@ -43,6 +46,18 @@ def test_build_kfctl_go(record_xml_attribute, app_path, project, use_basic_auth,
                   use_istio, config_path, kfctl_path, build_and_apply)
   if not cluster_creation_script:
       kfctl_util.verify_kubeconfig(app_path)
+
+  # Use self-signed cert for testing to prevent quota limiting.
+  if self_signed_cert:
+    logging.info("Configuring self signed certificate")
+    util.load_kube_credentials()
+    api_client = k8s_client.ApiClient()
+    ingress_namespace = "istio-system"
+    ingress_name = "envoy-ingress"
+    tls_endpoint = "{0}.endpoints.{1}.cloud.goog".format(app_name, project)
+    logging.info("Configuring self signed cert for %s", tls_endpoint)
+    util.use_self_signed_for_ingress(ingress_namespace, ingress_name,
+                                     tls_endpoint, api_client)
 
 if __name__ == "__main__":
   logging.basicConfig(
