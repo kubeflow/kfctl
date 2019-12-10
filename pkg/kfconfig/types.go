@@ -176,11 +176,10 @@ const (
 
 // Plugin kind used starting from v1beta1
 const (
-	AWS_PLUGIN_KIND              PluginKindType = "KfAwsPlugin"
-	DEX_PLUGIN_KIND              PluginKindType = "KfDexPlugin"
-	GCP_PLUGIN_KIND              PluginKindType = "KfGcpPlugin"
-	MINIKUBE_PLUGIN_KIND         PluginKindType = "KfMinikubePlugin"
-	EXISTING_ARRIKTO_PLUGIN_KIND PluginKindType = "KfExistingArriktoPlugin"
+	AWS_PLUGIN_KIND      PluginKindType = "KfAwsPlugin"
+	DEX_PLUGIN_KIND      PluginKindType = "KfDexPlugin"
+	GCP_PLUGIN_KIND      PluginKindType = "KfGcpPlugin"
+	MINIKUBE_PLUGIN_KIND PluginKindType = "KfMinikubePlugin"
 )
 
 type ConditionType string
