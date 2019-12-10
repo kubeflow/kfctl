@@ -57,6 +57,7 @@ import (
 const (
 	YamlSeparator              = "(?m)^---[ \t]*$"
 	CertDir                    = "/opt/ca"
+	istioInjectionLabel        = "istio-injection"
 	controlPlaneLabel          = "control-plane"
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
 )
@@ -432,6 +433,7 @@ func (a *Apply) namespace(namespace string) error {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 				Labels: map[string]string{
+					istioInjectionLabel: "enabled",
 					controlPlaneLabel: "kubeflow",
 					katibMetricsCollectorLabel: "enabled",
 				},
@@ -446,6 +448,17 @@ func (a *Apply) namespace(namespace string) error {
 			}
 		}
 	} else {
+		if _, ok := namespaceInstance.ObjectMeta.Labels[istioInjectionLabel]; !ok {
+			patchErr := a.patchNamespaceWithLabel(
+				namespace, istioInjectionLabel, "enabled",
+			)
+			if patchErr != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INTERNAL_ERROR),
+					Message: fmt.Sprintf("couldn't patch %v Error: %v", namespace, patchErr),
+				}
+			}
+		}
 		if _, ok := namespaceInstance.ObjectMeta.Labels[controlPlaneLabel]; !ok {
 			patchErr := a.patchNamespaceWithLabel(
 				namespace, controlPlaneLabel, "kubeflow",
