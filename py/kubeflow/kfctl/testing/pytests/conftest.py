@@ -50,6 +50,10 @@ def pytest_addoption(parser):
       "--cluster_deletion_script", action="store", default="",
       help="The script to use to delete a K8s cluster before running kfctl.")
 
+  parser.addoption(
+      "--self_signed_cert", action="store", default="False",
+      help="Whether to use self-signed cert for ingress.")
+
 @pytest.fixture
 def app_path(request):
   return request.config.getoption("--app_path")
@@ -109,6 +113,14 @@ def use_basic_auth(request):
 def use_istio(request):
   value = request.config.getoption("--use_istio").lower()
 
+  if value in ["t", "true"]:
+    return True
+  else:
+    return False
+
+@pytest.fixture
+def self_signed_cert(request):
+  value = request.config.getoption("--self_signed_cert").lower()
   if value in ["t", "true"]:
     return True
   else:
