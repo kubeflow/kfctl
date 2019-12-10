@@ -561,6 +561,7 @@ class Builder:
         # I think -s mean stdout/stderr will print out to aid in debugging.
         # Failures still appear to be captured and stored in the junit file.
         "-s",
+        "--app_name=" + self.app_name,
         "--config_path=" + self.config_path,
         "--build_and_apply=" + str(self.build_and_apply),
         # Increase the log level so that info level log statements show up.
@@ -575,6 +576,7 @@ class Builder:
         "-o", "junit_suite_name=test_kfctl_go_deploy_" + self.config_name,
         "--app_path=" + self.app_dir,
         "--kfctl_repo_path=" + self.src_dir,
+        "--self_signed_cert=True",
     ]
 
     dependences = [checkout["name"]]
