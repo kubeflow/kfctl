@@ -59,6 +59,8 @@ const (
 	CertDir                    = "/opt/ca"
 	controlPlaneLabel          = "control-plane"
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
+	KfDefAnnotation            = "kfctl.kubeflow.io"
+	ForceDelete                = "force-delete"
 )
 
 func generateRandStr(length int) string {
@@ -432,7 +434,7 @@ func (a *Apply) namespace(namespace string) error {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 				Labels: map[string]string{
-					controlPlaneLabel: "kubeflow",
+					controlPlaneLabel:          "kubeflow",
 					katibMetricsCollectorLabel: "enabled",
 				},
 			},
