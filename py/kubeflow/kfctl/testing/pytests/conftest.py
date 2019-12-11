@@ -4,7 +4,7 @@ def pytest_addoption(parser):
   parser.addoption(
       "--app_path", action="store", default="",
       help="Path where the KF application should be stored")
-  
+
   parser.addoption(
       "--app_name", action="store", default="",
       help="Name of the KF application")
@@ -24,10 +24,19 @@ def pytest_addoption(parser):
   parser.addoption(
       "--project", action="store", default="kubeflow-ci-deployment",
       help="GCP project to deploy Kubeflow to")
-  
+
   parser.addoption(
       "--config_path", action="store", default="",
-      help="The config to use for kfctl init")
+      help=("The config to use for kfctl init. The path can use python style "
+            "go format strings; e.g. "
+            "--config_path=/{srcdir}/kubeflow/manifests/kfdef/kfctl_gcp.yaml"
+            " The values should be supplied by --values."))
+
+  parser.addoption(
+      "--values", action="store", default="",
+      help=("A comma separated list of key value pairs to be used for "
+            "subsitution in --config_path"))
+
   parser.addoption(
       "--build_and_apply", action="store", default="False",
       help="Whether to build and apply or apply in kfctl"
