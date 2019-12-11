@@ -15,7 +15,7 @@ from kubernetes import client as k8s_client
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
-def deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
+def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
   """Deploy PytorchJob."""
   util.load_kube_credentials()
   util.run(["kubectl", "apply", "-f", "testdata/pytorch_job.yaml"],
