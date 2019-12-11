@@ -16,23 +16,9 @@ from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
 def deploy_pytorchjob(record_xml_attribute):
-  """Deploy Pytorchjob using the pytorch-job component"""
+  """Deploy PytorchJob."""
   util.load_kube_config(persist_config=False)
   api_client = k8s_client.ApiClient()
-  app_dir = setup_kubeflow_ks_app(args, api_client)
-
-  component = "example-job"
-  logging.info("Deploying pytorch.")
-  generate_command = [ks, "generate", "pytorch-job", component]
-
-  util.run(generate_command, cwd=app_dir)
-
-  params = {}
-  for pair in args.params.split(","):
-    k, v = pair.split("=", 1)
-    params[k] = v
-
-  ks_deploy(app_dir, component, params, env=None, account=None, namespace=None)
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
