@@ -15,7 +15,7 @@ from kubeflow.kfctl.testing.util import gcp_util
 
 # There's really no good reason to run test_endpoint during presubmits.
 # We shouldn't need it to feel confident that kfctl is working.
-@pytest.mark.skipif(os.getenv("JOB_TYPE") == "presubmit",
+@pytest.mark.skipif(os.getenv("JOB_TYPE") == "postsubmit",
                     reason="test endpoint doesn't run in presubmits")
 def test_endpoint_is_ready(record_xml_attribute, project, app_path, app_name, use_basic_auth):
   """Test that Kubeflow was successfully deployed.
