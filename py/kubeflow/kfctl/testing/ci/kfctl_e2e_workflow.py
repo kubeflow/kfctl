@@ -135,6 +135,15 @@ class Builder:
     # Top level directories for python testing code in kfctl.
     self.kfctl_py = os.path.join(self.src_dir, "py")
 
+    # Build a string of key value pairs that can be passed to various test
+    # steps to allow them to do substitution into different values.
+    values = {
+      "srcrootdir": self.src_root_dir,
+    }
+
+    value_pairs = ["{0}={1}".format(k,v) for k,v in values.items()]
+    self.values_str = ",".join(value_pairs)
+
     # The directory within the kubeflow_testing submodule containing
     # py scripts to use.
     self.kubeflow_testing_py = self.src_root_dir + "/kubeflow/testing/py"
@@ -564,6 +573,7 @@ class Builder:
         "-s",
         "--app_name=" + self.app_name,
         "--config_path=" + self.config_path,
+        "--values=" + self.values_str,
         "--build_and_apply=" + str(self.build_and_apply),
         # Increase the log level so that info level log statements show up.
         # TODO(https://github.com/kubeflow/testing/issues/372): If we
