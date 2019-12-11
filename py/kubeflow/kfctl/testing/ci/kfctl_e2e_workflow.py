@@ -362,31 +362,16 @@ class Builder:
     #*************************************************************************
     # Test pytorch job
     step_name = "pytorch-job-deploy"
-    command = [ "python",
-                "-m",
-                "kubeflow.kfctl.testing.test_deploy",
-                "--project=kubeflow-ci",
-                "--namespace=" + self.steps_namespace,
-                "--test_dir=" + self.test_dir,
-                "--artifacts_dir=" + self.artifacts_dir,
-                "--deploy_name=pytorch-job",
-                "--workflow_name=" + self.name,
-                "deploy_pytorchjob",
-                # TODO(jlewi): Does the image need to be updated?
-                "--params=image=pytorch/pytorch:v0.2,num_workers=1"
-             ]
-
+    command = ["pytest",
+               "pytorch_job_deploy.py",
+               "-s",
+               "--timeout=600",
+               "--junitxml=" + self.artifacts_dir + "/junit_pytorch-test.xml",
+              ]
 
     dependences = []
-    # TODO(https://github.com/kubeflow/kfctl/issues/94):
-    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
-    # converting it to Yaml.
-    # TODO(https://github.com/kubeflow/kfctl/issues/97):
-    # Convert this to pytest.
-    #
-    # pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-    #                                 command, dependences)
-
+    pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                    command, dependences)
     #***************************************************************************
     # Notebook test
 
