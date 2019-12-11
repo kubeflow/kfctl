@@ -92,6 +92,10 @@ def config_path(request):
   return request.config.getoption("--config_path")
 
 @pytest.fixture
+def values(request):
+  return request.config.getoption("--values")
+
+@pytest.fixture
 def cluster_creation_script(request):
   return request.config.getoption("--cluster_creation_script")
 
