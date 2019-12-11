@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"sigs.k8s.io/kustomize/v3/pkg/validators"
 	"sigs.k8s.io/kustomize/v3/plugin/builtin"
+	"strconv"
 	"strings"
 	"time"
 
@@ -154,6 +155,20 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	apply, err := utils.NewApply(kustomize.kfDef.ObjectMeta.Namespace, restConfig)
 	if err != nil {
 		return err
+	}
+
+	// Read clusterName and write to KfDef.
+	kubeconfig := kftypesv3.GetKubeConfig()
+	if kubeconfig == nil {
+		log.Warnf("unable to load .kubeconfig.")
+	} else {
+		currentCtx := kubeconfig.CurrentContext
+		if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
+			log.Errorf("cannot find current-context in kubeconfig.")
+		} else {
+			log.Infof("log cluster name into KfDef: %v", ctx.Cluster)
+			kustomize.kfDef.ClusterName = ctx.Cluster
+		}
 	}
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
@@ -266,6 +281,53 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INVALID_ARGUMENT),
 			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
+		}
+	}
+	annotations := kustomize.kfDef.GetAnnotations()
+	forceDelete := false
+	if forceDel, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.ForceDelete}, "/")]; ok {
+		if forceDelBool, err := strconv.ParseBool(forceDel); err == nil {
+			forceDelete = forceDelBool
+		}
+	}
+	if forceDelete {
+		log.Warnf("running force deletion.")
+	}
+	if kustomize.kfDef.ClusterName == "" {
+		msg := "cannot find ClusterName within KfDef, this may cause error deletion to clusters."
+		if forceDelete {
+			log.Warnf(msg + " ;running kfctl delete because force-deletion is set.")
+		} else {
+			return &kfapisv3.KfError{
+				Code:    int(kfapisv3.INVALID_ARGUMENT),
+				Message: msg,
+			}
+		}
+	} else {
+		msg := ""
+		kubeconfig := kftypesv3.GetKubeConfig()
+		if kubeconfig == nil {
+			msg = "unable to load .kubeconfig."
+		} else {
+			currentCtx := kubeconfig.CurrentContext
+			if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
+				msg = "cannot find current-context in kubeconfig."
+			} else {
+				if kustomize.kfDef.ClusterName != ctx.Cluster {
+					msg = fmt.Sprintf("cluster name doesn't match: KfDef(%v) v.s. current-context(%v)",
+						kustomize.kfDef.ClusterName, ctx.Cluster)
+				}
+			}
+		}
+		if msg != "" {
+			if forceDelete {
+				log.Warnf(msg)
+			} else {
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INVALID_ARGUMENT),
+					Message: msg,
+				}
+			}
 		}
 	}
 	if err := kustomize.deleteGlobalResources(); err != nil {

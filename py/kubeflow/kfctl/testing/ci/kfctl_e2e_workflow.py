@@ -65,6 +65,7 @@ TESTS_DAG_NAME = "gke-tests"
 TEMPLATE_LABEL = "kfctl_e2e"
 
 DEFAULT_REPOS = [
+    "kubeflow/kfctl@HEAD",
     "kubeflow/kubeflow@HEAD",
     "kubeflow/testing@HEAD",
     "kubeflow/tf-operator@HEAD"
@@ -439,6 +440,23 @@ class Builder:
 
     #***********************************************************************
     # Delete Kubeflow
+    step_name = "kfctl-delete-wrong-host"
+    command = [
+        "pytest",
+        "kfctl_delete_wrong_cluster.py",
+        "-s",
+        "--log-cli-level=info",
+        "--timeout=1000",
+        "--junitxml=" + self.artifacts_dir + "/junit_kfctl-go-delete-wrong-cluster-test.xml",
+        "--app_path=" + self.app_dir,
+        "--kfctl_path=" + self.kfctl_path,
+      ]
+    if self.delete_kf:
+      kfctl_delete_wrong_cluster = self._build_step(step_name, self.workflow, EXIT_DAG_NAME,
+                                                    task_template,
+                                                    command, [])
+      kfctl_delete_wrong_cluster["container"]["workingDir"] = self.kfctl_pytest_dir
+
     step_name = "kfctl-delete"
     command = [
         "pytest",
@@ -454,8 +472,7 @@ class Builder:
     if self.delete_kf:
       kfctl_delete = self._build_step(step_name, self.workflow, EXIT_DAG_NAME,
                                       task_template,
-                                      command, [])
-
+                                      command, ["kfctl-delete-wrong-host"])
       kfctl_delete["container"]["workingDir"] = self.kfctl_pytest_dir
 
     step_name = "copy-artifacts"
@@ -545,6 +562,7 @@ class Builder:
         # I think -s mean stdout/stderr will print out to aid in debugging.
         # Failures still appear to be captured and stored in the junit file.
         "-s",
+        "--app_name=" + self.app_name,
         "--config_path=" + self.config_path,
         "--build_and_apply=" + str(self.build_and_apply),
         # Increase the log level so that info level log statements show up.
@@ -559,6 +577,7 @@ class Builder:
         "-o", "junit_suite_name=test_kfctl_go_deploy_" + self.config_name,
         "--app_path=" + self.app_dir,
         "--kfctl_repo_path=" + self.src_dir,
+        "--self_signed_cert=True",
     ]
 
     dependences = [checkout["name"]]

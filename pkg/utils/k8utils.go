@@ -60,6 +60,8 @@ const (
 	istioInjectionLabel        = "istio-injection"
 	controlPlaneLabel          = "control-plane"
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
+	KfDefAnnotation            = "kfctl.kubeflow.io"
+	ForceDelete                = "force-delete"
 )
 
 func generateRandStr(length int) string {
@@ -433,8 +435,8 @@ func (a *Apply) namespace(namespace string) error {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 				Labels: map[string]string{
-					istioInjectionLabel: "enabled",
-					controlPlaneLabel: "kubeflow",
+					istioInjectionLabel:        "enabled",
+					controlPlaneLabel:          "kubeflow",
 					katibMetricsCollectorLabel: "enabled",
 				},
 			},
