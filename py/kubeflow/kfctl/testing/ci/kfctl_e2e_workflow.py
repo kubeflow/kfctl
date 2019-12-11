@@ -65,6 +65,7 @@ TESTS_DAG_NAME = "gke-tests"
 TEMPLATE_LABEL = "kfctl_e2e"
 
 DEFAULT_REPOS = [
+    "kubeflow/kfctl@HEAD",
     "kubeflow/kubeflow@HEAD",
     "kubeflow/testing@HEAD",
     "kubeflow/tf-operator@HEAD"
