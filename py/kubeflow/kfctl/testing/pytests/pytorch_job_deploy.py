@@ -21,7 +21,7 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
   logging.info("using kfctl repo: %s" % kfctl_repo_path)
   util.run(["kubectl", "apply", "-f",
             os.path.join(kfctl_repo_path,
-                         "py/kubeflow/kfctl/testing/pytests/testdata/pytorch_job.yaml"])
+                         "py/kubeflow/kfctl/testing/pytests/testdata/pytorch_job.yaml")])
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
