@@ -17,6 +17,7 @@ from oauth2client.client import GoogleCredentials
 
 def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
   """Deploy PytorchJob."""
+  util.load_kube_config()
   util.load_kube_credentials()
   logging.info("using kfctl repo: %s" % kfctl_repo_path)
   util.run(["kubectl", "apply", "-f",
