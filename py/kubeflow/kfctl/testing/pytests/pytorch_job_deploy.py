@@ -36,6 +36,7 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
 
   for pod in resp.items:
     name = pod.metadata.name
+    logging.info("pod %s in default namespace", name)
     if name in names:
       names[name] = True
 
@@ -44,6 +45,7 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
     if not names[n]:
       msg.append("pod %s is not found" % n)
   if msg:
+    time.sleep(1800)
     raise ValueError("; ".join(msg))
 
 if __name__ == "__main__":
