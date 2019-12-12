@@ -15,7 +15,7 @@ from kubernetes import client as k8s_client
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
-def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
+def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path, namespace):
   """Deploy PytorchJob."""
   util.load_kube_config()
   util.load_kube_credentials()
@@ -27,7 +27,7 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path):
   api = k8s_client.CoreV1Api(api_client)
 
   # If the call throws exception, let it emit as an error case.
-  resp = api.list_namespaced_pod("default")
+  resp = api.list_namespaced_pod(namespace)
   names = {
       "pytorch-mnist-ddp-cpu-master-0": False,
       "pytorch-mnist-ddp-cpu-worker-0": False,

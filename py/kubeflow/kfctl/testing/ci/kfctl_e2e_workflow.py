@@ -377,6 +377,7 @@ class Builder:
                "--timeout=600",
                "--junitxml=" + self.artifacts_dir + "/junit_pytorch-test.xml",
                "--kfctl_repo_path=" + self.src_dir,
+               "--namespace=" + self.steps_namespace,
               ]
 
     dependences = []
