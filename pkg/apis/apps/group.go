@@ -58,6 +58,7 @@ const (
 	DefaultAppLabel        = "app.kubernetes.io/name"
 	DefaultAppVersion      = "app.kubernetes.io/version"
 	DefaultAppType         = "kubeflow"
+	KUBEFLOW_EMAIL         = "KUBEFLOW_EMAIL"
 	KUBEFLOW_USERNAME      = "KUBEFLOW_USERNAME"
 	KUBEFLOW_PASSWORD      = "KUBEFLOW_PASSWORD"
 	DefaultSwaggerFile     = "bootstrap/k8sSpec/v1.11.7/api/openapi-spec/swagger.json"

@@ -30,7 +30,7 @@ type Auth struct {
 }
 
 type StaticPasswordAuth struct {
-	Username string              `json:"username,omitempty"`
+	Email    string              `json:"email,omitempty"`
 	Password *kfconfig.SecretRef `json:"password,omitempty"`
 }
 
@@ -44,7 +44,7 @@ func (plugin *DexPluginSpec) IsValid() (bool, string) {
 
 		isValid := true
 
-		if plugin.Auth.StaticPasswordAuth.Username == "" {
+		if plugin.Auth.StaticPasswordAuth.Email == "" {
 			isValid = false
 			msg += "StaticPasswordAuth requires username."
 		}

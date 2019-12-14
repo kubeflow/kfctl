@@ -97,7 +97,7 @@ func (dex *Dex) getIstioNamespace() string {
 	return dex.kfDef.Namespace
 }
 
-// Use username and password provided by user and create secret for staticPassword auth.
+// Use email and password provided by user and create secret for staticPassword auth.
 func (dex *Dex) createStaticUserAuthSecret(client *clientset.Clientset) error {
 	dexPluginSpec, err := dex.GetPluginSpec()
 	if err != nil {
@@ -127,7 +127,7 @@ func (dex *Dex) createStaticUserAuthSecret(client *clientset.Clientset) error {
 			Namespace: dex.kfDef.Namespace,
 		},
 		Data: map[string][]byte{
-			"username":     []byte(dexPluginSpec.Auth.StaticPasswordAuth.Username),
+			"email":        []byte(dexPluginSpec.Auth.StaticPasswordAuth.Email),
 			"passwordhash": []byte(encodedPassword),
 		},
 	}
@@ -135,7 +135,7 @@ func (dex *Dex) createStaticUserAuthSecret(client *clientset.Clientset) error {
 	if err != nil {
 		log.Warnf("Updating static user auth login failed, trying to create one: %v", err)
 		return insertSecret(client, staticPasswordAuthSecret, dex.kfDef.Namespace, map[string][]byte{
-			"username":     []byte(dexPluginSpec.Auth.StaticPasswordAuth.Username),
+			"email":        []byte(dexPluginSpec.Auth.StaticPasswordAuth.Email),
 			"passwordhash": []byte(encodedPassword),
 		})
 	}
@@ -172,6 +172,21 @@ func (dex *Dex) Generate(resources kftypes.ResourceEnum) error {
 		}
 	}
 
+	dexPluginSpec, err := dex.GetPluginSpec()
+	if err != nil {
+		return err
+	}
+
+	if dexPluginSpec.Auth.UseStaticPassword {
+		if err := dex.kfDef.SetApplicationParameter(
+			"dex",
+			"static_email",
+			dexPluginSpec.Auth.StaticPasswordAuth.Email,
+		); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
 	return nil
 }
 
@@ -188,15 +203,18 @@ func (dex *Dex) setDexPluginDefaults() error {
 			dexPluginSpec.Auth.StaticPasswordAuth = &dexplugin.StaticPasswordAuth{}
 		}
 
-		username := os.Getenv(kftypes.KUBEFLOW_USERNAME)
-		if username == "" {
-			log.Errorf("Could not configure static user auth; environment variable %s not set", kftypes.KUBEFLOW_USERNAME)
+		email := os.Getenv(kftypes.KUBEFLOW_EMAIL)
+		if email == "" {
+			log.Errorf("Could not configure static user auth; environment variable %s not set", kftypes.KUBEFLOW_EMAIL)
 			return &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("Could not configure basic auth; environment variable %s not set", kftypes.KUBEFLOW_USERNAME),
+				Code: int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf(
+					"Could not configure static user auth; environment variable %s not set",
+					kftypes.KUBEFLOW_EMAIL,
+				),
 			}
 		}
-		dexPluginSpec.Auth.StaticPasswordAuth.Username = username
+		dexPluginSpec.Auth.StaticPasswordAuth.Email = email
 
 		dexPluginSpec.Auth.StaticPasswordAuth.Password = &kfconfig.SecretRef{
 			Name: StaticPasswordAuthPasswordSecretName,
