@@ -28,51 +28,19 @@ def test_jupyter(record_xml_attribute, kfctl_repo_path, namespace):
     env: ksonnet environment.
     namespace: namespace to run in.
   """
-  # util.load_kube_config appears to hang on python3
   util.load_kube_config()
   util.load_kube_credentials()
   logging.info("using kfctl repo: %s" % kfctl_repo_path)
   util.run(["kubectl", "apply", "-f",
             os.path.join(kfctl_repo_path,
                          "py/kubeflow/kfctl/testing/pytests/testdata/jupyter_test.yaml")])
-  # api_client = k8s_client.ApiClient()
-  # kube_config.load_kube_config()
-  # host = api_client.configuration.host
-  # logging.info("Kubernetes master: %s", host)
-  # master = host.rsplit("/", 1)[-1]
+  api_client = k8s_client.ApiClient()
+  api = k8s_client.CoreV1Api(api_client)
 
-  # this_dir = os.path.dirname(__file__)
-  # app_dir = os.path.join(this_dir, "test_app")
-
-  # ks_cmd = ks_util.get_ksonnet_cmd(app_dir)
-
-  # name = "jupyter-test"
-  # service = "jupyter-test"
-  # component = "jupyter"
-  # params = ""
-  # ks_util.setup_ks_app(app_dir, env, namespace, component, params)
-
-  # util.run([ks_cmd, "apply", env, "-c", component], cwd=app_dir)
-  # conditions = ["Running"]
-  # results = util.wait_for_cr_condition(api_client, GROUP, PLURAL, VERSION,
-  #                                      namespace, name, conditions)
-
-  # logging.info("Result of CRD:\n%s", results)
-
-  # # We proxy the request through the APIServer so that we can connect
-  # # from outside the cluster.
-  # url = ("https://{master}/api/v1/namespaces/{namespace}/services/{service}:80"
-  #        "/proxy/default/jupyter/lab?").format(
-  #            master=master, namespace=namespace, service=service)
-  # logging.info("Request: %s", url)
-  # r = send_request(url, verify=False)
-
-  # if r.status_code != requests.codes.OK:
-  #   msg = "Request to {0} exited with status code: {1} and content: {2}".format(
-  #       url, r.status_code, r.content)
-  #   logging.error(msg)
-  #   raise RuntimeError(msg)
-
+  resp = api.list_namespaced_service(namespace)
+  names = [service.metadata.name for service in resp.items]
+  if not "jupyter-test" in names:
+    raise ValueError("not able to find jupyter-test service.")
 
 if __name__ == "__main__":
   logging.basicConfig(
