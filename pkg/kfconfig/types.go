@@ -513,12 +513,10 @@ func (c *KfConfig) SyncCache() error {
 					Code:    int(kfapis.INVALID_ARGUMENT),
 					Message: fmt.Sprintf("couldn't stat the path %v: %v", filePath, err),
 				}
-			} else {
-				if !fileInfo.IsDir() {
-					subdir := files[0].Name()
-					localPath = path.Join(cacheDir, subdir)
-					log.Infof("updating localPath to %v", localPath)
-				}
+			} else if !fileInfo.IsDir() {
+				subdir := files[0].Name()
+				localPath = path.Join(cacheDir, subdir)
+				log.Infof("updating localPath to %v", localPath)
 			}
 		}
 
