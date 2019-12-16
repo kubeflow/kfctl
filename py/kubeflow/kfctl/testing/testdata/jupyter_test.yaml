@@ -1,7 +1,7 @@
 apiVersion: kubeflow.org/v1alpha1
 kind: Notebook
 metadata:
-  name: jupyter_test
+  name: jupyter-test
 spec:
   template:
     spec:
