@@ -494,14 +494,30 @@ func (c *KfConfig) SyncCache() error {
 		// This is a bit of a hack to deal with the fact that GitHub tarballs
 		// can unpack to a directory containing the commit.
 		localPath := cacheDir
+		files, filesErr := ioutil.ReadDir(cacheDir)
+		if filesErr != nil {
+			log.Errorf("Error reading cachedir; error %v", filesErr)
+			return errors.WithStack(filesErr)
+		}
 		if u.Scheme == "http" || u.Scheme == "https" {
-			files, filesErr := ioutil.ReadDir(cacheDir)
-			if filesErr != nil {
-				log.Errorf("Error reading cachedir; error %v", filesErr)
-				return errors.WithStack(filesErr)
-			}
 			subdir := files[0].Name()
 			localPath = path.Join(cacheDir, subdir)
+			log.Infof("updating localPath to %v", localPath)
+		} else if u.Scheme == "file" {
+			filePath := strings.TrimPrefix(r.URI, "file:")
+			log.Infof("probing file path: %v", filePath)
+			if fileInfo, err := os.Stat(filePath); err != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INVALID_ARGUMENT),
+					Message: fmt.Sprintf("couldn't stat the path %v: %v", filePath, err),
+				}
+			} else {
+				if !fileInfo.IsDir() {
+					subdir := files[0].Name()
+					localPath = path.Join(cacheDir, subdir)
+					log.Infof("updating localPath to %v", localPath)
+				}
+			}
 		}
 
 		c.Status.Caches = append(c.Status.Caches, Cache{
