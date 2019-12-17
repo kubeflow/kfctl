@@ -374,6 +374,7 @@ class Builder:
     command = ["pytest",
                "pytorch_job_deploy.py",
                "-s",
+               "--log-level=INFO",
                "--timeout=600",
                "--junitxml=" + self.artifacts_dir + "/junit_pytorch-test.xml",
                "--kfctl_repo_path=" + self.src_dir,
