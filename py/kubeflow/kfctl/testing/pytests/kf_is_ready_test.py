@@ -33,7 +33,7 @@ def get_platform_app_name(app_path):
     raise RuntimeError("Invalid apiVersion: " + kfdef["apiVersion"].strip())
   if apiVersion[-1] == "v1alpha1":
     platform = kfdef["spec"]["platform"]
-  elif apiVersion[-1] == "v1beta1":
+  elif apiVersion[-1] in ["v1beta1", "v1"]:
     for plugin in kfdef["spec"].get("plugins", []):
       if plugin.get("kind", "") == "KfGcpPlugin":
         platform = "gcp"
