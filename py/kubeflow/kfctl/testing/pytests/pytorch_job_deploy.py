@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import uuid
 import yaml
+import time
 
 from retrying import retry
 
@@ -37,8 +38,8 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path, namespace):
     name = pod.metadata.name
     if name in names:
       names[name] = True
-    else:
-      logging.info("pod name %s is not matched...", name)
+
+  time.sleep(600)
 
   msg = []
   for n in names:
