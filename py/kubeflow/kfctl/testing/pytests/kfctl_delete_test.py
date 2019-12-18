@@ -7,6 +7,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import time
 import uuid
 from retrying import retry
 
@@ -45,6 +46,8 @@ def test_kfctl_delete(record_xml_attribute, kfctl_path, app_path, project,
                       cluster_deletion_script):
   util.set_pytest_junit(record_xml_attribute, "test_kfctl_delete")
 
+  logging.info("sleep 10 mins for debugging")
+  time.sleep(600)
   # TODO(yanniszark): split this into a separate workflow step
   if cluster_deletion_script:
     logging.info("cluster_deletion_script specified: %s", cluster_deletion_script)
