@@ -149,14 +149,22 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
       break
     sleep(10)
 
-  logging.info("%s: endpoint is ready, testing login API; request number %s" % (get_url, req_num))
-  resp = requests.post(
-      post_url,
-      auth=(username, password),
-      headers={
-          "x-from-login": "true",
-      },
-      verify=False)
+  resp = None
+  while datetime.datetime.now() < end_time:
+    req_num += 1
+    logging.info("%s: endpoint is ready, testing login API; request number %s" % (get_url, req_num))
+    try:
+      resp = requests.post(
+          post_url,
+          auth=(username, password),
+          headers={
+              "x-from-login": "true",
+          },
+          verify=False)
+    except SSLError as e:
+      logging.warning("%s: Endpoint SSL handshake error: %s; request number: %s" % (url, e, req_num))
+    sleep(10)
+
   logging.info("%s: %s" % (post_url, resp.text))
   if resp.status_code != 205:
     logging.error("%s: login is failed", post_url)
