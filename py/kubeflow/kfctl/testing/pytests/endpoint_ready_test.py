@@ -10,8 +10,8 @@ from retrying import retry
 import pytest
 
 from kubeflow.testing import util
-from testing import deploy_utils
-from testing import gcp_util
+from kubeflow.kfctl.testing.util import deploy_utils
+from kubeflow.kfctl.testing.util import gcp_util
 
 # There's really no good reason to run test_endpoint during presubmits.
 # We shouldn't need it to feel confident that kfctl is working.
@@ -31,8 +31,8 @@ def test_endpoint_is_ready(record_xml_attribute, project, app_path, app_name, us
     with open(os.path.join(app_path, "login.json"), "r") as f:
       login = json.load(f)
       # Let it fail if login info cannot be found.
-      username = login["KUBEFLOW_USERNAME"]
-      password = login["KUBEFLOW_PASSWORD"]
+      username = login["username"]
+      password = login["password"]
     if not gcp_util.basic_auth_is_ready(url, username, password):
       raise Exception("Basic auth endpoint is not ready")
   else:
