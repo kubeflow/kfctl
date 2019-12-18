@@ -164,7 +164,7 @@ def get_config_spec(config_path, project, email, zone, app_path):
     config_spec["spec"]["project"] = project
     config_spec["spec"]["email"] = email
     config_spec["spec"]["zone"] = zone
-  elif apiVersion[-1] == "v1beta1":
+  elif apiVersion[-1] in ["v1beta1", "v1"]:
     for plugin in config_spec["spec"].get("plugins", []):
       if plugin.get("kind", "") == "KfGcpPlugin":
         plugin["spec"]["project"] = project
