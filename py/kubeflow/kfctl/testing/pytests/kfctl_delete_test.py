@@ -47,7 +47,7 @@ def test_kfctl_delete(record_xml_attribute, kfctl_path, app_path, project,
   util.set_pytest_junit(record_xml_attribute, "test_kfctl_delete")
 
   logging.info("sleep 10 mins for debugging")
-  time.sleep(600)
+  time.sleep(610)
   # TODO(yanniszark): split this into a separate workflow step
   if cluster_deletion_script:
     logging.info("cluster_deletion_script specified: %s", cluster_deletion_script)
