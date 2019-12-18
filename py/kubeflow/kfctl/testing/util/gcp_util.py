@@ -122,22 +122,16 @@ def iap_is_ready(url, wait_min=15):
     sleep(10)
   return False
 
-def basic_auth_is_ready(url, username, password, wait_min=15):
-  get_url = url + "/kflogin"
-  post_url = url + "/apikflogin"
+def _send_req(wait_sec, url, req_gen):
+  _req_num = 0
 
-  req_num = 0
-  end_time = datetime.datetime.now() + datetime.timedelta(
-      minutes=wait_min)
-  while datetime.datetime.now() < end_time:
-    req_num += 1
-    logging.info("Trying url: %s request number %s" % (get_url, req_num))
+  @retry(stop_max_delay=wait_sec * 1000)
+  def _send(url, req_gen, req_num):
     resp = None
+    req_num += 1
+    logging.info("sending requests to %s; request number: %s" % (url, req_num))
     try:
-      resp = requests.request(
-          "GET",
-          get_url,
-          verify=False)
+      resp = req_gen()
     except SSLError as e:
       logging.warning("%s: Endpoint SSL handshake error: %s; request number: %s" % (url, e, req_num))
     except ReqConnectionError:
@@ -146,25 +140,35 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
     if not resp or resp.status_code != 200:
       logging.info("Basic auth login is not ready, request number %s: %s" % (req_num, get_url))
     else:
-      break
-    sleep(10)
+      return resp
 
-  resp = None
-  while datetime.datetime.now() < end_time:
-    req_num += 1
-    logging.info("%s: endpoint is ready, testing login API; request number %s" % (get_url, req_num))
-    try:
-      resp = requests.post(
-          post_url,
-          auth=(username, password),
-          headers={
-              "x-from-login": "true",
-          },
-          verify=False)
-    except SSLError as e:
-      logging.warning("%s: Endpoint SSL handshake error: %s; request number: %s" % (url, e, req_num))
-    sleep(10)
+  return _send(url, req_gen, _req_num)
 
+def basic_auth_is_ready(url, username, password, wait_min=15):
+  get_url = url + "/kflogin"
+  post_url = url + "/apikflogin"
+
+  req_num = 0
+  end_time = datetime.datetime.now() + datetime.timedelta(
+      minutes=wait_min)
+
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
+      "GET",
+      get_url,
+      verify=False))
+
+  logging.info("%s: endpoint is ready; response: %s" % (get_url, resp.text))
+  logging.info("%s: testing login API" % post_url)
+
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, post_url, lambda: requests.post(
+      post_url,
+      auth=(username, password),
+      headers={
+          "x-from-login": "true",
+      },
+      verify=False))
   logging.info("%s: %s" % (post_url, resp.text))
   if resp.status_code != 205:
     logging.error("%s: login is failed", post_url)
@@ -179,12 +183,13 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
     logging.error("%s: auth cookie cannot be found; name: %s" % (post_url, COOKIE_NAME))
     return False
 
-  resp = requests.get(
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, url, lambda: requests.get(
       url,
       cookies={
           cookie.name: cookie.value,
       },
-      verify=False)
+      verify=False))
   logging.info("%s: %s" % (url, resp.status_code))
   logging.info(resp.content)
   return resp.status_code == 200
