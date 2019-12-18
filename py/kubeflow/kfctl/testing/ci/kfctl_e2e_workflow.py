@@ -386,29 +386,21 @@ class Builder:
     pytorch_test["container"]["workingDir"] = self.kfctl_pytest_dir
     #***************************************************************************
     # Notebook test
-
     step_name = "notebook-test"
     command =  ["pytest",
                 "jupyter_test.py",
-                # I think -s mean stdout/stderr will print out to aid in debugging.
-                # Failures still appear to be captured and stored in the junit file.
                 "-s",
-                "--namespace=" + self.steps_namespace,
-                # Test timeout in seconds.
                 "--timeout=500",
                 "--junitxml=" + self.artifacts_dir + "/junit_jupyter-test.xml",
+                "--kfctl_repo_path=" + self.src_dir,
+                "--namespace=" + self.steps_namespace,
              ]
 
     dependences = []
 
-    # TODO(https://github.com/kubeflow/kfctl/issues/94):
-    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
-    # converting it to Yaml.
-    # notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-    #                                 command, dependences)
-
-    # notebook_test["container"]["workingDir"] =  os.path.join(
-    #  self.kubeflow_dir, "kubeflow/jupyter/tests")
+    notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                     command, dependences)
+    notebook_test["container"]["workingDir"] = self.kfctl_pytest_dir
 
     #***************************************************************************
     # Profiles test
