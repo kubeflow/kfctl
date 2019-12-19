@@ -43,7 +43,7 @@ workflows:
       config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_iap.yaml
   # Run basic auth test as part of every periodic and postsubmit run.
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
-    name: kfctl-go-basic-auth
+    name: kfctl-bauth
     job_types:
       - postsubmit
       - periodic
