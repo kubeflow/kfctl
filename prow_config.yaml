@@ -45,6 +45,7 @@ workflows:
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-go-basic-auth
     job_types:
+      - presubmit
       - postsubmit
       - periodic
     include_dirs:
