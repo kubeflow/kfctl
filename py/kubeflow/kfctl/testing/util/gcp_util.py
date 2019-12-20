@@ -123,6 +123,18 @@ def iap_is_ready(url, wait_min=15):
   return False
 
 def _send_req(wait_sec, url, req_gen):
+  """ Helper function to send requests and retry when the endpoint is not ready.
+
+  Args:
+  wait_sec: int, max time to wait and retry in seconds.
+  url: str, url to send the request, used only for logging.
+  req_gen: lambda, no parameter function to generate requests.Request for the
+  function to send to the endpoint.
+
+  Returns:
+    requests.Response
+  """
+
   # Simple identifier that we need to re-send the request.
   class RetryError(Exception):
     pass
