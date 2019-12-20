@@ -147,6 +147,7 @@ def _send_req(wait_sec, url, req_gen):
     except Exception as e:
       logging.info("%s: unexpected error: %s" % (url, e))
       raise e
+    logging.info("%s: resp is %s" % (url, resp))
     if not resp or resp.status_code != 200:
       logging.info("Basic auth login is not ready: %s" % get_url)
       raise RetryError()
