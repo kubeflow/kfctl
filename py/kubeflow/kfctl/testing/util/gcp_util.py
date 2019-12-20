@@ -123,32 +123,28 @@ def iap_is_ready(url, wait_min=15):
   return False
 
 def _send_req(wait_sec, url, req_gen):
-  _req_num = 0
-
-  @retry(stop_max_delay=wait_sec * 1000)
-  def _send(url, req_gen, req_num):
+  @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000)
+  def _send(url, req_gen):
     resp = None
-    req_num += 1
-    logging.info("sending requests to %s; request number: %s" % (url, req_num))
+    logging.info("sending requests to %s" % url)
     try:
       resp = req_gen()
     except SSLError as e:
-      logging.warning("%s: Endpoint SSL handshake error: %s; request number: %s" % (url, e, req_num))
+      logging.warning("%s: Endpoint SSL handshake error: %s" % (url, e))
     except ReqConnectionError:
       logging.info(
-          "%s: Endpoint not ready, request number: %s" % (url, req_num))
+          "%s: Endpoint not ready" % url)
     if not resp or resp.status_code != 200:
-      logging.info("Basic auth login is not ready, request number %s: %s" % (req_num, get_url))
+      logging.info("Basic auth login is not ready: %s" % get_url)
     else:
       return resp
 
-  return _send(url, req_gen, _req_num)
+  return _send(url, req_gen)
 
 def basic_auth_is_ready(url, username, password, wait_min=15):
   get_url = url + "/kflogin"
   post_url = url + "/apikflogin"
 
-  req_num = 0
   end_time = datetime.datetime.now() + datetime.timedelta(
       minutes=wait_min)
 
