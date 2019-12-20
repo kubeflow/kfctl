@@ -147,13 +147,7 @@ def _send_req(wait_sec, url, req_gen):
     except Exception as e:
       logging.info("%s: unexpected error: %s" % (url, e))
       raise e
-    logging.info("%s: resp is %s" % (url, resp))
-    if not resp or resp.status_code != 200:
-      logging.info("Basic auth login is not ready: %s" % get_url)
-      raise RetryError()
-    else:
-      logging.info("%s: sending response back: %s" % (url, resp))
-      return resp
+    return resp
 
   return _send(url, req_gen)
 
@@ -165,10 +159,17 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
       minutes=wait_min)
 
   wait_time = datetime.datetime.now() - end_time
-  resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
-      "GET",
-      get_url,
-      verify=False))
+  while True:
+    resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
+        "GET",
+        get_url,
+        verify=False))
+    # GET might returns 400 codes instead of throwing errors.
+    if not resp or resp.status_code != 200:
+      logging.info("%s: basic auth login is not ready" % get_url)
+    else:
+      break
+    sleep(10)
 
   logging.info("%s: endpoint is ready; response: %s" % (get_url, resp.text))
   logging.info("%s: testing login API" % post_url)
@@ -186,6 +187,7 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
     logging.error("%s: login is failed", post_url)
     return False
 
+  logging.info("%s: testing cookies credentials" % url)
   cookie = None
   for c in resp.cookies:
     if c.name == COOKIE_NAME:
