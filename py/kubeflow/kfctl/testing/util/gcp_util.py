@@ -145,12 +145,13 @@ def _send_req(wait_sec, url, req_gen):
           "%s: Endpoint not ready" % url)
       raise RetryError()
     except Exception as e:
-      logging.error("%s: unexpected error: %s" % (url, e))
+      logging.info("%s: unexpected error: %s" % (url, e))
       raise e
     if not resp or resp.status_code != 200:
       logging.info("Basic auth login is not ready: %s" % get_url)
       raise RetryError()
     else:
+      logging.info("%s: sending response back: %s" % (url, resp))
       return resp
 
   return _send(url, req_gen)
