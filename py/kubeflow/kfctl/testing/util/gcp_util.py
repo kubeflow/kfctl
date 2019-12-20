@@ -123,19 +123,30 @@ def iap_is_ready(url, wait_min=15):
   return False
 
 def _send_req(wait_sec, url, req_gen):
-  @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000)
+  # Simple identifier that we need to re-send the request.
+  class RetryError(Exception):
+    pass
+
+  def retry_if_retry_error(e):
+    return isinstance(e, RetryError)
+
+  @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000,
+         retry_on_exception=retry_if_retry_error)
   def _send(url, req_gen):
     resp = None
-    logging.info("sending requests to %s" % url)
+    logging.info("sending request to %s" % url)
     try:
       resp = req_gen()
     except SSLError as e:
       logging.warning("%s: Endpoint SSL handshake error: %s" % (url, e))
+      raise RetryError()
     except ReqConnectionError:
       logging.info(
           "%s: Endpoint not ready" % url)
+      raise RetryError()
     if not resp or resp.status_code != 200:
       logging.info("Basic auth login is not ready: %s" % get_url)
+      raise RetryError()
     else:
       return resp
 
