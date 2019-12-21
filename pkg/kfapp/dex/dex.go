@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig/dexplugin"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +38,7 @@ import (
 
 const (
 	staticPasswordAuthSecret = "kubeflow-login"
+	kubeflowDomain           = "kubeflow-domain"
 
 	// DexPluginName Plugin parameter constants
 	DexPluginName                        = kfconfig.DEX_PLUGIN_KIND
@@ -71,6 +73,25 @@ func (dex *Dex) GetK8sConfig() (*rest.Config, *clientcmdapi.Config) {
 	return nil, nil
 }
 
+func insertConfigMap(client *clientset.Clientset, configMapName string, namespace string, data map[string]string) error {
+	configMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+		},
+		Data: data,
+	}
+	_, err := client.CoreV1().ConfigMaps(namespace).Create(configMap)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: err.Error(),
+		}
+	}
+}
+
 func insertSecret(client *clientset.Clientset, secretName string, namespace string, data map[string][]byte) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -90,6 +111,13 @@ func insertSecret(client *clientset.Clientset, secretName string, namespace stri
 	}
 }
 
+func (dex *Dex) getAuthNamespace() string {
+	if authNamespace, ok := dex.kfDef.GetApplicationParameter("dex", "namespace"); ok {
+		return authNamespace
+	}
+	return dex.kfDef.Namespace
+}
+
 func (dex *Dex) getIstioNamespace() string {
 	if istioNamespace, ok := dex.kfDef.GetApplicationParameter("oidc-authservice", "namespace"); ok {
 		return istioNamespace
@@ -97,8 +125,57 @@ func (dex *Dex) getIstioNamespace() string {
 	return dex.kfDef.Namespace
 }
 
+// createDomainConfigMap creates a configMap containing the domain on which
+// Kubeflow's dashboard will be served. TLS cert is issued on this Domain.
+func (dex *Dex) createDomainConfigMap(client *clientset.Clientset) error {
+	dexPluginSpec, err := dex.GetPluginSpec()
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	k8sClientset, err := dex.getK8sClientset(ctx)
+	if err != nil {
+		return err
+	}
+
+	istioNamespace := dex.getIstioNamespace()
+	if err = createNamespace(k8sClientset, istioNamespace); err != nil {
+		return err
+	}
+
+	configMapData := map[string]string{
+		"dns_name": "",
+		"ip":       "",
+	}
+	if govalidator.IsDNSName(dexPluginSpec.Domain) {
+		configMapData["dns_name"] = dexPluginSpec.Domain
+	} else if govalidator.IsIP(dexPluginSpec.Domain) {
+		configMapData["ip"] = dexPluginSpec.Domain
+	}
+	configMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeflowDomain,
+			Namespace: istioNamespace,
+		},
+		Data: configMapData,
+	}
+	_, err = client.CoreV1().ConfigMaps(istioNamespace).Update(configMap)
+	if err != nil {
+		log.Warnf("Updating configMap for Dex domain failed, trying to create one: %v", err)
+		return insertConfigMap(client, kubeflowDomain, istioNamespace, configMapData)
+	}
+	return nil
+}
+
 // Use email and password provided by user and create secret for staticPassword auth.
 func (dex *Dex) createStaticUserAuthSecret(client *clientset.Clientset) error {
+	ctx := context.Background()
+	k8sClientset, err := dex.getK8sClientset(ctx)
+	if err != nil {
+		return err
+	}
+
 	dexPluginSpec, err := dex.GetPluginSpec()
 	if err != nil {
 		return err
@@ -121,20 +198,25 @@ func (dex *Dex) createStaticUserAuthSecret(client *clientset.Clientset) error {
 		return err
 	}
 
+	authNamespace := dex.getAuthNamespace()
+	if err = createNamespace(k8sClientset, authNamespace); err != nil {
+		return err
+	}
+
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      staticPasswordAuthSecret,
-			Namespace: dex.kfDef.Namespace,
+			Namespace: authNamespace,
 		},
 		Data: map[string][]byte{
 			"email":        []byte(dexPluginSpec.Auth.StaticPasswordAuth.Email),
 			"passwordhash": []byte(encodedPassword),
 		},
 	}
-	_, err = client.CoreV1().Secrets(dex.kfDef.Namespace).Update(secret)
+	_, err = client.CoreV1().Secrets(authNamespace).Update(secret)
 	if err != nil {
 		log.Warnf("Updating static user auth login failed, trying to create one: %v", err)
-		return insertSecret(client, staticPasswordAuthSecret, dex.kfDef.Namespace, map[string][]byte{
+		return insertSecret(client, staticPasswordAuthSecret, authNamespace, map[string][]byte{
 			"email":        []byte(dexPluginSpec.Auth.StaticPasswordAuth.Email),
 			"passwordhash": []byte(encodedPassword),
 		})
@@ -203,14 +285,28 @@ func (dex *Dex) setDexPluginDefaults() error {
 			dexPluginSpec.Auth.StaticPasswordAuth = &dexplugin.StaticPasswordAuth{}
 		}
 
-		email := os.Getenv(kftypes.KUBEFLOW_EMAIL)
+		domain := os.Getenv(kftypes.KubeflowDomain)
+		if domain == "" {
+			log.Warnf("KUBEFLOW_DOMAIN isn't set. TLS will be set on Istio Ingress Gateway IP.")
+		} else if !(govalidator.IsDNSName(domain) || govalidator.IsIP(domain)) {
+			return &kfapis.KfError{
+				Code: int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf(
+					"KUBEFLOW_DOMAIN: %s is an invalid domain.",
+					domain,
+				),
+			}
+		}
+		dexPluginSpec.Domain = domain
+
+		email := os.Getenv(kftypes.KubeflowEmail)
 		if email == "" {
-			log.Errorf("Could not configure static user auth; environment variable %s not set", kftypes.KUBEFLOW_EMAIL)
+			log.Errorf("Could not configure static user auth; environment variable %s not set", kftypes.KubeflowEmail)
 			return &kfapis.KfError{
 				Code: int(kfapis.INVALID_ARGUMENT),
 				Message: fmt.Sprintf(
 					"Could not configure static user auth; environment variable %s not set",
-					kftypes.KUBEFLOW_EMAIL,
+					kftypes.KubeflowEmail,
 				),
 			}
 		}
@@ -248,15 +344,17 @@ func (dex *Dex) setDexPluginDefaults() error {
 // Apply applys kfdef manifests for dex
 func (dex *Dex) Apply(resources kftypes.ResourceEnum) error {
 
-	if err := dex.setDexPluginDefaults(); err != nil {
+	// Inserts configMaps into the cluster
+	configMapsErr := dex.createConfigMaps()
+	if configMapsErr != nil {
 		return &kfapis.KfError{
-			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("dex set dex plugin defaults Error %v",
-				err.(*kfapis.KfError).Message),
+			Code: configMapsErr.(*kfapis.KfError).Code,
+			Message: fmt.Sprintf("dex apply could not create configMaps Error %v",
+				configMapsErr.(*kfapis.KfError).Message),
 		}
 	}
 
-	// Insert secrets into the cluster
+	// Inserts secrets into the cluster
 	secretsErr := dex.createSecrets()
 	if secretsErr != nil {
 		return &kfapis.KfError{
@@ -273,6 +371,20 @@ func (dex *Dex) Apply(resources kftypes.ResourceEnum) error {
 
 func (dex *Dex) Delete(resources kftypes.ResourceEnum) error {
 
+	return nil
+}
+
+func (dex *Dex) createConfigMaps() error {
+	ctx := context.Background()
+
+	k8sClient, err := dex.getK8sClientset(ctx)
+	if err != nil {
+		return kfapis.NewKfErrorWithMessage(err, "set K8s clientset error")
+	}
+	log.Infof("Creating Dex configMap for kubeflow domain ...")
+	if err := dex.createDomainConfigMap(k8sClient); err != nil {
+		return kfapis.NewKfErrorWithMessage(err, "cannot create dex configMap for kubflow domain")
+	}
 	return nil
 }
 
@@ -296,6 +408,32 @@ func (dex *Dex) createSecrets() error {
 		}
 	}
 	return nil
+}
+
+func createNamespace(k8sClientset *clientset.Clientset, namespace string) error {
+
+	log.Infof("Creating namespace: %v", namespace)
+	_, err := k8sClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	if err == nil {
+		log.Infof("Namespace already exists...")
+		return nil
+	}
+	log.Infof("Get namespace error: %v", err)
+	_, err = k8sClientset.CoreV1().Namespaces().Create(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		},
+	)
+	if err == nil {
+		return nil
+	} else {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: err.Error(),
+		}
+	}
 }
 
 func (dex *Dex) getK8sClientset(ctx context.Context) (*clientset.Clientset, error) {
