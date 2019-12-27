@@ -146,7 +146,7 @@ def _send_req(wait_sec, url, req_gen, retry_result_code=None):
 
   @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000,
          retry_on_exception=retry_on_error,
-         retry_on_result=retry_on_result_func)
+         retry_on_result=retry_on_result_func(retry_result_code))
   def _send(url, req_gen):
     resp = None
     logging.info("sending request to %s" % url)
