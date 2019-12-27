@@ -122,7 +122,7 @@ def iap_is_ready(url, wait_min=15):
     sleep(10)
   return False
 
-def _send_req(wait_sec, url, req_gen):
+def _send_req(wait_sec, url, req_gen, retry_result_code=None):
   """ Helper function to send requests and retry when the endpoint is not ready.
 
   Args:
@@ -135,29 +135,25 @@ def _send_req(wait_sec, url, req_gen):
     requests.Response
   """
 
-  # Simple identifier that we need to re-send the request.
-  class RetryError(Exception):
-    pass
+  def retry_on_error(e):
+    return isinstance(e, [SSLError, ReqConnectionError])
 
-  def retry_if_retry_error(e):
-    return isinstance(e, RetryError)
+  def retry_on_result_func(code):
+    if code is None:
+      return lambda _: False
+    else:
+      return lambda resp: not resp or resp.status_code != code
 
   @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000,
-         retry_on_exception=retry_if_retry_error)
+         retry_on_exception=retry_on_error,
+         retry_on_result=retry_on_result_func)
   def _send(url, req_gen):
     resp = None
     logging.info("sending request to %s" % url)
     try:
       resp = req_gen()
-    except SSLError as e:
-      logging.warning("%s: Endpoint SSL handshake error: %s" % (url, e))
-      raise RetryError()
-    except ReqConnectionError:
-      logging.info(
-          "%s: Endpoint not ready" % url)
-      raise RetryError()
     except Exception as e:
-      logging.info("%s: unexpected error: %s" % (url, e))
+      logging.warning("%s: request with error: %s" % (url, e))
       raise e
     return resp
 
@@ -171,17 +167,10 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
       minutes=wait_min)
 
   wait_time = datetime.datetime.now() - end_time
-  while True:
-    resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
-        "GET",
-        get_url,
-        verify=False))
-    # GET might returns 400 codes instead of throwing errors.
-    if not resp or resp.status_code != 200:
-      logging.info("%s: basic auth login is not ready" % get_url)
-    else:
-      break
-    sleep(10)
+  resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
+      "GET",
+      get_url,
+      verify=False), retry_result_code=200)
 
   logging.info("%s: endpoint is ready; response: %s" % (get_url, resp.text))
   logging.info("%s: testing login API" % post_url)
