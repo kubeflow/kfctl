@@ -46,6 +46,7 @@ workflows:
     name: kfctl-bauth
     job_types:
       - postsubmit
+      - presubmit
       - periodic
     include_dirs:
       - config/*
