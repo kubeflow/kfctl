@@ -136,7 +136,7 @@ def _send_req(wait_sec, url, req_gen, retry_result_code=None):
   """
 
   def retry_on_error(e):
-    return isinstance(e, [SSLError, ReqConnectionError])
+    return isinstance(e, (SSLError, ReqConnectionError))
 
   def retry_on_result_func(code):
     if code is None:
