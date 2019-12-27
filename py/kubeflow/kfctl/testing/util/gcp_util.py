@@ -130,6 +130,7 @@ def _send_req(wait_sec, url, req_gen, retry_result_code=None):
   url: str, url to send the request, used only for logging.
   req_gen: lambda, no parameter function to generate requests.Request for the
   function to send to the endpoint.
+  retry_result_code: int (optional), status code to match or retry the request.
 
   Returns:
     requests.Response
@@ -138,6 +139,9 @@ def _send_req(wait_sec, url, req_gen, retry_result_code=None):
   def retry_on_error(e):
     return isinstance(e, (SSLError, ReqConnectionError))
 
+  # generates function to see if the request needs to be retried.
+  # if param `code` is None, will not retry and directly pass back the response.
+  # Otherwise will retry if status code is not matched.
   def retry_on_result_func(code):
     if code is None:
       return lambda _: False
