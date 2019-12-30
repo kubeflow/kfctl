@@ -122,46 +122,77 @@ def iap_is_ready(url, wait_min=15):
     sleep(10)
   return False
 
+def _send_req(wait_sec, url, req_gen, retry_result_code=None):
+  """ Helper function to send requests and retry when the endpoint is not ready.
+
+  Args:
+  wait_sec: int, max time to wait and retry in seconds.
+  url: str, url to send the request, used only for logging.
+  req_gen: lambda, no parameter function to generate requests.Request for the
+  function to send to the endpoint.
+  retry_result_code: int (optional), status code to match or retry the request.
+
+  Returns:
+    requests.Response
+  """
+
+  def retry_on_error(e):
+    return isinstance(e, (SSLError, ReqConnectionError))
+
+  # generates function to see if the request needs to be retried.
+  # if param `code` is None, will not retry and directly pass back the response.
+  # Otherwise will retry if status code is not matched.
+  def retry_on_result_func(code):
+    if code is None:
+      return lambda _: False
+    else:
+      return lambda resp: not resp or resp.status_code != code
+
+  @retry(stop_max_delay=wait_sec * 1000, wait_fixed=10 * 1000,
+         retry_on_exception=retry_on_error,
+         retry_on_result=retry_on_result_func(retry_result_code))
+  def _send(url, req_gen):
+    resp = None
+    logging.info("sending request to %s" % url)
+    try:
+      resp = req_gen()
+    except Exception as e:
+      logging.warning("%s: request with error: %s" % (url, e))
+      raise e
+    return resp
+
+  return _send(url, req_gen)
+
 def basic_auth_is_ready(url, username, password, wait_min=15):
   get_url = url + "/kflogin"
   post_url = url + "/apikflogin"
 
-  req_num = 0
   end_time = datetime.datetime.now() + datetime.timedelta(
       minutes=wait_min)
-  while datetime.datetime.now() < end_time:
-    req_num += 1
-    logging.info("Trying url: %s request number %s" % (get_url, req_num))
-    resp = None
-    try:
-      resp = requests.request(
-          "GET",
-          get_url,
-          verify=False)
-    except SSLError as e:
-      logging.warning("%s: Endpoint SSL handshake error: %s; request number: %s" % (url, e, req_num))
-    except ReqConnectionError:
-      logging.info(
-          "%s: Endpoint not ready, request number: %s" % (url, req_num))
-    if not resp or resp.status_code != 200:
-      logging.info("Basic auth login is not ready, request number %s: %s" % (req_num, get_url))
-    else:
-      break
-    sleep(10)
 
-  logging.info("%s: endpoint is ready, testing login API; request number %s" % (get_url, req_num))
-  resp = requests.post(
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, get_url, lambda: requests.request(
+      "GET",
+      get_url,
+      verify=False), retry_result_code=200)
+
+  logging.info("%s: endpoint is ready; response: %s" % (get_url, resp.text))
+  logging.info("%s: testing login API" % post_url)
+
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, post_url, lambda: requests.post(
       post_url,
       auth=(username, password),
       headers={
           "x-from-login": "true",
       },
-      verify=False)
+      verify=False))
   logging.info("%s: %s" % (post_url, resp.text))
   if resp.status_code != 205:
     logging.error("%s: login is failed", post_url)
     return False
 
+  logging.info("%s: testing cookies credentials" % url)
   cookie = None
   for c in resp.cookies:
     if c.name == COOKIE_NAME:
@@ -171,12 +202,13 @@ def basic_auth_is_ready(url, username, password, wait_min=15):
     logging.error("%s: auth cookie cannot be found; name: %s" % (post_url, COOKIE_NAME))
     return False
 
-  resp = requests.get(
+  wait_time = datetime.datetime.now() - end_time
+  resp = _send_req(wait_time.seconds, url, lambda: requests.get(
       url,
       cookies={
           cookie.name: cookie.value,
       },
-      verify=False)
+      verify=False))
   logging.info("%s: %s" % (url, resp.status_code))
   logging.info(resp.content)
   return resp.status_code == 200
