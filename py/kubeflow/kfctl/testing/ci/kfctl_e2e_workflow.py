@@ -336,7 +336,6 @@ class Builder:
     for t in workflow["spec"]["templates"]:
       if t["name"] == name:
         return t
-    workflow["spec"]["templates"].append(new_template)
 
     return None
 
@@ -421,7 +420,7 @@ class Builder:
                                      command, dependences)
 
     profiles_test["container"]["workingDir"] =  os.path.join(
-      self.kubeflow_dir, "kubeflow/profiles/tests")
+      self.kubeflow_dir, "py/kubeflow/kubeflow/ci")
 
   def _build_exit_dag(self):
     """Build the exit handler dag"""
