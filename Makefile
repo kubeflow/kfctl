@@ -130,8 +130,8 @@ build-kfctl: deepcopy generate fmt vet
 build-kfctl-tgz: build-kfctl
 	chmod a+rx ./bin/kfctl
 	rm -f bin/*.tgz
-	cd bin && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
-	cp -f ./bin/kfctl_$(TAG)_linux.tar.gz ./bin/kfctl_$(TAG)_darwin.tar.gz
+	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
+	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
 
 # push the releases to a GitHub page
 push-to-github-release: build-kfctl-tgz
