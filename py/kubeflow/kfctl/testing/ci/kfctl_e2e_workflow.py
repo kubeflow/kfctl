@@ -329,15 +329,7 @@ class Builder:
     step["name"] = name
     step["container"]["command"] = command
 
-    argo_build_util.add_task_to_dag(workflow, dag_name, step, dependences)
-
-    # Return the newly created template; add_task_to_dag makes a copy of the template
-    # So we need to fetch it from the workflow spec.
-    for t in workflow["spec"]["templates"]:
-      if t["name"] == name:
-        return t
-
-    return None
+    return argo_build_util.add_task_to_dag(workflow, dag_name, step, dependences)
 
   def _build_tests_dag(self):
     """Build the dag for the set of tests to run against a KF deployment."""
