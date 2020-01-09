@@ -414,6 +414,23 @@ class Builder:
     profiles_test["container"]["workingDir"] =  os.path.join(
       self.kubeflow_dir, "py/kubeflow/kubeflow/ci")
 
+    # ***************************************************************************
+    # kfam test
+
+    step_name = "kfam-test"
+    command = ["pytest",
+               "kfam_test.py",
+               "-s",
+               "--timeout=600",
+               "--junitxml=" + self.artifacts_dir + "/junit_kfam-test.xml",
+               ]
+
+    dependences = []
+    kfam_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                     command, dependences)
+
+    kfam_test["container"]["workingDir"] = self.kfctl_pytest_dir
+
   def _build_exit_dag(self):
     """Build the exit handler dag"""
     task_template = self._build_task_template()
