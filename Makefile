@@ -22,10 +22,10 @@ TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
 REPO ?= $(shell echo $$(cd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
 BRANCH ?= $(shell cd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
 KFCTL_TARGET ?= kfctl
-MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
-MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
+MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube
+MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config
 # set to -V
-VERBOSE ?= 
+VERBOSE ?=
 PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
@@ -59,7 +59,7 @@ auth:
 
 # Run go fmt against code
 fmt:
-	@${GO} fmt ./config ./cmd/... ./pkg/... 
+	@${GO} fmt ./config ./cmd/... ./pkg/...
 
 # Run go vet against code
 vet:
@@ -222,7 +222,7 @@ build-builder-container-gcb:
 
 #***************************************************************************************************
 
-clean: 
+clean:
 	rm -rf test && mkdir test
 
 doc:
@@ -230,9 +230,12 @@ doc:
 
 
 #**************************************************************************************************
+# checks licenses
+check-licenses:
+	./third_party/check-license.sh
 # rules to run unittests
 #
-test: build-kfctl
+test: build-kfctl check-licenses
 	go test ./... -v
 
 
