@@ -21,6 +21,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/otiai10/copy"
 )
 
 const (
@@ -490,28 +491,39 @@ func (c *KfConfig) SyncCache() error {
 		}
 
 		log.Infof("Fetching %v to %v", r.URI, cacheDir)
-
-		resp, err := http.Get(r.URI)
-		if err != nil {
-			return &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, err),
-			}
-		}
-		defer resp.Body.Close()
-
 		if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
 			log.Errorf("Could not create dir %v; error %v", cacheDir, err)
 			return errors.WithStack(err)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Errorf("Could not read response body; error %v", err)
-			return errors.WithStack(err)
-		}
-		if err := untar(body, cacheDir); err != nil {
-			log.Errorf("Could not untar file %v; error %v", r.URI, err)
-			return errors.WithStack(err)
+
+		// Manifests are local dir
+		if fi, err := os.Stat(r.URI); err == nil && fi.Mode().IsDir() {
+			if err := copy.Copy(r.URI, cacheDir); err != nil {
+				return errors.WithStack(err)
+			}
+		} else {
+			t := &http.Transport{}
+			t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
+			t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
+			hclient := &http.Client{Transport: t}
+			resp, err := hclient.Get(r.URI)
+			if err != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INVALID_ARGUMENT),
+					Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, err),
+				}
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Errorf("Could not read response body; error %v", err)
+				return errors.WithStack(err)
+			}
+			if err := untar(body, cacheDir); err != nil {
+				log.Errorf("Could not untar file %v; error %v", r.URI, err)
+				return errors.WithStack(err)
+			}
 		}
 
 		// This is a bit of a hack to deal with the fact that GitHub tarballs
