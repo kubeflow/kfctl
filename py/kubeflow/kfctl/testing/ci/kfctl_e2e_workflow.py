@@ -71,7 +71,7 @@ DEFAULT_REPOS = [
     "kubeflow/tf-operator@HEAD"
 ]
 
-class Builder:
+class Builder(object):
   def __init__(self, name=None, namespace=None,
                config_path=("https://raw.githubusercontent.com/kubeflow"
                             "/manifests/master/kfdef/kfctl_gcp_iap.yaml"),
