@@ -30,7 +30,7 @@ require (
 	github.com/kubernetes-sigs/application v0.8.0
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/onrik/logrus v0.2.1
-	github.com/otiai10/copy v1.0.1
+	github.com/otiai10/copy v1.0.2
 	github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/common v0.2.0
