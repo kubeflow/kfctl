@@ -32,7 +32,7 @@ export PULL_NUMBER=4148
 """
 
 import datetime
-from kubeflow.kubeflow.ci import kfctl_e2e_workflow
+from kubeflow.kfctl.testing.ci import kfctl_e2e_workflow
 from kubeflow.testing import argo_build_util
 import logging
 import os
