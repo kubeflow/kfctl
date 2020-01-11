@@ -16,12 +16,12 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-getter/helper/url"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"github.com/otiai10/copy"
 )
 
 const (
