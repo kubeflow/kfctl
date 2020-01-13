@@ -107,7 +107,7 @@ class Builder(kfctl_e2e_workflow.Builder):
         if self.test_endpoint:
             dependencies = [UPGRADE_DAG_NAME]
             step_name = "upgraded-endpoint-ready"
-            argo_build_util.add_task_only_to_dag(self.workflow, k2ctl_e2e_workflow.E2E_DAG_NAME, step_name,
+            argo_build_util.add_task_only_to_dag(self.workflow, kfctl_e2e_workflow.E2E_DAG_NAME, step_name,
                                                  self._test_endpoint_template_name, dependencies)
 
         # Reset the labels on all templates to pick up the updated workflow template label
