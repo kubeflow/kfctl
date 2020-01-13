@@ -84,7 +84,7 @@ class Builder(kfctl_e2e_workflow.Builder):
         # Add a task to the E2E dag to run the dag to upgrade Kubeflow.
         dependencies = [self._run_tests_step_name]
 
-        if self._test_endpoint_step_name:            
+        if self._test_endpoint_step_name:
             dependencies.append(self._test_endpoint_step_name)
 
         step_name = UPGRADE_DAG_NAME
@@ -94,21 +94,21 @@ class Builder(kfctl_e2e_workflow.Builder):
 
         #****************************************************************************
         # Add tests DAG
-        #****************************************************************************        
+        #****************************************************************************
         # After running upgrade we want to rerun the DAG(s) that validate the deployment is healthy
 
         step_name = "test-after-upgrade"
         template_name = kfctl_e2e_workflow.TESTS_DAG_NAME
         dependencies = [UPGRADE_DAG_NAME]
         argo_build_util.add_task_only_to_dag(self.workflow, kfctl_e2e_workflow.E2E_DAG_NAME, step_name,
-                                             template_name, dependencies)        
+                                             template_name, dependencies)
 
-        # Test the endpoint after upgrade        
+        # Test the endpoint after upgrade
         if self.test_endpoint:
             dependencies = [UPGRADE_DAG_NAME]
             step_name = "upgraded-endpoint-ready"
-            argo_build_util.add_task_only_to_dag(self.workflow, E2E_DAG_NAME, step_name,
-                                                 self._test_endpoint_template_name, dependencies)            
+            argo_build_util.add_task_only_to_dag(self.workflow, k2ctl_e2e_workflow.E2E_DAG_NAME, step_name,
+                                                 self._test_endpoint_template_name, dependencies)
 
         # Reset the labels on all templates to pick up the updated workflow template label
         self.workflow = argo_build_util.set_task_template_labels(self.workflow)
