@@ -43,9 +43,13 @@ UPGRADE_DAG_NAME = "upgrade-dag"
 TEMPLATE_LABEL = "kfctl_upgrade_e2e"
 
 class Builder(kfctl_e2e_workflow.Builder):
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 upgrade_spec=("https://raw.githubusercontent.com/kubeflow"
+                               "/manifests/v0.7-branch/kfdef/kfctl_upgrade_gcp_iap_0.7.1.yaml"),
+                 **kwargs):
         """Initialize a builder."""
         super(Builder, self).__init__(**kwargs)
+        self.upgrade_spec = upgrade_spec
 
     def _build_upgrade_dag(self):
         """Build the dag of steps to run upgrade."""
@@ -61,13 +65,21 @@ class Builder(kfctl_e2e_workflow.Builder):
 
         #***************************************************************************
         # Run kfctl upgrade
-
-        # TODO(https://github.com/kubeflow/kfctl/issues/35) This is just a place holder for invoking
-        # kfctl upgrade. Right now it just prints out the command to run. We will need to update this
-        # to run the actual command.
         step_name = "upgrade"
-        command = ["echo", "pytest", "kfctl_upgrade_test.py", "upgade", "<path to some upgrade spec file>"]
-
+        command = [
+           "pytest",
+           "kfctl_upgrade_test.py",
+           "-s",
+           "--log-cli-level=info",
+           "--junitxml=" + os.path.join(self.artifacts_dir,
+                                        "junit_kfctl-upgrade-test-" +
+                                        self.config_name + ".xml"),
+           # Test suite name needs to be unique based on parameters
+           "-o", "junit_suite_name=test_kfctl_upgrade_" + self.config_name,
+           "--app_path=" + self.app_dir,
+           "--kfctl_path=" + self.kfctl_path,
+           "--upgrade_spec=" + self.upgrade_spec,
+         ]
         dependences = []
         upgrade_step = self._build_step(step_name, self.workflow, UPGRADE_DAG_NAME, task_template,
                                         command, dependences)

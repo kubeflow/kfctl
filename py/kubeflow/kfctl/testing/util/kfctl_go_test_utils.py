@@ -304,6 +304,9 @@ def build_and_apply_kubeflow(kfctl_path, app_path):
   util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(app_path, "tmp.yaml")], cwd=app_path)
   return app_path
 
+def upgrade_kubeflow(kfctl_path, parent_dir):
+  util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(parent_dir, "upgrade.yaml")], cwd=parent_dir)
+
 def verify_kubeconfig(app_path):
   """Verify kubeconfig.
 
@@ -319,3 +322,49 @@ def verify_kubeconfig(app_path):
       expected=name, actual=context)
     logging.error(msg)
     raise RuntimeError(msg)
+
+def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path):
+  """Upgrade kubeflow.
+
+  Args:
+  app_path: The path to the Kubeflow app to be upgraded.
+  project: The GCP project to use.
+  upgrade_spec_path: The path to the upgrade sepc.
+  """
+  if not os.path.exists(kfctl_path):
+    msg = "kfctl Go binary not found: {path}".format(path=kfctl_path)
+    logging.error(msg)
+    raise RuntimeError(msg)
+
+  app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
+
+  #logging.info("Project: %s", project)
+  logging.info("app path %s", app_path)
+  logging.info("parent dir %s", parent_dir)
+  logging.info("kfctl path %s", kfctl_path)
+  zone = 'us-central1-a'
+  if not zone:
+    raise ValueError("Could not get zone being used")
+
+  if not project:
+    raise ValueError("Could not get project being used")
+
+  #config_spec = get_config_spec(config_path, project, email, zone, app_path)
+  upgrade_spec = load_config(upgrade_spec_path)
+
+  with open(os.path.join(parent_dir, "tmp.yaml"), "w") as f:
+    yaml.dump(upgrade_spec, f)
+
+  # Set ENV for credentials IAP/basic auth needs.
+  #set_env_init_args(config_spec)
+
+  # Write basic auth login username/password to a file for later tests.
+  # If the ENVs are not set, this function call will be noop.
+  #write_basic_auth_login(os.path.join(app_path, "login.json"))
+
+  logging.info("switching working directory to: %s \n", parent_dir)
+  os.chdir(parent_dir)
+
+  # Run upgrade
+  logging.info("Running kfctl with upgrade spec:\n%s", yaml.safe_dump(upgrade_spec))
+  upgrade_kubeflow(kfctl_path, parent_dir)
