@@ -377,9 +377,9 @@ class Builder(object):
               ]
 
     dependences = []
-    pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+    #pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
                                     command, dependences)
-    pytorch_test["container"]["workingDir"] = self.kfctl_pytest_dir
+    #pytorch_test["container"]["workingDir"] = self.kfctl_pytest_dir
     #***************************************************************************
     # Notebook test
     step_name = "notebook-test"
