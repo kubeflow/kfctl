@@ -337,9 +337,11 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path):
     raise RuntimeError(msg)
 
   app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
+  app_name = os.path.basename(app_path)
 
   #logging.info("Project: %s", project)
   logging.info("app path %s", app_path)
+  logging.info("app name %s", app_name)
   logging.info("parent dir %s", parent_dir)
   logging.info("kfctl path %s", kfctl_path)
   #zone = 'us-central1-a'
@@ -351,6 +353,8 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path):
 
   #config_spec = get_config_spec(config_path, project, email, zone, app_path)
   upgrade_spec = load_config(upgrade_spec_path)
+  upgrade_spec["spec"]["currentKfDef"]["name"] = app_name
+  upgrade_spec["spec"]["newKfDef"]["name"] = app_name
 
   with open(os.path.join(parent_dir, "upgrade.yaml"), "w") as f:
     yaml.dump(upgrade_spec, f)
