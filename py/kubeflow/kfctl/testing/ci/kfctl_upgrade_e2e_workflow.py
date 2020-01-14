@@ -63,6 +63,9 @@ class Builder(kfctl_e2e_workflow.Builder):
           })
         task_template = self._build_task_template()
 
+        # Change the workfing directory for all subsequent steps
+        task_template["container"]["workingDir"] = os.path.join(self.kfctl_pytest_dir)
+
         #***************************************************************************
         # Run kfctl upgrade
         step_name = "upgrade"
@@ -90,8 +93,6 @@ class Builder(kfctl_e2e_workflow.Builder):
         # Change the workflow_template labels
         self.workflow["metadata"]["labels"]["workflow_template"] = TEMPLATE_LABEL
 
-        # Change the workfing directory for all subsequent steps
-        task_template["container"]["workingDir"] = os.path.join(self.kfctl_pytest_dir)
         # Add the dag to upgrade Kubeflow to the workflow
         self._build_upgrade_dag()
 

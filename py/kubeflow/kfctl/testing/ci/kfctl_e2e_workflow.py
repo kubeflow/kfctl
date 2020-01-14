@@ -361,8 +361,8 @@ class Builder(object):
     ]
 
     dependences = []
-    tfjob_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-                                  command, dependences)
+    #tfjob_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+    #                              command, dependences)
 
     #*************************************************************************
     # Test pytorch job
