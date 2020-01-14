@@ -124,6 +124,8 @@ type Setter interface {
 
 func (gcp *Gcp) SetTokenSource(s oauth2.TokenSource) error {
 	gcp.tokenSource = s
+	// Reset client to force pick up the new token
+	gcp.client = nil
 	return nil
 }
 
