@@ -342,17 +342,17 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path):
   logging.info("app path %s", app_path)
   logging.info("parent dir %s", parent_dir)
   logging.info("kfctl path %s", kfctl_path)
-  zone = 'us-central1-a'
-  if not zone:
-    raise ValueError("Could not get zone being used")
+  #zone = 'us-central1-a'
+  #if not zone:
+  #  raise ValueError("Could not get zone being used")
 
-  if not project:
-    raise ValueError("Could not get project being used")
+  #if not project:
+  #  raise ValueError("Could not get project being used")
 
   #config_spec = get_config_spec(config_path, project, email, zone, app_path)
   upgrade_spec = load_config(upgrade_spec_path)
 
-  with open(os.path.join(parent_dir, "tmp.yaml"), "w") as f:
+  with open(os.path.join(parent_dir, "upgrade.yaml"), "w") as f:
     yaml.dump(upgrade_spec, f)
 
   # Set ENV for credentials IAP/basic auth needs.
