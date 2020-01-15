@@ -335,6 +335,7 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path, use_basic_au
 
   app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
   app_name = os.path.basename(app_path)
+  #old_config_path = os.path.join(app_path, "tmp.yaml")
 
   #logging.info("Project: %s", project)
   logging.info("app path %s", app_path)
@@ -348,7 +349,7 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path, use_basic_au
   #if not project:
   #  raise ValueError("Could not get project being used")
 
-  #config_spec = get_config_spec(config_path, project, email, zone, app_path)
+  #config_spec = get_config_spec(old_config_path, project, email, zone, app_path)
   upgrade_spec = load_config(upgrade_spec_path)
   upgrade_spec["spec"]["currentKfDef"]["name"] = app_name
   upgrade_spec["spec"]["newKfDef"]["name"] = app_name
