@@ -217,6 +217,8 @@ func findKfCfg(kfDefRef *kfupgrade.KfDefRef) (*kfconfig.KfConfig, string, error)
 func MergeKfCfg(oldKfCfg *kfconfig.KfConfig, newKfCfg *kfconfig.KfConfig) {
 	newKfCfg.Name = oldKfCfg.Name
 	newKfCfg.Spec.Project = oldKfCfg.Spec.Project
+	newKfCfg.Spec.Email = oldKfCfg.Spec.Email
+	newKfCfg.Spec.Zone = oldKfCfg.Spec.Zone
 	for appIndex, newApp := range newKfCfg.Spec.Applications {
 		for _, oldApp := range oldKfCfg.Spec.Applications {
 			if newApp.Name == oldApp.Name {
