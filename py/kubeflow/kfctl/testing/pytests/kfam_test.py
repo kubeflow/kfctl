@@ -1,15 +1,10 @@
 import logging
-import time
 
 import pytest
 
 from kubeflow.testing import util
-
+import json
 from retrying import retry
-from kubeflow.kfctl.testing.ci.kfam_client.api import DefaultApi
-from kubeflow.kfctl.testing.ci.kfam_client.api_client import ApiClient
-from kubeflow.kfctl.testing.ci.kfam_client.configuration import Configuration
-import kubeflow.kfctl.testing.ci.kfam_client.models as models
 
 
 logging.basicConfig(level=logging.INFO,
@@ -21,22 +16,25 @@ logging.getLogger().setLevel(logging.INFO)
 
 def test_kfam(record_xml_attribute):
   util.set_pytest_junit(record_xml_attribute, "test_kfam_e2e")
-  kfam_config = Configuration()
-  kfam_config.host = "profiles-kfam.kubeflow:8081/kfam"
-  defaultApi = DefaultApi(api_client=ApiClient(configuration=kfam_config))
+  util.load_kube_config()
+  util.load_kube_credentials()
+
+  getcmd = "kubectl get pods -n kubeflow -l=app=jupyter-web-app --template '{{range.items}}{{.metadata.name}}{{end}}'"
+  jupyterpod = util.run(getcmd.split(' '))[1:-1]
+
+  logging.info("accessing kfam svc from jupyter pod %s" % jupyterpod)
 
   # Profile Creation
-  profile = models.Profile(
-    metadata=models.Metadata(name="testprofile"),
-    spec=models.ProfileSpec(owner=models.Subject(kind="User", name="user1@kubeflow.org"))
-  )
-  defaultApi.create_profile(profile)
-
+  util.run(['kubectl', 'exec', jupyterpod, '-n', 'kubeflow', '--', 'curl',
+            '--silent', '-X', 'POST', '-d',
+            '{"metadata":{"name":"testprofile"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}',
+            'profiles-kfam.kubeflow:8081/kfam/v1/profiles'])
   # Verify Profile Creation
-  time.sleep(10)
-  bindings = defaultApi.read_bindings().bindings()
-  assert "testprofile" in [binding._referred_namespace for binding in bindings]
+  bindingsstr = util.run(['kubectl', 'exec', jupyterpod, '-n', 'kubeflow', '--', 'curl', '--silent',
+                'profiles-kfam.kubeflow:8081/kfam/v1/bindings'])
+  bindings = json.loads(bindingsstr)
 
+  assert "testprofile" in [binding['referredNamespace'] for binding in bindings['bindings']]
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
