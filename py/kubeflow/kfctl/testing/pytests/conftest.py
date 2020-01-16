@@ -64,10 +64,10 @@ def pytest_addoption(parser):
       help="Whether to use self-signed cert for ingress.")
 
   parser.addoption(
-      "--upgrade_spec", action="store", default="",
+      "--upgrade_spec_path", action="store", default="",
       help=("The spec for upgrading Kubeflow. The path can use python style "
             "go format strings; e.g. "
-            "--upgrade_spec=/{srcdir}/kubeflow/manifests/kfdef/kfctl_gcp_upgrade.yaml"))
+            "--upgrade_spec_path=/{srcdir}/kubeflow/manifests/kfdef/kfctl_gcp_upgrade.yaml"))
 
 @pytest.fixture
 def app_path(request):
@@ -146,5 +146,5 @@ def self_signed_cert(request):
     return False
 
 @pytest.fixture
-def upgrade_spec(request):
-  return request.config.getoption("--upgrade_spec")
+def upgrade_spec_path(request):
+  return request.config.getoption("--upgrade_spec_path")

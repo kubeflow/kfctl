@@ -325,8 +325,9 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path, use_basic_au
 
   Args:
   app_path: The path to the Kubeflow app to be upgraded.
-  project: The GCP project to use.
+  kfctl_path: The path to the kfctl binary.
   upgrade_spec_path: The path to the upgrade sepc.
+  use_basic_auth: True if we are using basic auth for GCP.
   """
   if not os.path.exists(kfctl_path):
     msg = "kfctl Go binary not found: {path}".format(path=kfctl_path)
@@ -335,21 +336,12 @@ def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path, use_basic_au
 
   app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
   app_name = os.path.basename(app_path)
-  #old_config_path = os.path.join(app_path, "tmp.yaml")
 
-  #logging.info("Project: %s", project)
   logging.info("app path %s", app_path)
   logging.info("app name %s", app_name)
   logging.info("parent dir %s", parent_dir)
   logging.info("kfctl path %s", kfctl_path)
-  #zone = 'us-central1-a'
-  #if not zone:
-  #  raise ValueError("Could not get zone being used")
 
-  #if not project:
-  #  raise ValueError("Could not get project being used")
-
-  #config_spec = get_config_spec(old_config_path, project, email, zone, app_path)
   upgrade_spec = load_config(upgrade_spec_path)
   upgrade_spec["spec"]["currentKfDef"]["name"] = app_name
   upgrade_spec["spec"]["newKfDef"]["name"] = app_name
