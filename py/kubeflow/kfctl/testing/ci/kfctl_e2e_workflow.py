@@ -343,7 +343,7 @@ class Builder(object):
 
     #***************************************************************************
     # Test TFJob
-    job_name = self.config_name.replace("_", "-")
+    job_name = self.config_name.replace("_", "-").replace(".", "-")
     step_name = "tfjob-test"
     command = [
       "python",
