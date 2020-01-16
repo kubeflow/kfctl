@@ -2,6 +2,7 @@ package loaders
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
 	configsv3 "github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
@@ -17,10 +18,10 @@ type V1alpha1 struct {
 
 func pluginNameToKind(pluginName string) kfconfig.PluginKindType {
 	mapper := map[string]kfconfig.PluginKindType{
-		kftypesv3.AWS:              kfconfig.AWS_PLUGIN_KIND,
-		kftypesv3.GCP:              kfconfig.GCP_PLUGIN_KIND,
-		kftypesv3.MINIKUBE:         kfconfig.MINIKUBE_PLUGIN_KIND,
-		kftypesv3.EXISTING_ARRIKTO: kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND,
+		kftypesv3.AWS:      kfconfig.AWS_PLUGIN_KIND,
+		kftypesv3.GCP:      kfconfig.GCP_PLUGIN_KIND,
+		kftypesv3.MINIKUBE: kfconfig.MINIKUBE_PLUGIN_KIND,
+		kftypesv3.DEX:      kfconfig.DEX_PLUGIN_KIND,
 	}
 	kind, ok := mapper[pluginName]
 	if ok {

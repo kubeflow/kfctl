@@ -58,8 +58,10 @@ const (
 	DefaultAppLabel        = "app.kubernetes.io/name"
 	DefaultAppVersion      = "app.kubernetes.io/version"
 	DefaultAppType         = "kubeflow"
-	KUBEFLOW_USERNAME      = "KUBEFLOW_USERNAME"
+	KubeflowDomain         = "KUBEFLOW_DOMAIN"
+	KubeflowEmail          = "KUBEFLOW_EMAIL"
 	KUBEFLOW_PASSWORD      = "KUBEFLOW_PASSWORD"
+	KUBEFLOW_USERNAME      = "KUBEFLOW_USERNAME"
 	DefaultSwaggerFile     = "bootstrap/k8sSpec/v1.11.7/api/openapi-spec/swagger.json"
 	YamlSeparator          = "(?m)^---[ \t]*$"
 	Dns1123LabelFmt        = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
@@ -157,10 +159,10 @@ func RemoveItem(defaults []string, name string) []string {
 
 // Platforms
 const (
-	AWS              = "aws"
-	GCP              = "gcp"
-	MINIKUBE         = "minikube"
-	EXISTING_ARRIKTO = "existing_arrikto"
+	AWS      = "aws"
+	GCP      = "gcp"
+	MINIKUBE = "minikube"
+	DEX      = "dex"
 )
 
 // PackageManagers

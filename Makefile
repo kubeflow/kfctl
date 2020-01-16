@@ -103,6 +103,10 @@ pkg/kfconfig/awsplugin/zz_generated.deepcopy.go: pkg/kfconfig/awsplugin/types.go
 	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin/zz_generated.deepcopy.go pkg/kfconfig/awsplugin/ && rm -rf v3
 
+pkg/kfconfig/dexplugin/zz_generated.deepcopy.go: pkg/kfconfig/dexplugin/types.go
+	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/dexplugin/... -O zz_generated.deepcopy && \
+	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/dexplugin/zz_generated.deepcopy.go pkg/kfconfig/dexplugin/ && rm -rf v3
+
 pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go: pkg/kfconfig/gcpplugin/types.go
 	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go pkg/kfconfig/gcpplugin/ && rm -rf v3
@@ -114,6 +118,7 @@ deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go \
 	pkg/apis/apps/plugins/gcp/v1alpha1/zz_generated.deepcopy.go \
 	pkg/apis/apps/plugins/aws/v1alpha1/zz_generated.deepcopy.go \
 	pkg/kfconfig/zz_generated.deepcopy.go \
+	pkg/kfconfig/dexplugin/zz_generated.deepcopy.go \
 	pkg/kfconfig/awsplugin/zz_generated.deepcopy.go \
 	pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go
 
