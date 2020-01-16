@@ -5,7 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
 	kfdefgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
