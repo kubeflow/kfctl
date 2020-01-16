@@ -5,7 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1"
+	kfdeftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
 	kfdefgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 )
@@ -112,12 +112,13 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		s := kfconfig.Secret{
 			Name: secret.Name,
 		}
-		// We don't want to store literalSource explictly, becasue we want the config to be checked into source control and don't want secrets in source control.
+		src := &kfconfig.SecretSource{}
+		// kfdef -> kfconfig should keep  literalSource , becasue only kfdef should be checked into source control,
+		// We only filter secrets during kfconfig -> kfdef.
 		if secret.SecretSource == nil || secret.SecretSource.LiteralSource != nil {
 			config.Spec.Secrets = append(config.Spec.Secrets, s)
 			continue
 		}
-		src := &kfconfig.SecretSource{}
 		if secret.SecretSource.EnvSource != nil {
 			src.EnvSource = &kfconfig.EnvSource{
 				Name: secret.SecretSource.EnvSource.Name,
@@ -210,11 +211,7 @@ func (v V1) LoadKfDef(config kfconfig.KfConfig, out interface{}) error {
 		}
 		if secret.SecretSource != nil {
 			s.SecretSource = &kfdeftypes.SecretSource{}
-			if secret.SecretSource.LiteralSource != nil {
-				s.SecretSource.LiteralSource = &kfdeftypes.LiteralSource{
-					Value: secret.SecretSource.LiteralSource.Value,
-				}
-			}
+			// We don't want to store literalSource explictly, becasue we want the config to be checked into source control and don't want secrets in source control.
 			if secret.SecretSource.EnvSource != nil {
 				s.SecretSource.EnvSource = &kfdeftypes.EnvSource{
 					Name: secret.SecretSource.EnvSource.Name,
