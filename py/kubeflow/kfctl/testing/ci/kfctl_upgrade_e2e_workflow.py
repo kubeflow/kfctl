@@ -44,12 +44,12 @@ TEMPLATE_LABEL = "kfctl_upgrade_e2e"
 
 class Builder(kfctl_e2e_workflow.Builder):
     def __init__(self,
-                 upgrade_spec=("https://raw.githubusercontent.com/kubeflow"
-                               "/manifests/v0.7-branch/kfdef/kfctl_upgrade_gcp_iap_0.7.1.yaml"),
+                 upgrade_spec_path=("https://raw.githubusercontent.com/kubeflow"
+                                    "/manifests/v0.7-branch/kfdef/kfctl_upgrade_gcp_iap_0.7.1.yaml"),
                  **kwargs):
         """Initialize a builder."""
         super(Builder, self).__init__(**kwargs)
-        self.upgrade_spec = upgrade_spec
+        self.upgrade_spec_path = upgrade_spec_path
 
     def _build_upgrade_dag(self):
         """Build the dag of steps to run upgrade."""
@@ -81,7 +81,7 @@ class Builder(kfctl_e2e_workflow.Builder):
            "-o", "junit_suite_name=test_kfctl_upgrade_" + self.config_name,
            "--app_path=" + self.app_dir,
            "--kfctl_path=" + self.kfctl_path,
-           "--upgrade_spec=" + self.upgrade_spec,
+           "--upgrade_spec_path=" + self.upgrade_spec_path,
          ]
         dependences = []
         upgrade_step = self._build_step(step_name, self.workflow, UPGRADE_DAG_NAME, task_template,
