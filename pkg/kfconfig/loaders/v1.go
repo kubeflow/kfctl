@@ -115,9 +115,10 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		src := &kfconfig.SecretSource{}
 		// kfdef -> kfconfig should keep  literalSource , becasue only kfdef should be checked into source control,
 		// We only filter secrets during kfconfig -> kfdef.
-		if secret.SecretSource == nil || secret.SecretSource.LiteralSource != nil {
-			config.Spec.Secrets = append(config.Spec.Secrets, s)
-			continue
+		if secret.SecretSource.LiteralSource != nil {
+			src.LiteralSource = &kfconfig.LiteralSource{
+				Value: secret.SecretSource.LiteralSource.Value,
+			}
 		}
 		if secret.SecretSource.EnvSource != nil {
 			src.EnvSource = &kfconfig.EnvSource{
