@@ -71,7 +71,7 @@ DEFAULT_REPOS = [
     "kubeflow/tf-operator@HEAD"
 ]
 
-class Builder:
+class Builder(object):
   def __init__(self, name=None, namespace=None,
                config_path=("https://raw.githubusercontent.com/kubeflow"
                             "/manifests/master/kfdef/kfctl_gcp_iap.yaml"),
@@ -220,6 +220,11 @@ class Builder:
     if extra_repos:
       self.extra_repos = extra_repos.split(',')
 
+    # Keep track of step names that subclasses might want to list as dependencies
+    self._run_tests_step_name = None
+    self._test_endpoint_step_name = None
+    self._test_endpoint_template_name = None
+
   def _build_workflow(self):
     """Create the scaffolding for the Argo workflow"""
     workflow = {
@@ -338,7 +343,7 @@ class Builder:
 
     #***************************************************************************
     # Test TFJob
-    job_name = self.config_name.replace("_", "-")
+    job_name = self.config_name.replace("_", "-").replace(".", "-")
     step_name = "tfjob-test"
     command = [
       "python",
@@ -599,7 +604,7 @@ class Builder:
     #**************************************************************************
     # Wait for endpoint to be ready
     if self.test_endpoint:
-      step_name = "endpoint-is-ready"
+      self._test_endpoint_step_name = "endpoint-is-ready"
       command = ["pytest",
                  "endpoint_ready_test.py",
                  # I think -s mean stdout/stderr will print out to aid in debugging.
@@ -618,8 +623,11 @@ class Builder:
               ]
 
       dependencies = [build_kfctl["name"]]
-      endpoint_ready = self._build_step(step_name, self.workflow, E2E_DAG_NAME, task_template,
+      endpoint_ready = self._build_step(self._test_endpoint_step_name,
+                                        self.workflow, E2E_DAG_NAME, task_template,
                                         command, dependencies)
+      self._test_endpoint_template_name = endpoint_ready["name"]
+
     #**************************************************************************
     # Do kfctl apply again. This test will be skip if it's presubmit.
     step_name = "kfctl-second-apply"
@@ -642,6 +650,7 @@ class Builder:
       dependences = [kf_is_ready["name"], endpoint_ready["name"]]
     else:
       dependences = [kf_is_ready["name"]]
+
     kf_second_apply = self._build_step(step_name, self.workflow, E2E_DAG_NAME, task_template,
                                        command, dependences)
 
@@ -649,8 +658,10 @@ class Builder:
 
     # Add a task to run the dag
     dependencies = [kf_is_ready["name"]]
-    argo_build_util.add_task_only_to_dag(self.workflow, E2E_DAG_NAME, TESTS_DAG_NAME,
-                                         TESTS_DAG_NAME,
+    self._run_tests_step_name = TESTS_DAG_NAME
+    run_tests_template_name = TESTS_DAG_NAME
+    argo_build_util.add_task_only_to_dag(self.workflow, E2E_DAG_NAME, self._run_tests_step_name,
+                                         run_tests_template_name,
                                          dependencies)
 
     #***************************************************************************

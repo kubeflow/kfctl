@@ -76,23 +76,14 @@ def load_config(config_path):
       config_spec = yaml.load(f)
       return config_spec
 
-def set_env_init_args(config_spec):
-  gcp_plugin = {}
-  for plugin in config_spec.get("spec", {}).get("plugins", []):
-    if plugin.get("kind", "") == "KfGcpPlugin":
-      gcp_plugin = plugin
-      break
-  use_basic_auth = gcp_plugin.get("spec", {}).get("useBasicAuth", False)
+def set_env_for_auth(use_basic_auth):
   logging.info("use_basic_auth=%s", use_basic_auth)
-  # Is it really needed?
-  init_args = []
   # Set ENV for basic auth username/password.
   if use_basic_auth:
     # Don't log the password.
     # logging.info("Setting environment variables KUBEFLOW_USERNAME and KUBEFLOW_PASSWORD")
     os.environ["KUBEFLOW_USERNAME"] = "kf-test-user"
     os.environ["KUBEFLOW_PASSWORD"] = str(uuid.uuid4().hex)
-    init_args = ["--use_basic_auth"]
   else:
     # Owned by project kubeflow-ci-deployment.
     logging.info("Setting environment variables CLIENT_SECRET and CLIENT_ID")
@@ -100,9 +91,15 @@ def set_env_init_args(config_spec):
     os.environ["CLIENT_ID"] = (
       "29647740582-7meo6c7a9a76jvg54j0g2lv8lrsb4l8g"
       ".apps.googleusercontent.com")
-  # Always use ISTIO.
-  # TODO(gabrielwen): We should be able to remove this flag.
-  init_args.append("--use_istio")
+
+def set_env_init_args(config_spec):
+  gcp_plugin = {}
+  for plugin in config_spec.get("spec", {}).get("plugins", []):
+    if plugin.get("kind", "") == "KfGcpPlugin":
+      gcp_plugin = plugin
+      break
+  use_basic_auth = gcp_plugin.get("spec", {}).get("useBasicAuth", False)
+  set_env_for_auth(use_basic_auth)
 
 def write_basic_auth_login(filename):
   """Read basic auth login from ENV and write to the filename given. If username/password
@@ -304,6 +301,9 @@ def build_and_apply_kubeflow(kfctl_path, app_path):
   util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(app_path, "tmp.yaml")], cwd=app_path)
   return app_path
 
+def upgrade_kubeflow(kfctl_path, parent_dir):
+  util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(parent_dir, "upgrade.yaml")], cwd=parent_dir)
+
 def verify_kubeconfig(app_path):
   """Verify kubeconfig.
 
@@ -319,3 +319,46 @@ def verify_kubeconfig(app_path):
       expected=name, actual=context)
     logging.error(msg)
     raise RuntimeError(msg)
+
+def kfctl_upgrade_kubeflow(app_path, kfctl_path, upgrade_spec_path, use_basic_auth=False):
+  """Upgrade kubeflow.
+
+  Args:
+  app_path: The path to the Kubeflow app to be upgraded.
+  kfctl_path: The path to the kfctl binary.
+  upgrade_spec_path: The path to the upgrade sepc.
+  use_basic_auth: True if we are using basic auth for GCP.
+  """
+  if not os.path.exists(kfctl_path):
+    msg = "kfctl Go binary not found: {path}".format(path=kfctl_path)
+    logging.error(msg)
+    raise RuntimeError(msg)
+
+  app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
+  app_name = os.path.basename(app_path)
+
+  logging.info("app path %s", app_path)
+  logging.info("app name %s", app_name)
+  logging.info("parent dir %s", parent_dir)
+  logging.info("kfctl path %s", kfctl_path)
+
+  upgrade_spec = load_config(upgrade_spec_path)
+  upgrade_spec["spec"]["currentKfDef"]["name"] = app_name
+  upgrade_spec["spec"]["newKfDef"]["name"] = app_name
+
+  with open(os.path.join(parent_dir, "upgrade.yaml"), "w") as f:
+    yaml.dump(upgrade_spec, f)
+
+  # Set ENV for credentials IAP/basic auth needs.
+  set_env_for_auth(use_basic_auth)
+
+  # Write basic auth login username/password to a file for later tests.
+  # If the ENVs are not set, this function call will be noop.
+  write_basic_auth_login(os.path.join(app_path, "login.json"))
+
+  logging.info("switching working directory to: %s \n", parent_dir)
+  os.chdir(parent_dir)
+
+  # Run upgrade
+  logging.info("Running kfctl with upgrade spec:\n%s", yaml.safe_dump(upgrade_spec))
+  upgrade_kubeflow(kfctl_path, parent_dir)

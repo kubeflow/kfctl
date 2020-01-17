@@ -30,6 +30,7 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfupgrade "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfupgrade/v1alpha1"
+	kfdefgcpplugin "github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfconfigloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
@@ -216,7 +217,25 @@ func findKfCfg(kfDefRef *kfupgrade.KfDefRef) (*kfconfig.KfConfig, string, error)
 
 func MergeKfCfg(oldKfCfg *kfconfig.KfConfig, newKfCfg *kfconfig.KfConfig) {
 	newKfCfg.Name = oldKfCfg.Name
-	newKfCfg.Spec.Project = oldKfCfg.Spec.Project
+
+	// Merge plugins.
+	pluginKinds := []kfconfig.PluginKindType{
+		kfconfig.AWS_PLUGIN_KIND,
+		kfconfig.GCP_PLUGIN_KIND,
+		kfconfig.MINIKUBE_PLUGIN_KIND,
+		kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND,
+	}
+	for _, kind := range pluginKinds {
+		oldPlugin := kfdefgcpplugin.GcpPluginSpec{}
+		err := oldKfCfg.GetPluginSpec(kind, &oldPlugin)
+
+		// If no error, then this plugin is found and we need to copy it to the new KfCfg.
+		if err == nil {
+			log.Infof("Merging plugin spec: %v\n", kind)
+			newKfCfg.SetPluginSpec(kind, &oldPlugin)
+		}
+	}
+
 	for appIndex, newApp := range newKfCfg.Spec.Applications {
 		for _, oldApp := range oldKfCfg.Spec.Applications {
 			if newApp.Name == oldApp.Name {
