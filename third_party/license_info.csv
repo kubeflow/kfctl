@@ -317,11 +317,11 @@ kubernetes-sigs/yaml,https://github.com/kubernetes-sigs/yaml/blob/master/LICENSE
 sourcegraph/go-diff,https://github.com/sourcegraph/go-diff/blob/master/LICENSE,MIT License,https://raw.githubusercontent.com/sourcegraph/go-diff/master/LICENSE
 sqs/pbtypes,https://github.com/sqs/pbtypes/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/sqs/pbtypes/master/LICENSE
 fvbommel/util,https://github.com/fvbommel/util/blob/master/LICENSE,MIT License,https://raw.githubusercontent.com/fvbommel/util/master/LICENSE
-bitbucket.org/bertimus9/systemstat,https://bitbucket.org/bertimus9/systemstat/src/master/LICENSE,MIT License,https://bitbucket.org/bertimus9/systemstat/src/master/LICENSE
-modernc.org/cc,https://gitlab.com/cznic/cc/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/cc/blob/master/LICENSE
-modernc.org/golex,https://gitlab.com/cznic/golex/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/golex/blob/master/LICENSE
-modernc.org/mathutil,https://gitlab.com/cznic/mathutil/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/mathutl/blob/master/LICENSE
-modernc.org/strutil,https://gitlab.com/cznic/strutil/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/strutil/blob/master/LICENSE
-modernc.org/xc,https://gitlab.com/cznic/xc/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/xc/blob/master/LICENSE
-heketi/utils,https://github.com/heketi/heketi/blob/master/LICENSE,Apache License 2.0,https://github.com/heketi/heketi/blob/master/LICENSE
-kr/logfmt,https://github.com/kr/logfmt/blob/master/Readme,MIT License,https://github.com/kr/logfmt/blob/master/Readme
+bitbucket.org/bertimus9/systemstat,https://bitbucket.org/bertimus9/systemstat/raw/master/LICENSE,MIT License,https://bitbucket.org/bertimus9/systemstat/raw/master/LICENSE
+modernc.org/cc,https://gitlab.com/cznic/cc/raw/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/cc/raw/master/LICENSE
+modernc.org/golex,https://gitlab.com/cznic/golex/raw/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/golex/raw/master/LICENSE
+modernc.org/mathutil,https://gitlab.com/cznic/mathutil/raw/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/mathutil/raw/master/LICENSE
+modernc.org/strutil,https://gitlab.com/cznic/strutil/raw/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/strutil/raw/master/LICENSE
+modernc.org/xc,https://gitlab.com/cznic/xc/raw/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://gitlab.com/cznic/xc/raw/master/LICENSE
+heketi/utils,https://raw.githubusercontent.com/heketi/heketi/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/heketi/heketi/master/LICENSE
+kr/logfmt,https://raw.githubusercontent.com/kr/logfmt/master/Readme,MIT License,https://raw.githubusercontent.com/kr/logfmt/master/Readme
