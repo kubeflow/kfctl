@@ -1,7 +1,7 @@
 # Deploy kfctl as an Operator
 
 ## Deployment Instructions
-1. Clone this repository and deploy the CRD definition and controller.
+1. Clone this repository and deploy the CRD and controller
 ```shell
 # git clone https://github.com/kubeflow/kfctl.git && cd kfctl
 kubectl create ns operators
@@ -11,7 +11,7 @@ kubectl create -f deploy/cluster_role_binding.yaml
 kubectl create -f deploy/operator.yaml
 ```
 
-2. Deploy KfDef and ResourceQuota. Since we only want to allow one kfdef instance on this cluster, 
+2. Deploy KfDef. You can optionally apply ResourceQuota if your Kubernetes version is 1.15+, which will allow only one _kfdef_ instance or one deployment of Kubeflow on this cluster, which follows the singleton model.
 we use ResourceQuota to provide constraints that only one instance of kfdef is allowed within the Kubeflow namespace.
 ```shell
 kubectl create ns kubeflow
@@ -37,7 +37,8 @@ kubectl delete deploy -n kubeflow tf-job-operator
 ```
 
 3. Wait for 10 to 15 seconds, then check the tf-job-operator deployment again. 
-You will able see that the deployment is being recreated by the operator's reconciliation. 
+You will be able to see that the deployment is being recreated by the Operator's reconciliation logic
+ 
 ```Shell
 kubectl get deploy -n kubeflow tf-job-operator
 # NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
@@ -61,8 +62,8 @@ kubectl delete ns operators
 
 ## TroubleShooting
 - When deleting the KubeFlow deployment, it's using kfctl delete in the background where it only deletes the deployment namespace. 
-This will make some of Kuebflow pod deployments hanging because mutatingwebhookconfigurations are cluster-wide 
-resources and some of the webhooks are watching every pod deployment. Therefore, we need to remove all the mutatingwebhookconfigurations 
+This will make some of Kuebflow pod deployments hanging because _mutatingwebhookconfigurations_ are cluster-wide 
+resources and some of the webhooks are watching every pod deployment. Therefore, we need to remove all the _mutatingwebhookconfigurations_ 
 so that pod deployments will not be hanging after deleting KubeFlow.
 ```shell
 kubectl delete mutatingwebhookconfigurations --all
@@ -76,7 +77,7 @@ kubectl delete mutatingwebhookconfigurations --all
 
 
 ## Build Instructions
-These steps are base on the [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md)
+These steps are based on the [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md)
 with modifications that are specific for this KubeFlow operator.
 
 1. Clone this repository under your `$GOPATH`. (e.g. `~/go/src/github.com/kubeflow/`)
