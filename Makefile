@@ -29,6 +29,7 @@ VERBOSE ?=
 PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
+ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
 
 # Location of junit file
 JUNIT_FILE ?= /tmp/report.xml
@@ -124,7 +125,7 @@ build-kfctl: deepcopy generate fmt vet
 	#GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
 	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
 	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
-	cp bin/linux/kfctl bin/kfctl
+	cp bin/$(ARCH)/kfctl bin/kfctl
 
 # Release tarballs suitable for upload to GitHub release pages
 build-kfctl-tgz: build-kfctl
