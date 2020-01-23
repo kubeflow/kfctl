@@ -64,7 +64,7 @@ kubectl delete ns ${OPERATOR_NAMESPACE}
 
 ## TroubleShooting
 - When deleting the KubeFlow deployment, it's using kfctl delete in the background where it only deletes the deployment namespace. 
-This will make some of Kuebflow pod deployments hanging because _mutatingwebhookconfigurations_ are cluster-wide 
+This will make some of KubeFlow pod deployments hanging because _mutatingwebhookconfigurations_ are cluster-wide 
 resources and some of the webhooks are watching every pod deployment. Therefore, we need to remove all the _mutatingwebhookconfigurations_ 
 so that pod deployments will not be hanging after deleting KubeFlow.
 ```shell
