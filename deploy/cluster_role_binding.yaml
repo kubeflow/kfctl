@@ -1,12 +1,12 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: kfctl
+  name: kubeflow-operator
   namespace: kubeflow
 subjects:
 - kind: ServiceAccount
-  name: kfctl
-  namespace: operators
+  name: kubeflow-operator
+  namespace: ${OPERATOR_NAMESPACE} # Replace it with operator's namespace
 roleRef:
   kind: ClusterRole
   name: cluster-admin
