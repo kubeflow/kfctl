@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kubeflow-operator
-  namespace: operators
 spec:
   replicas: 1
   selector:
@@ -13,7 +12,7 @@ spec:
       labels:
         name: kubeflow-operator
     spec:
-      serviceAccountName: kfctl
+      serviceAccountName: kubeflow-operator
       containers:
         - name: kubeflow-operator
           # Replace this with the built image name
