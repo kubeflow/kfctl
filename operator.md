@@ -117,7 +117,7 @@ popd
 
 4. Build the operator image
 ```shell
-operator-sdk build <username>/kubeflow-operator:v0.0.2
+operator-sdk build <username>/kubeflow-operator:v0.7.1
 ```
 
 5. Update the operator.yaml spec with the new operator image.

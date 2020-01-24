@@ -2,9 +2,9 @@
 set -x
 
 # ensure $HOME exists and is accessible by group 0 (we don't know what the runtime UID will be)
-mkdir -p ${HOME}
-chown ${USER_UID}:0 ${HOME}
-chmod ug+rwx ${HOME}
+mkdir -p ${HOMEDIR}
+chown ${USER_UID}:0 ${HOMEDIR}
+chmod ug+rwx ${HOMEDIR}
 
 # runtime user will need to be able to self-insert in /etc/passwd
 chmod g+rw /etc/passwd
