@@ -124,6 +124,8 @@ type Setter interface {
 
 func (gcp *Gcp) SetTokenSource(s oauth2.TokenSource) error {
 	gcp.tokenSource = s
+	// Reset client to force pick up the new token
+	gcp.client = nil
 	return nil
 }
 
@@ -1112,10 +1114,10 @@ func (gcp *Gcp) copyFile(source string, dest string) error {
 	return nil
 }
 
-// Helper function to generate account field for IAP.
-func (gcp *Gcp) getIapAccount() string {
+// Helper function to generate account field.
+func (gcp *Gcp) getAccount() string {
 	iapAcct := "serviceAccount:" + gcp.kfDef.Spec.Email
-	if !strings.Contains(gcp.kfDef.Spec.Email, "iam.gserviceaccount.com") {
+	if !strings.Contains(gcp.kfDef.Spec.Email, "gserviceaccount.com") {
 		iapAcct = "user:" + gcp.kfDef.Spec.Email
 	}
 	return iapAcct
@@ -1151,7 +1153,7 @@ func (gcp *Gcp) writeIamBindingsFile(src string, dest string) error {
 		"set-kubeflow-admin-service-account": "serviceAccount:" + getSA(gcp.kfDef.Name, "admin", gcp.kfDef.Spec.Project),
 		"set-kubeflow-user-service-account":  "serviceAccount:" + getSA(gcp.kfDef.Name, "user", gcp.kfDef.Spec.Project),
 		"set-kubeflow-vm-service-account":    "serviceAccount:" + getSA(gcp.kfDef.Name, "vm", gcp.kfDef.Spec.Project),
-		"set-kubeflow-iap-account":           gcp.getIapAccount(),
+		"set-kubeflow-iap-account":           gcp.getAccount(),
 	}
 
 	bindings := e.([]interface{})
@@ -1234,7 +1236,7 @@ func (gcp *Gcp) writeClusterConfig(src string, dest string, gcpPluginSpec gcpplu
 		properties["gkeApiVersion"] = kftypesv3.DefaultGkeApiVer
 		properties["zone"] = gcp.kfDef.Spec.Zone
 		properties["users"] = []string{
-			gcp.getIapAccount(),
+			gcp.getAccount(),
 		}
 		properties["ipName"] = gcp.kfDef.Spec.IpName
 		resource["properties"] = properties

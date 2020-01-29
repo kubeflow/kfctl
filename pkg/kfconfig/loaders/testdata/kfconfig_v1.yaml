@@ -341,6 +341,9 @@ spec:
       envSource:
         name: ENV_PASSWORD_NAME
   - name: plain_text_password
+    secretSource:
+      literalSource:
+        value: 12345
   SkipInitProject: true
   useIstio: true
 status: {}

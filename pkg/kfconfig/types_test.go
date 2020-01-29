@@ -19,6 +19,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/common/log"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -44,6 +45,21 @@ func TestSyncCache(t *testing.T) {
 
 	ioutil.WriteFile(path.Join(srcDir, "file1"), []byte("hello world"), os.ModePerm)
 
+	// Verify that we can unpack a local tarball and use it.
+	tarballName := "c0e81bedec9a4df8acf568cc5ccacc4bc05a3b38.tar.gz"
+	from, err := os.Open(path.Join("./testdata", tarballName))
+	if err != nil {
+		t.Fatalf("failed to open tarball file: %v", err)
+	}
+	tarballPath := path.Join(srcDir, tarballName)
+	to, err := os.OpenFile(tarballPath, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		t.Fatalf("failed to open new file location fortarball file: %v", err)
+	}
+	if _, err = io.Copy(to, from); err != nil {
+		t.Fatalf("tarball copy is failed: %v", err)
+	}
+
 	repoName := "testRepo"
 
 	testCases := []testCase{
@@ -62,6 +78,24 @@ func TestSyncCache(t *testing.T) {
 				{
 					Name:      repoName,
 					LocalPath: path.Join(testDir, "app1", ".cache", repoName),
+				},
+			},
+		},
+		{
+			input: &KfConfig{
+				Spec: KfConfigSpec{
+					AppDir: path.Join(testDir, "app2"),
+					Repos: []Repo{{
+						Name: repoName,
+						URI:  "file:" + tarballPath,
+					},
+					},
+				},
+			},
+			expected: []Cache{
+				{
+					Name:      repoName,
+					LocalPath: path.Join(testDir, "app2", ".cache", repoName, "kubeflow-manifests-c0e81be"),
 				},
 			},
 		},

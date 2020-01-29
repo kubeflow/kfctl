@@ -1,19 +1,25 @@
 package kfconfig
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	gogetter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -485,25 +491,66 @@ func (c *KfConfig) SyncCache() error {
 		}
 
 		log.Infof("Fetching %v to %v", r.URI, cacheDir)
-		tarballUrlErr := gogetter.GetAny(cacheDir, r.URI)
-		if tarballUrlErr != nil {
-			return &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, tarballUrlErr),
+		if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
+			log.Errorf("Could not create dir %v; error %v", cacheDir, err)
+			return errors.WithStack(err)
+		}
+
+		// Manifests are local dir
+		if fi, err := os.Stat(r.URI); err == nil && fi.Mode().IsDir() {
+			if err := copy.Copy(r.URI, cacheDir); err != nil {
+				return errors.WithStack(err)
+			}
+		} else {
+			t := &http.Transport{}
+			t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
+			t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
+			hclient := &http.Client{Transport: t}
+			resp, err := hclient.Get(r.URI)
+			if err != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INVALID_ARGUMENT),
+					Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, err),
+				}
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Errorf("Could not read response body; error %v", err)
+				return errors.WithStack(err)
+			}
+			if err := untar(body, cacheDir); err != nil {
+				log.Errorf("Could not untar file %v; error %v", r.URI, err)
+				return errors.WithStack(err)
 			}
 		}
 
 		// This is a bit of a hack to deal with the fact that GitHub tarballs
 		// can unpack to a directory containing the commit.
 		localPath := cacheDir
+		files, filesErr := ioutil.ReadDir(cacheDir)
+		if filesErr != nil {
+			log.Errorf("Error reading cachedir; error %v", filesErr)
+			return errors.WithStack(filesErr)
+		}
 		if u.Scheme == "http" || u.Scheme == "https" {
-			files, filesErr := ioutil.ReadDir(cacheDir)
-			if filesErr != nil {
-				log.Errorf("Error reading cachedir; error %v", filesErr)
-				return errors.WithStack(filesErr)
-			}
 			subdir := files[0].Name()
 			localPath = path.Join(cacheDir, subdir)
+			log.Infof("updating localPath to %v", localPath)
+		} else if u.Scheme == "file" {
+			filePath := strings.TrimPrefix(r.URI, "file:")
+			log.Infof("probing file path: %v", filePath)
+			if fileInfo, err := os.Stat(filePath); err != nil {
+				return &kfapis.KfError{
+					Code:    int(kfapis.INVALID_ARGUMENT),
+					Message: fmt.Sprintf("couldn't stat the path %v: %v", filePath, err),
+				}
+			} else if !fileInfo.IsDir() {
+				subdir := files[0].Name()
+				localPath = path.Join(cacheDir, subdir)
+				log.Infof("updating localPath to %v", localPath)
+			}
 		}
 
 		c.Status.Caches = append(c.Status.Caches, Cache{
@@ -512,6 +559,54 @@ func (c *KfConfig) SyncCache() error {
 		})
 
 		log.Infof("Fetch succeeded; LocalPath %v", localPath)
+	}
+	return nil
+}
+
+func untar(body []byte, cacheDir string) error {
+	gzf, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	tarReader := tar.NewReader(gzf)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if header == nil {
+			continue
+		}
+
+		target := filepath.Join(cacheDir, header.Name)
+
+		switch header.Typeflag {
+
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(f, tarReader); err != nil {
+				return err
+			}
+
+			if err := f.Close(); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

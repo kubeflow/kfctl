@@ -1,6 +1,5 @@
 #**********************************************************************
 # Builder
-# 
 # Create a go runtime suitable for building and testing kfctl
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
@@ -66,5 +65,8 @@ WORKDIR /opt/kubeflow
 FROM barebones_base as kfctl
 
 COPY --from=kfctl_base /go/src/github.com/kubeflow/kfctl/bin/kfctl /usr/local/bin
+COPY --from=kfctl_base /go/src/github.com/kubeflow/kfctl/third_party /third_party
+COPY --from=kfctl_base /go/pkg/mod /third_party/vendor
+
 
 CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]

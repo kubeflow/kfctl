@@ -71,7 +71,7 @@ DEFAULT_REPOS = [
     "kubeflow/tf-operator@HEAD"
 ]
 
-class Builder:
+class Builder(object):
   def __init__(self, name=None, namespace=None,
                config_path=("https://raw.githubusercontent.com/kubeflow"
                             "/manifests/master/kfdef/kfctl_gcp_iap.yaml"),
@@ -134,6 +134,15 @@ class Builder:
 
     # Top level directories for python testing code in kfctl.
     self.kfctl_py = os.path.join(self.src_dir, "py")
+
+    # Build a string of key value pairs that can be passed to various test
+    # steps to allow them to do substitution into different values.
+    values = {
+      "srcrootdir": self.src_root_dir,
+    }
+
+    value_pairs = ["{0}={1}".format(k,v) for k,v in values.items()]
+    self.values_str = ",".join(value_pairs)
 
     # The directory within the kubeflow_testing submodule containing
     # py scripts to use.
@@ -210,6 +219,11 @@ class Builder:
     self.extra_repos = []
     if extra_repos:
       self.extra_repos = extra_repos.split(',')
+
+    # Keep track of step names that subclasses might want to list as dependencies
+    self._run_tests_step_name = None
+    self._test_endpoint_step_name = None
+    self._test_endpoint_template_name = None
 
   def _build_workflow(self):
     """Create the scaffolding for the Argo workflow"""
@@ -320,16 +334,7 @@ class Builder:
     step["name"] = name
     step["container"]["command"] = command
 
-    argo_build_util.add_task_to_dag(workflow, dag_name, step, dependences)
-
-    # Return the newly created template; add_task_to_dag makes a copy of the template
-    # So we need to fetch it from the workflow spec.
-    for t in workflow["spec"]["templates"]:
-      if t["name"] == name:
-        return t
-    workflow["spec"]["templates"].append(new_template)
-
-    return None
+    return argo_build_util.add_task_to_dag(workflow, dag_name, step, dependences)
 
   def _build_tests_dag(self):
     """Build the dag for the set of tests to run against a KF deployment."""
@@ -338,7 +343,7 @@ class Builder:
 
     #***************************************************************************
     # Test TFJob
-    job_name = self.config_name.replace("_", "-")
+    job_name = self.config_name.replace("_", "-").replace(".", "-")
     step_name = "tfjob-test"
     command = [
       "python",
@@ -362,56 +367,36 @@ class Builder:
     #*************************************************************************
     # Test pytorch job
     step_name = "pytorch-job-deploy"
-    command = [ "python",
-                "-m",
-                "kubeflow.kfctl.testing.test_deploy",
-                "--project=kubeflow-ci",
-                "--namespace=" + self.steps_namespace,
-                "--test_dir=" + self.test_dir,
-                "--artifacts_dir=" + self.artifacts_dir,
-                "--deploy_name=pytorch-job",
-                "--workflow_name=" + self.name,
-                "deploy_pytorchjob",
-                # TODO(jlewi): Does the image need to be updated?
-                "--params=image=pytorch/pytorch:v0.2,num_workers=1"
-             ]
-
+    command = ["pytest",
+               "pytorch_job_deploy.py",
+               "-s",
+               "--timeout=600",
+               "--junitxml=" + self.artifacts_dir + "/junit_pytorch-test.xml",
+               "--kfctl_repo_path=" + self.src_dir,
+               "--namespace=" + self.steps_namespace,
+              ]
 
     dependences = []
-    # TODO(https://github.com/kubeflow/kfctl/issues/94):
-    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
-    # converting it to Yaml.
-    # TODO(https://github.com/kubeflow/kfctl/issues/97):
-    # Convert this to pytest.
-    #
-    # pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-    #                                 command, dependences)
-
+    pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                    command, dependences)
+    pytorch_test["container"]["workingDir"] = self.kfctl_pytest_dir
     #***************************************************************************
     # Notebook test
-
     step_name = "notebook-test"
     command =  ["pytest",
                 "jupyter_test.py",
-                # I think -s mean stdout/stderr will print out to aid in debugging.
-                # Failures still appear to be captured and stored in the junit file.
                 "-s",
-                "--namespace=" + self.steps_namespace,
-                # Test timeout in seconds.
                 "--timeout=500",
                 "--junitxml=" + self.artifacts_dir + "/junit_jupyter-test.xml",
+                "--kfctl_repo_path=" + self.src_dir,
+                "--namespace=" + self.steps_namespace,
              ]
 
     dependences = []
 
-    # TODO(https://github.com/kubeflow/kfctl/issues/94):
-    # Ksonnet is deleted so this test is no longer runnable. Re-enable it after
-    # converting it to Yaml.
-    # notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
-    #                                 command, dependences)
-
-    # notebook_test["container"]["workingDir"] =  os.path.join(
-    #  self.kubeflow_dir, "kubeflow/jupyter/tests")
+    notebook_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                     command, dependences)
+    notebook_test["container"]["workingDir"] = self.kfctl_pytest_dir
 
     #***************************************************************************
     # Profiles test
@@ -432,7 +417,24 @@ class Builder:
                                      command, dependences)
 
     profiles_test["container"]["workingDir"] =  os.path.join(
-      self.kubeflow_dir, "kubeflow/profiles/tests")
+      self.kubeflow_dir, "py/kubeflow/kubeflow/ci")
+
+    # ***************************************************************************
+    # kfam test
+
+    step_name = "kfam-test"
+    command = ["pytest",
+               "kfam_test.py",
+               "-s",
+               "--timeout=600",
+               "--junitxml=" + self.artifacts_dir + "/junit_kfam-test.xml",
+               ]
+
+    dependences = []
+    kfam_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                     command, dependences)
+
+    kfam_test["container"]["workingDir"] = self.kfctl_pytest_dir
 
   def _build_exit_dag(self):
     """Build the exit handler dag"""
@@ -564,6 +566,7 @@ class Builder:
         "-s",
         "--app_name=" + self.app_name,
         "--config_path=" + self.config_path,
+        "--values=" + self.values_str,
         "--build_and_apply=" + str(self.build_and_apply),
         # Increase the log level so that info level log statements show up.
         # TODO(https://github.com/kubeflow/testing/issues/372): If we
@@ -618,7 +621,7 @@ class Builder:
     #**************************************************************************
     # Wait for endpoint to be ready
     if self.test_endpoint:
-      step_name = "endpoint-is-ready"
+      self._test_endpoint_step_name = "endpoint-is-ready"
       command = ["pytest",
                  "endpoint_ready_test.py",
                  # I think -s mean stdout/stderr will print out to aid in debugging.
@@ -637,8 +640,11 @@ class Builder:
               ]
 
       dependencies = [build_kfctl["name"]]
-      endpoint_ready = self._build_step(step_name, self.workflow, E2E_DAG_NAME, task_template,
+      endpoint_ready = self._build_step(self._test_endpoint_step_name,
+                                        self.workflow, E2E_DAG_NAME, task_template,
                                         command, dependencies)
+      self._test_endpoint_template_name = endpoint_ready["name"]
+
     #**************************************************************************
     # Do kfctl apply again. This test will be skip if it's presubmit.
     step_name = "kfctl-second-apply"
@@ -661,6 +667,7 @@ class Builder:
       dependences = [kf_is_ready["name"], endpoint_ready["name"]]
     else:
       dependences = [kf_is_ready["name"]]
+
     kf_second_apply = self._build_step(step_name, self.workflow, E2E_DAG_NAME, task_template,
                                        command, dependences)
 
@@ -668,8 +675,10 @@ class Builder:
 
     # Add a task to run the dag
     dependencies = [kf_is_ready["name"]]
-    argo_build_util.add_task_only_to_dag(self.workflow, E2E_DAG_NAME, TESTS_DAG_NAME,
-                                         TESTS_DAG_NAME,
+    self._run_tests_step_name = TESTS_DAG_NAME
+    run_tests_template_name = TESTS_DAG_NAME
+    argo_build_util.add_task_only_to_dag(self.workflow, E2E_DAG_NAME, self._run_tests_step_name,
+                                         run_tests_template_name,
                                          dependencies)
 
     #***************************************************************************

@@ -22,13 +22,14 @@ TAG ?= $(eval TAG := $(shell git describe --tags --long --always))$(TAG)
 REPO ?= $(shell echo $$(cd ../kubeflow && git config --get remote.origin.url) | sed 's/git@\(.*\):\(.*\).git$$/https:\/\/\1\/\2/')
 BRANCH ?= $(shell cd ../kubeflow && git branch | grep '^*' | awk '{print $$2}')
 KFCTL_TARGET ?= kfctl
-MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube 
-MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config 
+MOUNT_KUBE ?=  -v $(HOME)/.kube:/root/.kube
+MOUNT_GCP ?=  -v $(HOME)/.config:/root/.config
 # set to -V
-VERBOSE ?= 
+VERBOSE ?=
 PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
+ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
 
 # Location of junit file
 JUNIT_FILE ?= /tmp/report.xml
@@ -59,7 +60,7 @@ auth:
 
 # Run go fmt against code
 fmt:
-	@${GO} fmt ./config ./cmd/... ./pkg/... 
+	@${GO} fmt ./config ./cmd/... ./pkg/...
 
 # Run go vet against code
 vet:
@@ -120,14 +121,18 @@ deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go \
 build: build-kfctl
 
 build-kfctl: deepcopy generate fmt vet
-	${GO} build -i -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/kfctl cmd/kfctl/main.go
+	# TODO(swiftdiaries): figure out import conflict errors for windows
+	#GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
+	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
+	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
+	cp bin/$(ARCH)/kfctl bin/kfctl
 
 # Release tarballs suitable for upload to GitHub release pages
 build-kfctl-tgz: build-kfctl
 	chmod a+rx ./bin/kfctl
 	rm -f bin/*.tgz
-	cd bin && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
-	cp -f ./bin/kfctl_$(TAG)_linux.tar.gz ./bin/kfctl_$(TAG)_darwin.tar.gz
+	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
+	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
 
 # push the releases to a GitHub page
 push-to-github-release: build-kfctl-tgz
@@ -218,7 +223,7 @@ build-builder-container-gcb:
 
 #***************************************************************************************************
 
-clean: 
+clean:
 	rm -rf test && mkdir test
 
 doc:
@@ -226,9 +231,12 @@ doc:
 
 
 #**************************************************************************************************
+# checks licenses
+check-licenses:
+	./third_party/check-license.sh
 # rules to run unittests
 #
-test: build-kfctl
+test: build-kfctl check-licenses
 	go test ./... -v
 
 

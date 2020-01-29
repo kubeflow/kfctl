@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.16.26
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
-	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -17,28 +16,24 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-kit/kit v0.8.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
 	github.com/go-openapi/swag v0.19.2 // indirect
 	github.com/gogo/protobuf v1.2.1
+	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/go-cmp v0.3.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.5.0 // indirect
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.7
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/kr/pty v1.1.3 // indirect
-	github.com/kubeflow/kubeflow/components/profile-controller v0.0.0-20190614045418-7ca3cfb39368 // indirect
 	github.com/kubernetes-sigs/application v0.8.0
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/onrik/logrus v0.2.1
-	github.com/otiai10/copy v1.0.1
-	github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776 // indirect
+	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/common v0.2.0
 	github.com/russross/blackfriday v1.5.2 // indirect
-	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
@@ -50,28 +45,13 @@ require (
 	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
-	gopkg.in/src-d/go-git.v4 v4.12.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/cloud-provider v0.0.0
-	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.0.0
-	k8s.io/component-base v0.0.0
-	k8s.io/cri-api v0.0.0
-	k8s.io/csi-translation-lib v0.0.0
-	k8s.io/kube-aggregator v0.0.0
-	k8s.io/kube-controller-manager v0.0.0
-	k8s.io/kube-proxy v0.0.0
-	k8s.io/kube-scheduler v0.0.0
-	k8s.io/kubelet v0.0.0
 	k8s.io/kubernetes v1.15.0
-	k8s.io/legacy-cloud-providers v0.0.0
-	k8s.io/metrics v0.0.0
-	k8s.io/sample-apiserver v0.0.0
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/kustomize/v3 v3.1.0
