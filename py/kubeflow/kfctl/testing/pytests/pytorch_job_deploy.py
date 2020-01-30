@@ -15,8 +15,8 @@ from kubernetes import client as k8s_client
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 
-@pytest.xfail(reason=("See: https://github.com/kubeflow/kfctl/issues/199; "
-                      "test is flaky."))
+@pytest.mark.xfail(reason=("See: https://github.com/kubeflow/kfctl/issues/199; "
+                           "test is flaky."))
 def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path, namespace):
   """Deploy PytorchJob."""
   util.load_kube_config()
