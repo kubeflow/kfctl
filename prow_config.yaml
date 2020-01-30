@@ -65,11 +65,10 @@ workflows:
       - postsubmit
       - periodic
     include_dirs:
-      - config/*
-      - cmd/*
-      - pkg/*
-      - testing/*
-      - py/*
+      - pkg/kfupgrade/*
+      - pkg/apis/apps/kfupgrade/*
+      - py/kubeflow/kfctl/testing/ci/kfctl_upgrade_e2e_workflow.py
+      - py/kubeflow/kfctl/testing/pytests/kfctl_upgrade_test.py
     kwargs:
       use_basic_auth: false
       # Run build and then apply rather than just apply
