@@ -296,6 +296,11 @@ func GetConfig() *rest.Config {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides).ClientConfig()
 	if err != nil {
 		log.Warnf("could not open %v Error %v", loadingRules.ExplicitPath, err)
+		log.Infof("trying to load rest.config with inClusterConfig...")
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			log.Warnf("could not load rest.config with inClusterConfig and %v", loadingRules.ExplicitPath)
+		}
 	}
 	return config
 }
