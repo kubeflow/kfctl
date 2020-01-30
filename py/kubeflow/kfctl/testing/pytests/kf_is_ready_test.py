@@ -64,8 +64,10 @@ def test_katib_is_ready(record_xml_attribute, namespace):
 
   deployment_names = [
     "katib-controller",
-    "katib-db",
-    "katib-manager",
+    # Katib v1alpha3 changed the names of these deployments. After the manifests
+    # are updated, we need to change the deployment names here accordingly.
+    #"katib-db",
+    #"katib-manager",
     "katib-ui",
   ]
   for deployment_name in deployment_names:
