@@ -1,4 +1,6 @@
-# Kubeflow Operator: kfctl as an Operator for Kubeflow deployment and management
+# Kubeflow Operator
+
+## kfctl as an Operator for Kubeflow deployment and management
 
 Kubeflow Operator helps deploy, monitor and manage the lifecycle of Kubeflow. Built using the [Operator Framework](https://coreos.com/blog/introducing-operator-framework) which offers an open source toolkit to build, test, package operators and manage the lifecycle of operators.
 
