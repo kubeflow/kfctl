@@ -85,7 +85,7 @@ const (
 	varsMap                  MapType = 6
 	configurationsMap        MapType = 7
 	configMapGeneratorMap    MapType = 8
-	secretsMapGeneratorMap   MapType = 9
+	secretsGeneratorMap      MapType = 9
 	patchesStrategicMergeMap MapType = 10
 	patchesJson6902Map       MapType = 11
 	OverlayParamName                 = "overlay"
@@ -756,17 +756,17 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 		updateGeneratorArgs(&value.GeneratorArgs, value.GeneratorArgs)
 		switch secretBehavior {
 		case types.BehaviorCreate:
-			if _, ok := kustomizationMaps[secretsMapGeneratorMap][secretName]; !ok {
+			if _, ok := kustomizationMaps[secretsGeneratorMap][secretName]; !ok {
 				parent.SecretGenerator = append(parent.SecretGenerator, value)
-				kustomizationMaps[secretsMapGeneratorMap][secretName] = true
+				kustomizationMaps[secretsGeneratorMap][secretName] = true
 			}
 		case types.BehaviorMerge, types.BehaviorReplace:
 			parent.SecretGenerator = append(parent.SecretGenerator, value)
-			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
+			kustomizationMaps[secretsGeneratorMap][secretName] = true
 		default:
 			value.Behavior = secretBehavior.String()
 			parent.SecretGenerator = append(parent.SecretGenerator, value)
-			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
+			kustomizationMaps[secretsGeneratorMap][secretName] = true
 		}
 	}
 	for _, value := range child.Vars {
@@ -1111,7 +1111,7 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 		varsMap:                  make(map[string]bool),
 		configurationsMap:        make(map[string]bool),
 		configMapGeneratorMap:    make(map[string]bool),
-		secretsMapGeneratorMap:   make(map[string]bool),
+		secretsGeneratorMap:      make(map[string]bool),
 		patchesStrategicMergeMap: make(map[string]bool),
 		patchesJson6902Map:       make(map[string]bool),
 	}
