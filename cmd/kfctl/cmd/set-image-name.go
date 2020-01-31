@@ -35,7 +35,7 @@ func init() {
 		return
 	}
 
-	rootCmd.AddCommand(setImageNameCmd)
+	alphaCmd.AddCommand(setImageNameCmd)
 }
 
 var setImageNameCfg = viper.New()
