@@ -43,7 +43,8 @@ def get_platform_app_name(app_path):
     raise RuntimeError("Unknown version: " + apiVersion[-1])
   return platform, app_name
 
-
+# TODO(richardsliu): Remove this once Katib v1alpha3 manifests updates are merged.
+@pytest.mark.xfail
 def test_katib_is_ready(record_xml_attribute, namespace):
   """Test that Kubeflow was successfully deployed.
 
