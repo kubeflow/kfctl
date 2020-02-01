@@ -34,7 +34,7 @@ def test_kfam(record_xml_attribute):
             '{"metadata":{"name":"%s"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}' % profile_name,
             'profiles-kfam.kubeflow:8081/kfam/v1/profiles'])
 
-  assert verify_profile_creation(jupyterpodi, profile_name)
+  assert verify_profile_creation(jupyterpod, profile_name)
 
 @retry(wait_fixed=2000, stop_max_delay=20 * 1000)
 def verify_profile_creation(jupyterpod, profile_name):
