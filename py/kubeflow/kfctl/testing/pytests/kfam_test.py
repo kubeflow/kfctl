@@ -6,6 +6,7 @@ from kubeflow.testing import util
 import json
 from retrying import retry
 from time import sleep
+import uuid
 
 
 logging.basicConfig(level=logging.INFO,
@@ -27,9 +28,10 @@ def test_kfam(record_xml_attribute):
 
   sleep(10)
   # Profile Creation
+  suffix = uuid.uuid4().hex[0:7]
   util.run(['kubectl', 'exec', jupyterpod, '-n', 'kubeflow', '--', 'curl',
             '--silent', '-X', 'POST', '-d',
-            '{"metadata":{"name":"testprofile"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}',
+            '{"metadata":{"name":"testprofile-%s"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}' % suffix,
             'profiles-kfam.kubeflow:8081/kfam/v1/profiles'])
 
   assert verify_profile_creation(jupyterpod)
