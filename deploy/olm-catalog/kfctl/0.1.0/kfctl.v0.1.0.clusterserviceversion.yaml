@@ -1,0 +1,86 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: kfctl.v0.1.0
+  categories: "Machine Learning"
+  description: "Kubeflow Operator for deployment and management of Kubeflow"
+  support: Kubeflow
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions: {}
+  description: "Kubeflow Operator for deployment and management of Kubeflow"
+  displayName: Kubeflow
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: cluster-admin
+      deployments:
+      - name: kubeflow-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: kubeflow-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: kubeflow-operator
+            spec:
+              containers:
+              - command:
+                - kfctl
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: kubeflow-operator
+                image: aipipeline/kubeflow-operator:v0.1.0
+                imagePullPolicy: Always
+                name: kubeflow-operator
+                resources: {}
+              serviceAccountName: kubeflow-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  maturity: alpha
+  provider:
+    - name: Kubeflow
+      url: https://github.com/kubeflow
+  maintainers:
+    - name: Animesh Singh
+      email: singhan@us.ibm.com
+    - name: Tommy Li
+      email: tommy.chaoping.li@ibm.com
+    - name: Weiqiang Zhuang
+      email: wzhuang@us.ibm.com
+  replaces: kfctl.v0.0.0
+  version: 0.1.0
