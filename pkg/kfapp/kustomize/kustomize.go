@@ -198,7 +198,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			},
 			b,
 			func(e error, duration time.Duration) {
-				log.Warnf("Encountered error appling application %v: %v", app.Name, e)
+				log.Warnf("Encountered error applying application %v: %v", app.Name, e)
 				log.Warnf("Will retry in %.0f seconds.", duration.Seconds())
 			})
 		if err != nil {
