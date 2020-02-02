@@ -169,6 +169,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
+		log.Infof("Deploying application %v", app.Name)
 		resMap, err := EvaluateKustomizeManifest(path.Join(kustomizeDir, app.Name))
 		if err != nil {
 			log.Errorf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
@@ -185,18 +186,27 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
 			}
 		}
+		
+		// TODO(https://github.com/kubeflow/manifests/issues/806): Bump the timeout because cert-manager takes
+		// a long time to start. Any application that needs to create a certificate will fail because it won't
+		// be able to create certificates if cert-manager is unavailable. We should try to identify Permanent Errors
+		// and return a PermanentError to avoid retrying and taking 10 minutes to fail.
+		b := utils.NewDefaultBackoff()
+		b.MaxElapsedTime = 10 * time.Minute
 		err = backoff.RetryNotify(
 			func() error {
 				return apply.Apply(data)
 			},
-			utils.NewDefaultBackoff(),
+			b,
 			func(e error, duration time.Duration) {
-				log.Warnf("Encountered error during apply: %v", e)
+				log.Warnf("Encountered error appling application %v: %v", app.Name, e)
 				log.Warnf("Will retry in %.0f seconds.", duration.Seconds())
 			})
 		if err != nil {
+			log.Errorf("Permanently failed applying application %v; error: %v", app.Name, err)
 			return err
 		}
+		log.Infof("Successfully applied application %v", app.Name)
 	}
 
 	// Default user namespace when multi-tenancy enabled
