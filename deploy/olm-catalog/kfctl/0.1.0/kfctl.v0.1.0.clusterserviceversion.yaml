@@ -4,10 +4,10 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
+    categories: "Machine Learning"
+    description: "Kubeflow Operator for deployment and management of Kubeflow"
+    support: Kubeflow
   name: kfctl.v0.1.0
-  categories: "Machine Learning"
-  description: "Kubeflow Operator for deployment and management of Kubeflow"
-  support: Kubeflow
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
