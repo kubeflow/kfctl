@@ -85,7 +85,7 @@ const (
 	varsMap                  MapType = 6
 	configurationsMap        MapType = 7
 	configMapGeneratorMap    MapType = 8
-	secretsGeneratorMap      MapType = 9
+	secretsMapGeneratorMap   MapType = 9
 	patchesStrategicMergeMap MapType = 10
 	patchesJson6902Map       MapType = 11
 	OverlayParamName                 = "overlay"
@@ -186,7 +186,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
 			}
 		}
-		
+
 		// TODO(https://github.com/kubeflow/manifests/issues/806): Bump the timeout because cert-manager takes
 		// a long time to start. Any application that needs to create a certificate will fail because it won't
 		// be able to create certificates if cert-manager is unavailable. We should try to identify Permanent Errors
@@ -766,17 +766,17 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 		updateGeneratorArgs(&value.GeneratorArgs, value.GeneratorArgs)
 		switch secretBehavior {
 		case types.BehaviorCreate:
-			if _, ok := kustomizationMaps[secretsGeneratorMap][secretName]; !ok {
+			if _, ok := kustomizationMaps[secretsMapGeneratorMap][secretName]; !ok {
 				parent.SecretGenerator = append(parent.SecretGenerator, value)
-				kustomizationMaps[secretsGeneratorMap][secretName] = true
+				kustomizationMaps[secretsMapGeneratorMap][secretName] = true
 			}
 		case types.BehaviorMerge, types.BehaviorReplace:
 			parent.SecretGenerator = append(parent.SecretGenerator, value)
-			kustomizationMaps[secretsGeneratorMap][secretName] = true
+			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
 		default:
 			value.Behavior = secretBehavior.String()
 			parent.SecretGenerator = append(parent.SecretGenerator, value)
-			kustomizationMaps[secretsGeneratorMap][secretName] = true
+			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
 		}
 	}
 	for _, value := range child.Vars {
@@ -1121,7 +1121,7 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 		varsMap:                  make(map[string]bool),
 		configurationsMap:        make(map[string]bool),
 		configMapGeneratorMap:    make(map[string]bool),
-		secretsGeneratorMap:      make(map[string]bool),
+		secretsMapGeneratorMap:   make(map[string]bool),
 		patchesStrategicMergeMap: make(map[string]bool),
 		patchesJson6902Map:       make(map[string]bool),
 	}
