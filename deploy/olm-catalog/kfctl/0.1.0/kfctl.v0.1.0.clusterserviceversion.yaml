@@ -83,4 +83,10 @@ spec:
     - name: Weiqiang Zhuang
       email: wzhuang@us.ibm.com
   replaces: kfctl.v0.0.0
+  keywords: 
+    - Kubeflow
+    - Operator
+    - IBMCloud
+    - GCP
+    - OpenShift
   version: 0.1.0
