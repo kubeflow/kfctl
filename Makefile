@@ -236,7 +236,7 @@ check-licenses:
 	./third_party/check-license.sh
 # rules to run unittests
 #
-test: build-kfctl check-licenses
+test: build-kfctl
 	go test ./... -v
 
 

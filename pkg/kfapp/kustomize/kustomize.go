@@ -186,7 +186,6 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
 			}
 		}
-
 		// TODO(https://github.com/kubeflow/manifests/issues/806): Bump the timeout because cert-manager takes
 		// a long time to start. Any application that needs to create a certificate will fail because it won't
 		// be able to create certificates if cert-manager is unavailable. We should try to identify Permanent Errors
