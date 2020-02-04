@@ -1,4 +1,4 @@
-# Deploy kfctl as an Operator
+# Kubeflow Operator
 
 Kubeflow Operator helps deploy, monitor and manage the lifecycle of Kubeflow. Built using the [Operator Framework](https://coreos.com/blog/introducing-operator-framework) which offers an open source toolkit to build, test, package operators and manage the lifecycle of operators.
 
@@ -23,6 +23,11 @@ KUBEFLOW_NAMESPACE=kubeflow
 kubectl create ns ${KUBEFLOW_NAMESPACE}
 # kubectl create -f deploy/crds/kfdef_quota.yaml -n ${KUBEFLOW_NAMESPACE} # only deploy this if the k8s cluster is 1.15+ and has resource quota support
 kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
+```
+
+_<kfdef>_ above can point to a remote URL or to a local kfdef file. For e.g. for IBM Cloud, command will be
+```shell
+kubectl create -f https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml -n ${KUBEFLOW_NAMESPACE}
 ```
 
 ## Testing Watcher and Reconciler
