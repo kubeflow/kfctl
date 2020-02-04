@@ -266,10 +266,8 @@ def test_successful_deployment(deployment_name):
 
 
 def test_katib(args):
-  # Katib v1alpha3 changed the names of these deployments. After the manifests
-  # are updated, we need to change the deployment names here accordingly.
-  #test_successful_deployment('katib-db')
-  #test_successful_deployment('katib-manager')
+  test_successful_deployment('katib-mysql')
+  test_successful_deployment('katib-db-manager')
   test_successful_deployment('katib-ui')
   test_successful_deployment('katib-controller')
 
