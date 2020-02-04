@@ -33,9 +33,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	go.uber.org/zap v1.12.0 // indirect
-	golang.org/dl v0.0.0-20191220003028-84da647cadd0 // indirect
 	golang.org/x/crypto v0.0.0
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
+	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/api v0.10.0
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
@@ -50,7 +49,7 @@ require (
 	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/kustomize/v3 v3.1.0
+	sigs.k8s.io/kustomize/v3 v3.2.0
 )
 
 replace (
@@ -87,7 +86,7 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190620085408-1aef9010884e
 	sigs.k8s.io/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0
-	sigs.k8s.io/kustomize/v3 => sigs.k8s.io/kustomize/v3 v3.1.0
+	sigs.k8s.io/kustomize/v3 => sigs.k8s.io/kustomize/v3 v3.2.0
 )
 
 go 1.13
