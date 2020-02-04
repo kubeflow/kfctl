@@ -800,6 +800,7 @@ func (gcp *Gcp) updateDM(resources kftypesv3.ResourceEnum) error {
 			"--zone="+gcp.kfDef.Spec.Zone,
 			"--project="+gcp.kfDef.Spec.Project)
 		credCmd.Stdout = os.Stdout
+		credCmd.Stderr = os.Stderr
 		log.Infof("Running get-credentials %v --zone=%v --project=%v ...", gcp.kfDef.Name,
 			gcp.kfDef.Spec.Zone, gcp.kfDef.Spec.Project)
 		if err := credCmd.Run(); err != nil {
