@@ -11,7 +11,13 @@ metadata:
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
-  customresourcedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: KfDef is the Schema for the applications API
+      kind: KfDef
+      name: kfdefs.kfdef.apps.kubeflow.org
+      version: v1
+      displayName: KubeFlow
   description: "Kubeflow Operator for deployment and management of Kubeflow"
   displayName: Kubeflow
   install:
