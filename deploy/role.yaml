@@ -6,7 +6,7 @@ metadata:
   creationTimestamp: null
   labels:
     kubernetes.io/bootstrapping: rbac-defaults
-  name: cluster-admin
+  name: kubeflow-operator
 rules:
 - apiGroups:
   - '*'
