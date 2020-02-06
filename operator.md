@@ -71,6 +71,10 @@ kubectl delete -f deploy/crds/kfdef.apps.kubeflow.org_kfdefs_crd.yaml
 kubectl delete ns ${OPERATOR_NAMESPACE}
 ```
 
+## Optional: Registering the Operator to OLM Catalog
+
+Please follow the instructions [here](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#testing-operator-deployment-on-openshift) to register your Operator to OLM if you are using that to install and manage the Operator.
+
 ## TroubleShooting
 - When deleting the KubeFlow deployment, it's using kfctl delete in the background where it only deletes the deployment namespace. 
 This will make some of KubeFlow pod deployments hanging because _mutatingwebhookconfigurations_ are cluster-wide 
