@@ -5,7 +5,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
-	github.com/aws/aws-sdk-go v1.17.7
+	github.com/aws/aws-sdk-go v1.23.22
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1

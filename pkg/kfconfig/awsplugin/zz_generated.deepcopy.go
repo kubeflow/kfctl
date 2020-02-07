@@ -69,6 +69,11 @@ func (in *AwsPluginSpec) DeepCopyInto(out *AwsPluginSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.EnablePodIamPolicy != nil {
+		in, out := &in.EnablePodIamPolicy, &out.EnablePodIamPolicy
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
