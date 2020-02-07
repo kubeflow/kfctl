@@ -65,7 +65,6 @@ def check_deployments_ready(record_xml_attribute, namespace, name, deployments):
     logging.info("Verifying that deployment %s started...", deployment_name)
     util.wait_for_deployment(api_client, namespace, deployment_name, 10)
 
-@pytest.mark.xfail
 def test_katib_is_ready(record_xml_attribute, namespace):
   deployment_names = [
     "katib-controller",
