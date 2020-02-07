@@ -61,7 +61,7 @@ def check_deployments_ready(record_xml_attribute, namespace, name, deployments):
 
   util.load_kube_config()
 
-  for deployment_name in deployment_names:
+  for deployment_name in deployments:
     logging.info("Verifying that deployment %s started...", deployment_name)
     util.wait_for_deployment(api_client, namespace, deployment_name, 10)
 
