@@ -43,15 +43,14 @@ def get_platform_app_name(app_path):
     raise RuntimeError("Unknown version: " + apiVersion[-1])
   return platform, app_name
 
-@pytest.mark.xfail
-def test_katib_is_ready(record_xml_attribute, namespace):
-  """Test that Kubeflow was successfully deployed.
+def check_deployments_ready(record_xml_attribute, namespace, name, deployments):
+  """Test that Kubeflow deployments are successfully deployed.
 
   Args:
     namespace: The namespace Kubeflow is deployed to.
   """
   set_logging()
-  util.set_pytest_junit(record_xml_attribute, "test_katib_is_ready")
+  util.set_pytest_junit(record_xml_attribute, name)
 
   # Need to activate account for scopes.
   if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
@@ -62,16 +61,30 @@ def test_katib_is_ready(record_xml_attribute, namespace):
 
   util.load_kube_config()
 
+  for deployment_name in deployment_names:
+    logging.info("Verifying that deployment %s started...", deployment_name)
+    util.wait_for_deployment(api_client, namespace, deployment_name, 10)
+
+@pytest.mark.xfail
+def test_katib_is_ready(record_xml_attribute, namespace):
   deployment_names = [
     "katib-controller",
     "katib-mysql",
     "katib-db-manager",
     "katib-ui",
   ]
-  for deployment_name in deployment_names:
-    logging.info("Verifying that deployment %s started...", deployment_name)
-    util.wait_for_deployment(api_client, namespace, deployment_name, 10)
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_katib_is_ready", deployment_names)
 
+def test_metadata_is_ready(record_xml_attribute, namespace):
+  deployment_names = [
+    "metadata-deployment",
+    "metadata-grpc-deployment",
+    "metadata-db",
+    "metadata-ui",
+  ]
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_metadata_is_ready", deployment_names)
 
 def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth, use_istio,
                      app_path):
