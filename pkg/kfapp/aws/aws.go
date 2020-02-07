@@ -19,6 +19,8 @@ package aws
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/gogo/protobuf/proto"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -30,7 +32,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
 
 	awssdk "github.com/aws/aws-sdk-go/aws"
@@ -42,12 +43,14 @@ import (
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -67,6 +70,8 @@ const (
 
 	// Path in manifests repo to where the additional configs are located
 	CONFIG_LOCAL_PATH = "aws/infra_configs"
+
+	DEFAULT_AUDIENCE = "sts.amazonaws.com"
 )
 
 // Aws implements KfApp Interface
@@ -76,6 +81,8 @@ type Aws struct {
 	iamClient *iam.IAM
 	eksClient *eks.EKS
 	sess      *session.Session
+
+	cluster *Cluster
 
 	region string
 	roles  []string
@@ -204,7 +211,7 @@ func (aws *Aws) createEKSCluster() error {
 	return nil
 }
 
-func (aws *Aws) attachPoliciesToWorkerRoles() error {
+func (aws *Aws) attachPoliciesToRoles(roles []string) error {
 	config, err := aws.getFeatureConfig()
 	if err != nil {
 		return &kfapis.KfError{
@@ -213,7 +220,7 @@ func (aws *Aws) attachPoliciesToWorkerRoles() error {
 		}
 	}
 
-	for _, iamRole := range aws.roles {
+	for _, iamRole := range roles {
 		aws.attachIamInlinePolicy(iamRole, "iam_alb_ingress_policy",
 			filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, "iam_alb_ingress_policy.json"))
 		aws.attachIamInlinePolicy(iamRole, "iam_csi_fsx_policy",
@@ -228,7 +235,10 @@ func (aws *Aws) attachPoliciesToWorkerRoles() error {
 	return nil
 }
 
-// TODO: waiting to be implemented.
+// TODO: Deprecate cluster_config.yaml and put all settings in clusterSpec
+// TODO: Once CloudFormation add support for master log/ private access, we can configure in cluster_config.yaml.
+// https://github.com/weaveworks/eksctl/issues/778
+// https://github.com/weaveworks/eksctl/pull/847/files
 func (aws *Aws) updateEKSClusterConfig() error {
 	return nil
 }
@@ -691,6 +701,15 @@ func (aws *Aws) setAwsPluginDefaults() error {
 	aws.region = awsPluginSpec.Region
 	aws.roles = awsPluginSpec.Roles
 
+	if awsPluginSpec.EnablePodIamPolicy == nil {
+		awsPluginSpec.EnablePodIamPolicy = proto.Bool(awsPluginSpec.GetEnablePodIamPolicy())
+		log.Infof("EnablePodIamPolicy not set defaulting to %v", *awsPluginSpec.EnablePodIamPolicy)
+	}
+
+	if awsPluginSpec.Auth == nil {
+		awsPluginSpec.Auth = &awsplugin.Auth{}
+	}
+
 	return nil
 }
 
@@ -722,20 +741,46 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 		}
 	}
 
-	// 2. Attach IAM policies like ALB, FSX, EFS, cloudWatch Fluentd to worker node group roles
-	// TODO: Once pod level IAM complete, we don't need worker group roles. Authorize cloud services using service account.
-	if err := aws.attachPoliciesToWorkerRoles(); err != nil {
+	// 2. For non-eks cluster (kops) or user doesn't enable pod level IAM policy,
+	// attach IAM policies like ALB, FSX, EFS, cloudWatch Fluentd to worker node group roles
+	// For eks cluster enable pod IAM, we create identity provider and role. Override kubeflow components service account with annotation.
+	awsPluginSpec, err := aws.GetPluginSpec()
+	if err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("Could not get awsPluginSpec %v", err),
+		}
+	}
+
+	isEksCluster, err := aws.IsEksCluster(aws.kfDef.Name)
+	if err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INVALID_ARGUMENT),
+			Message: fmt.Sprintf("Could not determinte it's EKS cluster %v", err),
+		}
+	}
+
+	// Create IAM role binding for k8s service account.
+	if awsPluginSpec.GetEnablePodIamPolicy() && isEksCluster {
+		err := aws.setupIamRoleForServiceAccount()
+		if err != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("Could not setup pod IAM policy %v", err),
+			}
+		}
+	}
+
+	// 3. Attach policies to worker node groups. This will be used by non-EKS AWS Kubernetes clusters.
+	if err := aws.attachPoliciesToRoles(aws.roles); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
 			Message: fmt.Sprintf("Failed to attach IAM policies %v",
 				err.(*kfapis.KfError).Message),
 		}
-
 	}
 
-	// 3. Update cluster configs to enable master log or private access config.
-	// TODO: Once CloudFormation add support for master log/ private access, we can configure in cluster_config.yaml.
-	// https://github.com/weaveworks/eksctl/issues/778
+	// 4. Update cluster configs to enable master log or private access config.
 	if err := aws.updateEKSClusterConfig(); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
@@ -745,6 +790,25 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 	}
 
 	return nil
+}
+
+// IsEksCluster checks if an AWS cluster is EKS cluster.
+func (aws *Aws) IsEksCluster(clusterName string) (bool, error) {
+	input := &eks.DescribeClusterInput{
+		Name: awssdk.String(clusterName),
+	}
+
+	exist := true
+	if _, err := aws.eksClient.DescribeCluster(input); err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != eks.ErrCodeResourceNotFoundException {
+				return false, err
+			}
+			exist = false
+		}
+	}
+
+	return exist, nil
 }
 
 func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
@@ -994,4 +1058,131 @@ func (aws *Aws) attachIamInlinePolicy(roleName, policyName, policyDocumentPath s
 
 	log.Infof("Successfully attach policy to IAM Role %v", roleName)
 	return nil
+}
+
+// setupIamRoleForServiceAccount will create/reuse IAM identity provider and create/reuse web identity role.
+func (aws *Aws) setupIamRoleForServiceAccount() error {
+	eksCluster, err := aws.getEksCluster(aws.kfDef.Name)
+	if err != nil {
+		return err
+	}
+
+	accountId, err := utils.CheckAwsAccountId(aws.sess)
+	if err != nil {
+		return errors.Errorf("Can not find accountId for cluster %v", aws.kfDef.Name)
+	}
+
+	// 1. Create Identity Provider.
+	issuerURLWithoutProtocol := eksCluster.oidcIssuerUrl[len("https://"):]
+	exist, arn, err := aws.checkIdentityProviderExists(accountId, issuerURLWithoutProtocol)
+	if err != nil {
+		return errors.Errorf("Can not check identity provider existence: %v", err)
+	}
+
+	oidcProviderArn := arn
+	if !exist {
+		arn, err := aws.createIdentityProvider(eksCluster.oidcIssuerUrl)
+		if err != nil {
+			return errors.Errorf("Can not check identity provider existence: %v", err)
+		}
+		oidcProviderArn = arn
+	}
+
+	kubeflowSAIamRoleMapping := map[string]string{
+		"kf-admin": fmt.Sprintf("kf-admin-%v", eksCluster.name),
+		"kf-user":  fmt.Sprintf("kf-user-%v", eksCluster.name),
+	}
+
+	// 2. Create IAM Roles using the web identity provider created in last step.
+	for ksa, iamRole := range kubeflowSAIamRoleMapping {
+		if err := aws.checkWebIdentityRoleExist(iamRole); err == nil {
+			log.Infof("Find existing role %s tp reuse", iamRole)
+			continue
+		}
+
+		if err := aws.createWebIdentityRole(oidcProviderArn, issuerURLWithoutProtocol, iamRole, aws.kfDef.Namespace, ksa); err != nil {
+			return errors.Errorf("Can not create web identity role: %v", err)
+		}
+	}
+
+	// We only want to attach admin role at this moment.
+	aws.roles = append(aws.roles, fmt.Sprintf("kf-admin-%v", eksCluster.name))
+
+	// 3. Link KSA to IAM Role.
+	k8sclientset, err := aws.getK8sclient()
+	if err != nil {
+		return err
+	}
+
+	for ksa, iamRole := range kubeflowSAIamRoleMapping {
+		// Add IAMRole in service account annotation
+		if err := aws.createOrUpdateK8sServiceAccount(k8sclientset, aws.kfDef.Namespace, ksa, accountId, iamRole); err != nil {
+			return errors.Errorf("Can not link KSA %s/%s to IAM Role %s/%s, %v", aws.kfDef.Namespace, ksa, accountId, iamRole, err)
+		}
+
+		// Add service account in Role Trust Relationships
+		if err := aws.updateRoleTrustIdentity(aws.kfDef.Namespace, ksa, iamRole); err != nil {
+			return errors.Errorf("Can not update IAM role trust relationships %v", err)
+		}
+	}
+
+	// TODO: profile-controller-service-account and istio?
+	return nil
+}
+
+func (aws *Aws) getK8sclient() (*clientset.Clientset, error) {
+	home := homeDir()
+	kubeconfig := filepath.Join(home, ".kube", "config")
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, errors.Errorf("Failed to create config file from %s", kubeconfig)
+	}
+
+	clientset, err := clientset.NewForConfig(config)
+	if err != nil {
+		return nil, errors.Errorf("Failed to create kubernetes clientset")
+	}
+
+	return clientset, nil
+}
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("USERPROFILE") // windows
+}
+
+func (aws *Aws) getEksCluster(clusterName string) (*Cluster, error) {
+	input := &eks.DescribeClusterInput{
+		Name: awssdk.String(clusterName),
+	}
+
+	result, err := aws.eksClient.DescribeCluster(input)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &Cluster{
+		name:              awssdk.StringValue(result.Cluster.Name),
+		apiServerEndpoint: awssdk.StringValue(result.Cluster.Endpoint),
+		oidcIssuerUrl:     awssdk.StringValue(result.Cluster.Identity.Oidc.Issuer),
+		clusterArn:        awssdk.StringValue(result.Cluster.Arn),
+		roleArn:           awssdk.StringValue(result.Cluster.RoleArn),
+		kubernetesVersion: awssdk.StringValue(result.Cluster.Version),
+	}
+
+	log.Infof("EKS cluster info %v", cluster)
+	return cluster, nil
+}
+
+type Cluster struct {
+	name              string
+	apiServerEndpoint string
+	oidcIssuerUrl     string
+	clusterArn        string
+	roleArn           string
+	kubernetesVersion string
 }
