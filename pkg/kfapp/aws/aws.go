@@ -145,13 +145,12 @@ func (aws *Aws) GetK8sConfig() (*rest.Config, *clientcmdapi.Config) {
 }
 
 func createNamespace(k8sClientset *clientset.Clientset, namespace string) error {
-	log.Infof("Creating namespace: %v", namespace)
 	_, err := k8sClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
 	if err == nil {
-		log.Infof("Namespace already exists...")
+		log.Infof("Namespace %v already exists...", namespace)
 		return nil
 	}
-	log.Infof("Get namespace error: %v", err)
+	log.Infof("Creating namespace: %v", namespace)
 	_, err = k8sClientset.CoreV1().Namespaces().Create(
 		&v1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -159,14 +158,8 @@ func createNamespace(k8sClientset *clientset.Clientset, namespace string) error 
 			},
 		},
 	)
-	if err == nil {
-		return nil
-	} else {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: err.Error(),
-		}
-	}
+
+	return err
 }
 
 // Create a new EKS cluster if needed
@@ -757,6 +750,21 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
 			Message: fmt.Sprintf("Could not determinte it's EKS cluster %v", err),
+		}
+	}
+
+	k8sclientset, err := aws.getK8sclient()
+	if err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("Could not get k8s client %v", err),
+		}
+	}
+
+	if err := createNamespace(k8sclientset, aws.kfDef.Namespace); err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("Could not create namespace %v", err),
 		}
 	}
 
