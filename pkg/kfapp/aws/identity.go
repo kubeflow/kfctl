@@ -1,9 +1,9 @@
 package aws
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"crypto/tls"
+	json "encoding/json"
 	"fmt"
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -11,12 +11,17 @@ import (
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"net/http"
+	"net/url"
 	"strings"
 )
+
+const AWS_DEFAULT_AUDIENCE = "sts.amazonaws.com"
+const AWS_SUBJECT = "system:serviceaccount:%s:%s"
 
 // checkIdentityProviderExists will return true when the iam identity provider exists, it may return errors
 // if it was unable to call IAM API
@@ -109,34 +114,23 @@ func (aws *Aws) checkWebIdentityRoleExist(roleName string) error {
 
 // createWebIdentityRole creates an IAM role with trusted entity Web Identity
 func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, roleName, namespace, ksa string) error {
-	assumeRolePolicyDocument := []byte(
-`{
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Effect": "Allow",
-			"Principal": {
-				"Federated": "$(roleArn)"
-			},
-			"Action": "sts:AssumeRoleWithWebIdentity",
-			"Condition": {
-				"StringEquals": {
-					"$(oidcProvider):aud": "sts.amazonaws.com",
-					"$(oidcProvider):sub": "system:serviceaccount:$(namespace):$(ksa)"
-				}
-			}
-		}
-	]
-}`)
+	statement := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcProviderArn, MapOfInterfaces{
+		"StringEquals": map[string]string{
+			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, namespace, ksa),
+			issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+		},
+	})
 
-	assumeRolePolicyDocument = bytes.Replace(assumeRolePolicyDocument, []byte("$(roleArn)"), []byte(oidcProviderArn), -1)
-	assumeRolePolicyDocument = bytes.Replace(assumeRolePolicyDocument, []byte("$(oidcProvider)"), []byte(issuerUrlWithProtocol), -1)
-	assumeRolePolicyDocument = bytes.Replace(assumeRolePolicyDocument, []byte("$(namespace)"), []byte(namespace), -1)
-	assumeRolePolicyDocument = bytes.Replace(assumeRolePolicyDocument, []byte("$(ksa)"), []byte(ksa), -1)
+	assumeRolePolicyDocument := MakePolicyDocument(statement)
+
+	docInBytes, err := json.Marshal(assumeRolePolicyDocument)
+	if err != nil {
+		return errors.Errorf("%v can not be marshal to bytes", docInBytes)
+	}
 
 	roleInput := &iam.CreateRoleInput{
 		RoleName:                 awssdk.String(roleName),
-		AssumeRolePolicyDocument: awssdk.String(string(assumeRolePolicyDocument)),
+		AssumeRolePolicyDocument: awssdk.String(string(docInBytes)),
 		Tags: []*iam.Tag{
 			{
 				Key: awssdk.String("kubeflow/cluster-name"),
@@ -146,7 +140,7 @@ func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, ro
 		},
 	}
 
-	_, err := aws.iamClient.CreateRole(roleInput)
+	_, err = aws.iamClient.CreateRole(roleInput)
 	if err != nil {
 		return err
 	}
@@ -202,39 +196,93 @@ func (aws *Aws) createOrUpdateK8sServiceAccount(k8sClientset *clientset.Clientse
 }
 
 // updateRoleTrustIdentity add namespace/service to IAM Role trust entity
-func (aws *Aws) updateRoleTrustIdentity(namespace string, ksa string, roleName string) error {
-	//roleInput := &iam.GetRoleInput{
-	//	RoleName:                 awssdk.String(roleName),
-	//}
-	//
-	//output, err := aws.iamClient.GetRole(roleInput)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//assumeRolePolicyDocument := awssdk.StringValue(output.Role.AssumeRolePolicyDocument)
-	//
-	//
-	//conditionStrMap := gjson.Get(assumeRolePolicyDocument, "Statement.0.Condition.StringEquals").Map()
-	//sub := fmt.Sprintf("system:serviceaccount:%s:%s", namespace, ksa)
-	//
-	//
-	//if strings.Contains(condition, sub) {
-	//	log.Warnf("%s has been added into policy document %s", sub, condition)
-	//	return nil
-	//}
-	//
-	//condition += sub + ","
-	//doc["Statement"][0]["Condition"]["StringEquals"] = condition
-	//
-	//input := &iam.UpdateAssumeRolePolicyInput{
-	//	RoleName: awssdk.String(roleName),
-	//	PolicyDocument: assumeRolePolicyDocument,
-	//}
-	//if _, err := aws.iamClient.UpdateAssumeRolePolicy(input); err != nil {
-	//	return err
-	//}
+func (aws *Aws) updateRoleTrustIdentity(serviceAccountNamespace string, serviceAccountName string, roleName string) error {
+	roleInput := &iam.GetRoleInput{
+		RoleName: awssdk.String(roleName),
+	}
+
+	output, err := aws.iamClient.GetRole(roleInput)
+	if err != nil {
+		return err
+	}
+
+	// Seems AssumeRolePolicyDocument is URL encoded
+	decodeValue, err := url.QueryUnescape(awssdk.StringValue(output.Role.AssumeRolePolicyDocument))
+	if err != nil {
+		return err
+	}
+
+	updatedRolePolicy, err := getUpdatedAssumeRolePolicy(decodeValue, serviceAccountNamespace, serviceAccountName)
+	if err != nil {
+		return err
+	}
+
+	input := &iam.UpdateAssumeRolePolicyInput{
+		RoleName:       awssdk.String(roleName),
+		PolicyDocument: awssdk.String(updatedRolePolicy),
+	}
+	if _, err = aws.iamClient.UpdateAssumeRolePolicy(input); err != nil {
+		return err
+	}
 
 	return nil
 }
 
+func getUpdatedAssumeRolePolicy(policyDocument, serviceAccountNamespace, serviceAccountName string) (string, error) {
+	var oldDoc MapOfInterfaces
+	json.Unmarshal([]byte(policyDocument), &oldDoc)
+	var statements []MapOfInterfaces
+	statementInBytes, err := json.Marshal(oldDoc["Statement"])
+	if err != nil {
+		return "", err
+	}
+	json.Unmarshal(statementInBytes, &statements)
+
+	oidcRoleArn := gjson.Get(policyDocument, "Statement.0.Principal.Federated").String()
+	issuerUrlWithProtocol := getIssuerUrlFromRoleArn(oidcRoleArn)
+
+	document := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcRoleArn, MapOfInterfaces{
+		"StringEquals": map[string]string{
+			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, serviceAccountNamespace, serviceAccountName),
+			issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+		},
+	})
+
+	statements = append(statements, document)
+	newAssumeRolePolicyDocument := MakePolicyDocument(statements...)
+	newPolicyDoc, err := json.Marshal(newAssumeRolePolicyDocument)
+	if err != nil {
+		return "", err
+	}
+	return string(newPolicyDoc), nil
+}
+
+// getIssuerUrlFromRoleArn parse issuerUrl from Arn: arn:aws:iam::${accountId}:oidc-provider/${issuerUrl}
+func getIssuerUrlFromRoleArn(arn string) string {
+	return arn[strings.Index(arn, "/")+1:]
+}
+
+// MakeAssumeRoleWithWebIdentityPolicyDocument constructs a trust policy for given a web identity provider with given conditions
+func MakeAssumeRoleWithWebIdentityPolicyDocument(providerARN string, condition MapOfInterfaces) MapOfInterfaces {
+	return MapOfInterfaces{
+		"Effect": "Allow",
+		"Action": []string{"sts:AssumeRoleWithWebIdentity"},
+		"Principal": map[string]string{
+			"Federated": providerARN,
+		},
+		"Condition": condition,
+	}
+}
+
+// MakePolicyDocument constructs a policy with given statements
+func MakePolicyDocument(statements ...MapOfInterfaces) MapOfInterfaces {
+	return MapOfInterfaces{
+		"Version":   "2012-10-17",
+		"Statement": statements,
+	}
+}
+
+type (
+	// MapOfInterfaces is an alias for map[string]interface{}
+	MapOfInterfaces = map[string]interface{}
+)

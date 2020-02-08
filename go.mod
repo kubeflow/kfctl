@@ -34,7 +34,12 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
+<<<<<<< HEAD
 	github.com/tektoncd/pipeline v0.10.1
+=======
+	github.com/tidwall/gjson v1.4.0
+	github.com/tidwall/pretty v1.0.1 // indirect
+>>>>>>> Use more elegant way to handle AssumeRoleWithWebIdentityPolicyDocument
 	go.uber.org/zap v1.12.0 // indirect
 	golang.org/x/crypto v0.0.0
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
