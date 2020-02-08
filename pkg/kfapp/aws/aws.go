@@ -219,6 +219,9 @@ func (aws *Aws) attachPoliciesToRoles(roles []string) error {
 		aws.attachIamInlinePolicy(iamRole, "iam_csi_fsx_policy",
 			filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, "iam_csi_fsx_policy.json"))
 
+		aws.attachIamInlinePolicy(iamRole, "iam_profile_controller_policy",
+			filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, "iam_profile_controller_policy.json"))
+
 		if config["worker_node_group_logging"] == "true" {
 			aws.attachIamInlinePolicy(iamRole, "iam_cloudwatch_policy",
 				filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, "iam_cloudwatch_policy.json"))
@@ -985,6 +988,7 @@ func (aws *Aws) detachPoliciesToWorkerRoles() error {
 	for _, iamRole := range roles {
 		aws.deleteIamRolePolicy(iamRole, "iam_alb_ingress_policy")
 		aws.deleteIamRolePolicy(iamRole, "iam_csi_fsx_policy")
+		aws.deleteIamRolePolicy(iamRole, "iam_profile_controller_policy")
 
 		if config["worker_node_group_logging"] == "true" {
 			aws.deleteIamRolePolicy(iamRole, "iam_cloudwatch_policy")
@@ -1097,17 +1101,21 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 	}
 
 	kubeflowSAIamRoleMapping := map[string]string{
-		"kf-admin": fmt.Sprintf("kf-admin-%v", eksCluster.name),
-		"kf-user":  fmt.Sprintf("kf-user-%v", eksCluster.name),
+		"kf-admin":                            fmt.Sprintf("kf-admin-%v", eksCluster.name),
+		"alb-ingress-controller":              fmt.Sprintf("kf-admin-%v", eksCluster.name),
+		"profiles-controller-service-account": fmt.Sprintf("kf-admin-%v", eksCluster.name),
+		"fluentd":                             fmt.Sprintf("kf-admin-%v", eksCluster.name),
+		"kf-user":                             fmt.Sprintf("kf-user-%v", eksCluster.name),
 	}
 
 	// 2. Create IAM Roles using the web identity provider created in last step.
 	for ksa, iamRole := range kubeflowSAIamRoleMapping {
 		if err := aws.checkWebIdentityRoleExist(iamRole); err == nil {
-			log.Infof("Find existing role %s tp reuse", iamRole)
+			log.Infof("Find existing role %s to reuse", iamRole)
 			continue
 		}
 
+		log.Infof("Creating IAM role %s", iamRole)
 		if err := aws.createWebIdentityRole(oidcProviderArn, issuerURLWithoutProtocol, iamRole, aws.kfDef.Namespace, ksa); err != nil {
 			return errors.Errorf("Can not create web identity role: %v", err)
 		}
@@ -1123,18 +1131,25 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 	}
 
 	for ksa, iamRole := range kubeflowSAIamRoleMapping {
-		// Add IAMRole in service account annotation
-		if err := aws.createOrUpdateK8sServiceAccount(k8sclientset, aws.kfDef.Namespace, ksa, accountId, iamRole); err != nil {
-			return errors.Errorf("Can not link KSA %s/%s to IAM Role %s/%s, %v", aws.kfDef.Namespace, ksa, accountId, iamRole, err)
-		}
-
-		// Add service account in Role Trust Relationships
-		if err := aws.updateRoleTrustIdentity(aws.kfDef.Namespace, ksa, iamRole); err != nil {
-			return errors.Errorf("Can not update IAM role trust relationships %v", err)
+		if err := aws.setupIAMForServiceAccount(k8sclientset, aws.kfDef.Namespace, ksa, accountId, iamRole); err != nil {
+			return err
 		}
 	}
 
-	// TODO: profile-controller-service-account and istio?
+	return nil
+}
+
+func (aws *Aws) setupIAMForServiceAccount(k8sclientset *clientset.Clientset, namespace, ksa, accountId, iamRole string) error {
+	// Add IAMRole in service account annotation
+	if err := aws.createOrUpdateK8sServiceAccount(k8sclientset, namespace, ksa, accountId, iamRole); err != nil {
+		return errors.Errorf("Can not link KSA %s/%s to IAM Role %s/%s, %v", namespace, ksa, accountId, iamRole, err)
+	}
+
+	// Add service account in Role Trust Relationships
+	if err := aws.updateRoleTrustIdentity(aws.kfDef.Namespace, ksa, iamRole); err != nil {
+		return errors.Errorf("Can not update IAM role trust relationships %v", err)
+	}
+
 	return nil
 }
 
