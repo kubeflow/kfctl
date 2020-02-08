@@ -86,6 +86,7 @@ func (aws *Aws) createIdentityProvider(issuerUrl string) (string, error) {
 		return "", errors.Wrap(err, "creating OIDC identity provider")
 	}
 
+	log.Infof("Creating OpenIDConnectProvider %v", *output.OpenIDConnectProviderArn)
 	return awssdk.StringValue(output.OpenIDConnectProviderArn), nil
 }
 
@@ -117,7 +118,7 @@ func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, ro
 	statement := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcProviderArn, MapOfInterfaces{
 		"StringEquals": map[string]string{
 			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, namespace, ksa),
-			issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+			//issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
 		},
 	})
 
@@ -244,7 +245,7 @@ func getUpdatedAssumeRolePolicy(policyDocument, serviceAccountNamespace, service
 	document := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcRoleArn, MapOfInterfaces{
 		"StringEquals": map[string]string{
 			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, serviceAccountNamespace, serviceAccountName),
-			issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+			//issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
 		},
 	})
 
