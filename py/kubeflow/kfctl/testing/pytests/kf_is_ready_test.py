@@ -85,6 +85,44 @@ def test_metadata_is_ready(record_xml_attribute, namespace):
   check_deployments_ready(record_xml_attribute, namespace,
                           "test_metadata_is_ready", deployment_names)
 
+def test_pipeline_is_ready(record_xml_attribute, namespace):
+  deployment_names = [
+    "argo-ui",
+    "minio",
+    "ml-pipeline",
+    "ml-pipeline-persistenceagent",
+    "ml-pipeline-scheduledworkflow",
+    "ml-pipeline-ui",
+    "ml-pipeline-viewer-controller-deployment",
+    "mysql",
+  ]
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_pipeline_is_ready", deployment_names)
+
+def test_notebook_is_ready(record_xml_attribute, namespace):
+  deployment_names = [
+    "jupyter-web-app-deployment",
+    "notebook-controller-deployment",
+  ]
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_notebook_is_ready", deployment_names)
+
+def test_centraldashboard_is_ready(record_xml_attribute, namespace):
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_centraldashboard_is_ready",["centraldashboard"])
+
+def test_profiles_is_ready(record_xml_attribute, namespace):
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_profile_is_ready",["profiles-deployment"])
+
+def test_pytorch_is_ready(record_xml_attribute, namespace):
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_pytorch_is_ready",["pytorch-operator"])
+
+def test_tf_job_is_ready(record_xml_attribute, namespace):
+  check_deployments_ready(record_xml_attribute, namespace,
+                          "test_tf_job_is_ready",["tf-job-operator"])
+
 def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth, use_istio,
                      app_path):
   """Test that Kubeflow was successfully deployed.
@@ -109,20 +147,6 @@ def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth, use_istio,
   # we are using IAP or basic auth.
   # TODO(yanniszark): This list is incomplete and missing a lot of components.
   deployment_names = [
-      "argo-ui",
-      "centraldashboard",
-      "jupyter-web-app-deployment",
-      "minio",
-      "ml-pipeline",
-      "ml-pipeline-persistenceagent",
-      "ml-pipeline-scheduledworkflow",
-      "ml-pipeline-ui",
-      "ml-pipeline-viewer-controller-deployment",
-      "mysql",
-      "notebook-controller-deployment",
-      "profiles-deployment",
-      "pytorch-operator",
-      "tf-job-operator",
       "workflow-controller",
   ]
 
