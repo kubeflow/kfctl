@@ -17,13 +17,28 @@ import (
 const INPUT_IMAGE = "inputImage"
 const OUTPUT_IMAGE = "outputImage"
 const TASK_NAME = "images-replication"
+const KUSTOMIZE_FOLDER = "kustomize"
 
 // buildContext: gs://<GCS bucket>/<path to .tar.gz>
-func GenerateReplicationPipeline(registry string, buildContext string, include string, exclude string) error {
+func GenerateReplicationPipeline(registry string, buildContext string, include string, exclude string,
+	outputFileName string) error {
 	replicateTasks := make(map[string]string)
-	// used to tag images specified by digest
-	//defaultTag := "autotag-v" + time.Now().Format("20060102150405")
-	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+
+	infos, err := ioutil.ReadDir(".")
+	if err != nil {
+		return err
+	}
+	foundKus := false
+	for _, info := range infos {
+		if info.IsDir() && info.Name() == KUSTOMIZE_FOLDER {
+			foundKus = true
+			break
+		}
+	}
+	if !foundKus {
+		return fmt.Errorf("kustomize folder not found, have you executed kfctl build yet?")
+	}
+	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -181,7 +196,7 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 		return err
 	}
 	buf = append(buf, buf2...)
-	writeErr := ioutil.WriteFile("replicate.yaml", buf, 0644)
+	writeErr := ioutil.WriteFile(outputFileName, buf, 0644)
 	if writeErr != nil {
 		return writeErr
 	}
