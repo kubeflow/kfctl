@@ -14,14 +14,13 @@ import (
 	"strings"
 )
 
-type ReplicateTask struct {
-	oldImg string
-	newImg string
-}
+const INPUT_IMAGE = "inputImage"
+const OUTPUT_IMAGE = "outputImage"
+const TASK_NAME = "images-replication"
 
 // buildContext: gs://<GCS bucket>/<path to .tar.gz>
 func GenerateReplicationPipeline(registry string, buildContext string, include string, exclude string) error {
-	replicateTasks := []ReplicateTask{}
+	replicateTasks := make(map[string]string)
 	// used to tag images specified by digest
 	//defaultTag := "autotag-v" + time.Now().Format("20060102150405")
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
@@ -62,16 +61,12 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 					}
 
 					if image.NewTag != "" {
-						replicateTasks = append(replicateTasks, ReplicateTask{
-							oldImg: strings.Join([]string{image.Name, image.NewTag}, ":"),
-							newImg: strings.Join([]string{newName, image.NewTag}, ":"),
-						})
+						replicateTasks[strings.Join([]string{image.Name, image.NewTag}, ":")] =
+							strings.Join([]string{newName, image.NewTag}, ":")
 					}
 					if image.Digest != "" {
-						replicateTasks = append(replicateTasks, ReplicateTask{
-							oldImg: strings.Join([]string{image.Name, image.Digest}, "@"),
-							newImg: strings.Join([]string{newName, image.Digest}, "@"),
-						})
+						replicateTasks[strings.Join([]string{image.Name, image.Digest}, "@")] =
+							strings.Join([]string{newName, image.Digest}, "@")
 					}
 
 					log.Infof("Replacing image name from %s to %s", image.Name, newName)
@@ -86,8 +81,6 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 	if err != nil {
 		return err
 	}
-	// TODO: create image replicate pipeline
-	//data, err := yaml.Marshal(replicateTasks)
 
 	taskIns := pipeline.Task{
 		TypeMeta: v1.TypeMeta{
@@ -95,17 +88,17 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 			Kind:       "Task",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "images-replication",
+			Name: TASK_NAME,
 		},
 		Spec: pipeline.TaskSpec{
 			Inputs: &pipeline.Inputs{
 				Params: []pipeline.ParamSpec{
 					{
-						Name: "inputImage",
+						Name: INPUT_IMAGE,
 						Type: pipeline.ParamTypeString,
 					},
 					{
-						Name: "outputImage",
+						Name: OUTPUT_IMAGE,
 						Type: pipeline.ParamTypeString,
 					},
 				},
@@ -124,11 +117,11 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 						Env: []corev1.EnvVar{
 							{
 								Name:  "INPUT_IMAGE",
-								Value: "$(inputs.params.inputImage)",
+								Value: fmt.Sprintf("$(inputs.params.%s)", INPUT_IMAGE),
 							},
 							{
 								Name:  "OUTPUT_IMAGE",
-								Value: "$(inputs.params.outputImage)",
+								Value: fmt.Sprintf("$(inputs.params.%s)", OUTPUT_IMAGE),
 							},
 						},
 					},
@@ -138,29 +131,31 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 	}
 
 	pipelineTasks := []pipeline.PipelineTask{}
-	for idx, re := range replicateTasks {
+	idx := 0
+	for oldImg, newImg := range replicateTasks {
 		pipelineTasks = append(pipelineTasks, pipeline.PipelineTask{
 			Name: fmt.Sprintf("replicate-%v", idx),
 			TaskRef: &pipeline.TaskRef{
-				Name: "images-replication",
+				Name: TASK_NAME,
 			},
 			Params: []pipeline.Param{
 				{
-					Name: "inputImage",
+					Name: INPUT_IMAGE,
 					Value: pipeline.ArrayOrString{
 						Type:      pipeline.ParamTypeString,
-						StringVal: re.oldImg,
+						StringVal: oldImg,
 					},
 				},
 				{
-					Name: "outputImage",
+					Name: OUTPUT_IMAGE,
 					Value: pipeline.ArrayOrString{
 						Type:      pipeline.ParamTypeString,
-						StringVal: re.newImg,
+						StringVal: newImg,
 					},
 				},
 			},
 		})
+		idx++
 	}
 	pipelineIns := pipeline.Pipeline{
 		TypeMeta: v1.TypeMeta{
@@ -168,7 +163,7 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 			Kind:       "Pipeline",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "images-replication",
+			Name: "replication-pipeline",
 		},
 		Spec: pipeline.PipelineSpec{
 			Tasks: pipelineTasks,
