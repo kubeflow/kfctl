@@ -157,16 +157,18 @@ func GenerateReplicationPipeline(registry string, buildContext string, include s
 		})
 		idx++
 	}
-	pipelineIns := pipeline.Pipeline{
+	pipelineIns := pipeline.PipelineRun{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "tekton.dev/v1alpha1",
-			Kind:       "Pipeline",
+			Kind:       "PipelineRun",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name: "replication-pipeline",
 		},
-		Spec: pipeline.PipelineSpec{
-			Tasks: pipelineTasks,
+		Spec: pipeline.PipelineRunSpec{
+			PipelineSpec: &pipeline.PipelineSpec{
+				Tasks: pipelineTasks,
+			},
 		},
 	}
 	buf, err := yaml.Marshal(taskIns)
