@@ -113,10 +113,6 @@ func GenerateReplicationPipeline(spec utilsv1alpha1.ReplicationSpec,
 
 func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, include string, exclude string) error {
 	return filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
 		if info.IsDir() {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
@@ -151,11 +147,11 @@ func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, includ
 
 					if image.NewTag != "" {
 						(*rt)[strings.Join([]string{newName, image.NewTag}, ":")] =
-							strings.Join([]string{image.Name, image.NewTag}, ":")
+							strings.Join([]string{curName, image.NewTag}, ":")
 					}
 					if image.Digest != "" {
 						(*rt)[strings.Join([]string{newName, image.Digest}, "@")] =
-							strings.Join([]string{image.Name, image.Digest}, "@")
+							strings.Join([]string{curName, image.Digest}, "@")
 					}
 					log.Infof("Replacing image name from %s to %s", image.Name, newName)
 					//kustomization.Images[i].NewName = newName
@@ -184,4 +180,79 @@ func verifyCurrDir() error {
 		return fmt.Errorf("kustomize folder not found, have you executed kfctl build yet?")
 	}
 	return nil
+}
+
+func UpdateKustomize(inputFile string) error {
+	buf, err := ioutil.ReadFile(inputFile)
+	if err != nil {
+		return err
+	}
+	pipelineRun := pipeline.PipelineRun{}
+	if err := yaml.Unmarshal(buf, &pipelineRun); err != nil {
+		return err
+	}
+	imageMapping := make(map[string]string)
+	for _, task := range pipelineRun.Spec.PipelineSpec.Tasks {
+		oldImg := ""
+		newImg := ""
+		for _, param := range task.Params {
+			if param.Name == INPUT_IMAGE {
+				oldImg = param.Value.StringVal
+			}
+			if param.Name == OUTPUT_IMAGE {
+				newImg = param.Value.StringVal
+			}
+		}
+		imageMapping[oldImg] = newImg
+		log.Infof("updating image %v to %v", oldImg, newImg)
+	}
+
+	return filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+
+			kustomizationFilePath := filepath.Join(absPath, "kustomization.yaml")
+			if _, err := os.Stat(kustomizationFilePath); err == nil {
+				kustomization := kustomize.GetKustomization(absPath)
+				rewrite := false
+				for i, image := range kustomization.Images {
+					curName := image.Name
+					if image.NewName != "" {
+						curName = image.NewName
+					}
+					if (image.NewTag == "") == (image.Digest == "") {
+						log.Warnf("One and only one of NewTag or Digest can exist for image %s, skipping\n",
+							image.Name)
+						continue
+					}
+					if image.NewTag != "" {
+						curName = strings.Join([]string{curName, image.NewTag}, ":")
+					}
+					if image.Digest != "" {
+						curName = strings.Join([]string{curName, image.Digest}, "@")
+					}
+					if newImg, ok := imageMapping[curName]; ok {
+						kustomization.Images[i].NewName = newImg
+						rewrite = true
+					}
+				}
+				if rewrite {
+					data, err := yaml.Marshal(kustomization)
+					if err != nil {
+						return err
+					}
+
+					writeErr := ioutil.WriteFile(kustomizationFilePath, data, 0644)
+					if writeErr != nil {
+						return writeErr
+					}
+				}
+			}
+			return nil
+		}
+		return nil
+	})
 }

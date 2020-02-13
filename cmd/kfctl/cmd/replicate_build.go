@@ -72,5 +72,3 @@ Image replication rules are defined in config file.
 		return gcp.GenerateReplicationPipeline(replication.Spec, outputFileName)
 	},
 }
-
-// ../bin/kfctl alpha replicate-build /Users/kunming/workplace/manifests/utils/image-replication/gcp_template.yaml -V -o p.yaml
