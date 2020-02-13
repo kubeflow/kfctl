@@ -295,7 +295,7 @@ class Builder(object):
         {"name": "TEST_TARGET_NAME",
          "value": self.test_target_name},
        ],
-      'image': 'gcr.io/kubeflow-ci/test-worker-py3:1a0052f-dirty',
+      'image': 'gcr.io/kubeflow-ci/test-worker-py3:6236799',
       'imagePullPolicy': 'Always',
       'name': '',
       'resources': {'limits': {'cpu': '4', 'memory': '4Gi'},
