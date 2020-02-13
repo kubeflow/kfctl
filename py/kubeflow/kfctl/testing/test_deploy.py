@@ -266,8 +266,8 @@ def test_successful_deployment(deployment_name):
 
 
 def test_katib(args):
-  test_successful_deployment('katib-db')
-  test_successful_deployment('katib-manager')
+  test_successful_deployment('katib-mysql')
+  test_successful_deployment('katib-db-manager')
   test_successful_deployment('katib-ui')
   test_successful_deployment('katib-controller')
 

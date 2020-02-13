@@ -12,3 +12,7 @@ kind: Kustomization
 namespace: kubeflow
 resources:
 - overlays/application/application.yaml
+secretGenerator:
+- behavior: unspecified
+  env: overlays/application/secrets.env
+  name: secrets-are-no-fun

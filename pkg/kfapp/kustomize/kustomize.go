@@ -20,6 +20,15 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
@@ -31,17 +40,12 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	crdclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	"math/rand"
-	"os"
-	"path"
-	"path/filepath"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/transformer"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
@@ -54,9 +58,6 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"sigs.k8s.io/kustomize/v3/pkg/validators"
 	"sigs.k8s.io/kustomize/v3/plugin/builtin"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // kustomize implements KfApp Interface
@@ -168,6 +169,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 	for _, app := range kustomize.kfDef.Spec.Applications {
+		log.Infof("Deploying application %v", app.Name)
 		resMap, err := EvaluateKustomizeManifest(path.Join(kustomizeDir, app.Name))
 		if err != nil {
 			log.Errorf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
@@ -184,18 +186,27 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
 			}
 		}
+
+		// TODO(https://github.com/kubeflow/manifests/issues/806): Bump the timeout because cert-manager takes
+		// a long time to start. Any application that needs to create a certificate will fail because it won't
+		// be able to create certificates if cert-manager is unavailable. We should try to identify Permanent Errors
+		// and return a PermanentError to avoid retrying and taking 10 minutes to fail.
+		b := utils.NewDefaultBackoff()
+		b.MaxElapsedTime = 10 * time.Minute
 		err = backoff.RetryNotify(
 			func() error {
 				return apply.Apply(data)
 			},
-			utils.NewDefaultBackoff(),
+			b,
 			func(e error, duration time.Duration) {
-				log.Warnf("Encountered error during apply: %v", e)
+				log.Warnf("Encountered error applying application %v: %v", app.Name, e)
 				log.Warnf("Will retry in %.0f seconds.", duration.Seconds())
 			})
 		if err != nil {
+			log.Errorf("Permanently failed applying application %v; error: %v", app.Name, err)
 			return err
 		}
+		log.Infof("Successfully applied application %v", app.Name)
 	}
 
 	// Default user namespace when multi-tenancy enabled
@@ -620,27 +631,32 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 		}
 		return nil
 	}
+
+	updateGeneratorArgs := func(parentGeneratorArgs *types.GeneratorArgs, childGeneratorArgs types.GeneratorArgs) {
+		if childGeneratorArgs.EnvSource != "" {
+			envAbsolutePathSource := path.Join(targetDir, childGeneratorArgs.EnvSource)
+			envSource := extractSuffix(compDir, envAbsolutePathSource)
+			parentGeneratorArgs.EnvSource = envSource
+		}
+		if childGeneratorArgs.FileSources != nil && len(childGeneratorArgs.FileSources) > 0 {
+			parentGeneratorArgs.FileSources = make([]string, 0)
+			for _, fileSource := range childGeneratorArgs.FileSources {
+				fileAbsolutePathSource := path.Join(targetDir, fileSource)
+				parentGeneratorArgs.EnvSource = extractSuffix(compDir, fileAbsolutePathSource)
+			}
+		}
+		if childGeneratorArgs.LiteralSources != nil && len(childGeneratorArgs.LiteralSources) > 0 {
+			parentGeneratorArgs.LiteralSources = make([]string, 0)
+			for _, literalSource := range childGeneratorArgs.LiteralSources {
+				parentGeneratorArgs.LiteralSources = append(parentGeneratorArgs.LiteralSources, literalSource)
+			}
+		}
+	}
+
 	updateConfigMapArgs := func(parentConfigMapArgs *types.ConfigMapArgs, childConfigMapArgs types.ConfigMapArgs) {
 		parentConfigMapArgs.Name = childConfigMapArgs.Name
 		parentConfigMapArgs.Namespace = childConfigMapArgs.Namespace
-		if childConfigMapArgs.EnvSource != "" {
-			envAbsolutePathSource := path.Join(targetDir, childConfigMapArgs.EnvSource)
-			envSource := extractSuffix(compDir, envAbsolutePathSource)
-			parentConfigMapArgs.EnvSource = envSource
-		}
-		if childConfigMapArgs.FileSources != nil && len(childConfigMapArgs.FileSources) > 0 {
-			parentConfigMapArgs.FileSources = make([]string, 0)
-			for _, fileSource := range childConfigMapArgs.FileSources {
-				fileAbsolutePathSource := path.Join(targetDir, fileSource)
-				parentConfigMapArgs.EnvSource = extractSuffix(compDir, fileAbsolutePathSource)
-			}
-		}
-		if childConfigMapArgs.LiteralSources != nil && len(childConfigMapArgs.LiteralSources) > 0 {
-			parentConfigMapArgs.LiteralSources = make([]string, 0)
-			for _, literalSource := range childConfigMapArgs.LiteralSources {
-				parentConfigMapArgs.LiteralSources = append(parentConfigMapArgs.LiteralSources, literalSource)
-			}
-		}
+		updateGeneratorArgs(&parentConfigMapArgs.GeneratorArgs, childConfigMapArgs.GeneratorArgs)
 		behavior := types.NewGenerationBehavior(childConfigMapArgs.Behavior)
 		switch behavior {
 		case types.BehaviorCreate:
@@ -746,13 +762,19 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 	}
 	for _, value := range child.SecretGenerator {
 		secretName := value.Name
-		switch types.NewGenerationBehavior(value.Behavior) {
+		secretBehavior := types.NewGenerationBehavior(value.Behavior)
+		updateGeneratorArgs(&value.GeneratorArgs, value.GeneratorArgs)
+		switch secretBehavior {
 		case types.BehaviorCreate:
 			if _, ok := kustomizationMaps[secretsMapGeneratorMap][secretName]; !ok {
 				parent.SecretGenerator = append(parent.SecretGenerator, value)
 				kustomizationMaps[secretsMapGeneratorMap][secretName] = true
 			}
 		case types.BehaviorMerge, types.BehaviorReplace:
+			parent.SecretGenerator = append(parent.SecretGenerator, value)
+			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
+		default:
+			value.Behavior = secretBehavior.String()
 			parent.SecretGenerator = append(parent.SecretGenerator, value)
 			kustomizationMaps[secretsMapGeneratorMap][secretName] = true
 		}

@@ -56,7 +56,7 @@ var showCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(showCmd)
+	alphaCmd.AddCommand(showCmd)
 
 	showCfg.SetConfigName("app")
 	showCfg.SetConfigType("yaml")

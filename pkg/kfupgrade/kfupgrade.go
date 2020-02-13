@@ -225,6 +225,7 @@ func MergeKfCfg(oldKfCfg *kfconfig.KfConfig, newKfCfg *kfconfig.KfConfig) {
 		kfconfig.MINIKUBE_PLUGIN_KIND,
 		kfconfig.EXISTING_ARRIKTO_PLUGIN_KIND,
 	}
+
 	for _, kind := range pluginKinds {
 		oldPlugin := kfdefgcpplugin.GcpPluginSpec{}
 		err := oldKfCfg.GetPluginSpec(kind, &oldPlugin)
