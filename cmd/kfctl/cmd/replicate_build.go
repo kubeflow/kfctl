@@ -3,21 +3,19 @@ package cmd
 import (
 	"fmt"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	utilsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/utils/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io/ioutil"
+	"sigs.k8s.io/yaml"
 )
 
-var include string
-var exclude string
-var context string
 var outputFileName string
 
 func init() {
-	replicateBuildCmd.Flags().StringVarP(&include, "include", "i", "", "When set, only replicate images with matching prefix")
-	replicateBuildCmd.Flags().StringVarP(&exclude, "exclude", "e", "gcr.io", "Skip replicate images with matching prefix")
-	replicateBuildCmd.Flags().StringVarP(&context, "context", "c", "", "Path to build context, for example gs://...")
 	replicateBuildCmd.Flags().StringVarP(&outputFileName, "output", "o", "",
 		`Name of the output pipeline file
 		kfctl alpha replicate-build -o <name>`)
@@ -35,12 +33,11 @@ func init() {
 
 var replicateBuildCfg = viper.New()
 var replicateBuildCmd = &cobra.Command{
-	Use:   "replicate-build <registry>",
+	Use:   "replicate-build <local_config_file_path> -o <pipeline_file>",
 	Short: "Generate tekton pipeline file which will replicate images to target registry.",
 	Long: `Generate tekton pipeline file which replicate images to target registry.
 
-For kubeflow images, replicate them by image:tag -> registry/image:tag
-a takton pipeline will be generated to replicate images to target registry.
+Image replication rules are defined in config file.
 
 `,
 	Args: cobra.ExactArgs(1),
@@ -49,11 +46,31 @@ a takton pipeline will be generated to replicate images to target registry.
 		if replicateBuildCfg.GetBool(string(kftypes.VERBOSE)) {
 			log.SetLevel(log.InfoLevel)
 		}
-		if outputFileName == "" || context == "" {
-			return fmt.Errorf("Please specify output file name by -o; and specify build context by -c")
+		configFile := args[0]
+		isRemoteFile, err := utils.IsRemoteFile(configFile)
+		if err != nil {
+			return err
 		}
-		registry := args[0]
-		log.Debugf("Replicate to registry %s, include prefix %s, exclude prefix %s)\n", registry, include, exclude)
-		return gcp.GenerateReplicationPipeline(registry, context, include, exclude, outputFileName)
+		if isRemoteFile {
+			return fmt.Errorf("config file path should be non-empty local file.")
+		}
+		confBytes, err := ioutil.ReadFile(configFile)
+		if err != nil {
+			return nil
+		}
+		replication := utilsv1alpha1.Replication{}
+		if err := yaml.Unmarshal(confBytes, &replication); err != nil {
+			return err
+		}
+		for _, pattern := range replication.Spec.Patterns {
+			log.Infof("context: %v; destination registry: %v", replication.Spec.Context, pattern.Dest)
+			if replication.Spec.Context == "" || pattern.Dest == "" {
+				return fmt.Errorf("Config: context and dest registry cannot be empty")
+			}
+
+		}
+		return gcp.GenerateReplicationPipeline(replication.Spec, outputFileName)
 	},
 }
+
+// ../bin/kfctl alpha replicate-build /Users/kunming/workplace/manifests/utils/image-replication/gcp_template.yaml -V -o p.yaml

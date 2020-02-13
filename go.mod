@@ -52,6 +52,7 @@ require (
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/kustomize/v3 v3.2.0
+	sigs.k8s.io/yaml v1.1.0
 )
 
 replace (

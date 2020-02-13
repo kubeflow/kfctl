@@ -1,421 +1,495 @@
 apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  creationTimestamp: null
-  name: images-replication
-spec:
-  inputs:
-    params:
-    - name: inputImage
-      type: string
-    - name: outputImage
-      type: string
-  steps:
-  - args:
-    - --dockerfile=.
-    - --context=gs://
-    - --destination=$(OUTPUT_IMAGE)
-    - --build-arg INPUT_IMAGE=$(INPUT_IMAGE)
-    env:
-    - name: INPUT_IMAGE
-      value: $(inputs.params.inputImage)
-    - name: OUTPUT_IMAGE
-      value: $(inputs.params.outputImage)
-    image: gcr.io/kaniko-project/executor:latest
-    name: build-push
-    resources: {}
-
----
-apiVersion: tekton.dev/v1alpha1
 kind: PipelineRun
 metadata:
   creationTimestamp: null
   name: replication-pipeline
 spec:
+  params:
+  - name: context
+    value: gs://kubeflow-examples/image-replicate/replicate-context.tar.gz
   pipelineSpec:
+    params:
+    - name: context
+      type: string
     tasks:
     - name: replicate-0
-      params:
-      - name: inputImage
-        value: quay.io/k8scsi/csi-provisioner:v0.4.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/k8scsi/csi-provisioner:v0.4.2
-      taskRef:
-        name: images-replication
-    - name: replicate-1
-      params:
-      - name: inputImage
-        value: quay.io/jetstack/cert-manager-controller:v0.11.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-controller:v0.11.0
-      taskRef:
-        name: images-replication
-    - name: replicate-2
-      params:
-      - name: inputImage
-        value: docker.io/istio/kubectl:1.1.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/kubectl:1.1.6
-      taskRef:
-        name: images-replication
-    - name: replicate-3
-      params:
-      - name: inputImage
-        value: grafana/grafana:6.0.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/grafana/grafana:6.0.2
-      taskRef:
-        name: images-replication
-    - name: replicate-4
-      params:
-      - name: inputImage
-        value: vertaaiofficial/modeldb-frontend:kubeflow
-      - name: outputImage
-        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-frontend:kubeflow
-      taskRef:
-        name: images-replication
-    - name: replicate-5
-      params:
-      - name: inputImage
-        value: mpioperator/mpi-operator:0.1.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/mpioperator/mpi-operator:0.1.0
-      taskRef:
-        name: images-replication
-    - name: replicate-6
-      params:
-      - name: inputImage
-        value: tensorflow/tensorflow:1.8.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/tensorflow/tensorflow:1.8.0
-      taskRef:
-        name: images-replication
-    - name: replicate-7
-      params:
-      - name: inputImage
-        value: quay.io/k8scsi/csi-attacher:v0.4.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/k8scsi/csi-attacher:v0.4.2
-      taskRef:
-        name: images-replication
-    - name: replicate-8
-      params:
-      - name: inputImage
-        value: quay.io/datawire/ambassador:0.37.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/datawire/ambassador:0.37.0
-      taskRef:
-        name: images-replication
-    - name: replicate-9
-      params:
-      - name: inputImage
-        value: cos-nvidia-installer:fixed
-      - name: outputImage
-        value: gcr.io/kunming-dev/cos-nvidia-installer:fixed
-      taskRef:
-        name: images-replication
-    - name: replicate-10
-      params:
-      - name: inputImage
-        value: docker.io/istio/proxyv2:1.1.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/proxyv2:1.1.6
-      taskRef:
-        name: images-replication
-    - name: replicate-11
-      params:
-      - name: inputImage
-        value: docker.io/istio/pilot:1.1.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/pilot:1.1.6
-      taskRef:
-        name: images-replication
-    - name: replicate-12
-      params:
-      - name: inputImage
-        value: quay.io/jetstack/cert-manager-cainjector:v0.11.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-cainjector:v0.11.0
-      taskRef:
-        name: images-replication
-    - name: replicate-13
-      params:
-      - name: inputImage
-        value: docker.io/istio/citadel:1.1.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/citadel:1.1.6
-      taskRef:
-        name: images-replication
-    - name: replicate-14
-      params:
-      - name: inputImage
-        value: metacontroller/metacontroller:v0.3.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/metacontroller/metacontroller:v0.3.0
-      taskRef:
-        name: images-replication
-    - name: replicate-15
-      params:
-      - name: inputImage
-        value: vertaaiofficial/modeldb-backend-proxy:kubeflow
-      - name: outputImage
-        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-backend-proxy:kubeflow
-      taskRef:
-        name: images-replication
-    - name: replicate-16
-      params:
-      - name: inputImage
-        value: docker.io/amazon/aws-alb-ingress-controller:v1.1.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/amazon/aws-alb-ingress-controller:v1.1.2
-      taskRef:
-        name: images-replication
-    - name: replicate-17
-      params:
-      - name: inputImage
-        value: quay.io/jetstack/cert-manager-webhook:v0.11.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-webhook:v0.11.0
-      taskRef:
-        name: images-replication
-    - name: replicate-18
-      params:
-      - name: inputImage
-        value: mintel/dex-k8s-authenticator:1.2.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/mintel/dex-k8s-authenticator:1.2.0
-      taskRef:
-        name: images-replication
-    - name: replicate-19
-      params:
-      - name: inputImage
-        value: osixia/phpldapadmin:latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/osixia/phpldapadmin:latest
-      taskRef:
-        name: images-replication
-    - name: replicate-20
-      params:
-      - name: inputImage
-        value: mysql:5.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/mysql:5.6
-      taskRef:
-        name: images-replication
-    - name: replicate-21
-      params:
-      - name: inputImage
-        value: $(registry)/$(webhook):latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/$(registry)/$(webhook):latest
-      taskRef:
-        name: images-replication
-    - name: replicate-22
-      params:
-      - name: inputImage
-        value: nvidia/k8s-device-plugin:1.0.0-beta
-      - name: outputImage
-        value: gcr.io/kunming-dev/nvidia/k8s-device-plugin:1.0.0-beta
-      taskRef:
-        name: images-replication
-    - name: replicate-23
-      params:
-      - name: inputImage
-        value: docker.io/prom/prometheus:v2.3.1
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/prom/prometheus:v2.3.1
-      taskRef:
-        name: images-replication
-    - name: replicate-24
-      params:
-      - name: inputImage
-        value: docker.io/jaegertracing/all-in-one:1.9
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/jaegertracing/all-in-one:1.9
-      taskRef:
-        name: images-replication
-    - name: replicate-25
-      params:
-      - name: inputImage
-        value: busybox:latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/busybox:latest
-      taskRef:
-        name: images-replication
-    - name: replicate-26
-      params:
-      - name: inputImage
-        value: docker.io/prom/prometheus:v2.8.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/prom/prometheus:v2.8.0
-      taskRef:
-        name: images-replication
-    - name: replicate-27
-      params:
-      - name: inputImage
-        value: vertaaiofficial/modeldb-backend:kubeflow
-      - name: outputImage
-        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-backend:kubeflow
-      taskRef:
-        name: images-replication
-    - name: replicate-28
-      params:
-      - name: inputImage
-        value: vertaaiofficial/modeldb-artifact-store:kubeflow
-      - name: outputImage
-        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-artifact-store:kubeflow
-      taskRef:
-        name: images-replication
-    - name: replicate-29
-      params:
-      - name: inputImage
-        value: docker.io/istio/galley:1.1.6
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/galley:1.1.6
-      taskRef:
-        name: images-replication
-    - name: replicate-30
-      params:
-      - name: inputImage
-        value: argoproj/workflow-controller:v2.3.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/argoproj/workflow-controller:v2.3.0
-      taskRef:
-        name: images-replication
-    - name: replicate-31
-      params:
-      - name: inputImage
-        value: quay.io/k8scsi/driver-registrar:v0.4.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/quay.io/k8scsi/driver-registrar:v0.4.2
-      taskRef:
-        name: images-replication
-    - name: replicate-32
-      params:
-      - name: inputImage
-        value: keycloak/keycloak-gatekeeper:5.0.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/keycloak/keycloak-gatekeeper:5.0.0
-      taskRef:
-        name: images-replication
-    - name: replicate-33
-      params:
-      - name: inputImage
-        value: docker.io/kiali/kiali:v0.16
-      - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/kiali/kiali:v0.16
-      taskRef:
-        name: images-replication
-    - name: replicate-34
-      params:
-      - name: inputImage
-        value: $(registry)/$(controller):latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/$(registry)/$(controller):latest
-      taskRef:
-        name: images-replication
-    - name: replicate-35
-      params:
-      - name: inputImage
-        value: argoproj/argoui:v2.3.0
-      - name: outputImage
-        value: gcr.io/kunming-dev/argoproj/argoui:v2.3.0
-      taskRef:
-        name: images-replication
-    - name: replicate-36
-      params:
-      - name: inputImage
-        value: mysql:8
-      - name: outputImage
-        value: gcr.io/kunming-dev/mysql:8
-      taskRef:
-        name: images-replication
-    - name: replicate-37
-      params:
-      - name: inputImage
-        value: $(registry)/kfserving-controller:0.2.2
-      - name: outputImage
-        value: gcr.io/kunming-dev/$(registry)/kfserving-controller:0.2.2
-      taskRef:
-        name: images-replication
-    - name: replicate-38
-      params:
-      - name: inputImage
-        value: mxjob/mxnet-operator:v1beta1
-      - name: outputImage
-        value: gcr.io/kunming-dev/mxjob/mxnet-operator:v1beta1
-      taskRef:
-        name: images-replication
-    - name: replicate-39
-      params:
-      - name: inputImage
-        value: fluent/fluentd-kubernetes-daemonset:v1.1-debian-cloudwatch
-      - name: outputImage
-        value: gcr.io/kunming-dev/fluent/fluentd-kubernetes-daemonset:v1.1-debian-cloudwatch
-      taskRef:
-        name: images-replication
-    - name: replicate-40
-      params:
-      - name: inputImage
-        value: amazon/aws-fsx-csi-driver:latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/amazon/aws-fsx-csi-driver:latest
-      taskRef:
-        name: images-replication
-    - name: replicate-41
-      params:
-      - name: inputImage
-        value: osixia/openldap:latest
-      - name: outputImage
-        value: gcr.io/kunming-dev/osixia/openldap:latest
-      taskRef:
-        name: images-replication
-    - name: replicate-42
       params:
       - name: inputImage
         value: docker.io/istio/mixer:1.1.6
       - name: outputImage
         value: gcr.io/kunming-dev/docker.io/istio/mixer:1.1.6
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
-    - name: replicate-43
+    - name: replicate-1
       params:
       - name: inputImage
-        value: docker.io/istio/sidecar_injector:1.1.6
+        value: docker.io/jaegertracing/all-in-one:1.9
       - name: outputImage
-        value: gcr.io/kunming-dev/docker.io/istio/sidecar_injector:1.1.6
+        value: gcr.io/kunming-dev/docker.io/jaegertracing/all-in-one:1.9
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
-    - name: replicate-44
+    - name: replicate-2
       params:
       - name: inputImage
-        value: mysql:8.0.3
+        value: vertaaiofficial/modeldb-artifact-store:kubeflow
       - name: outputImage
-        value: gcr.io/kunming-dev/mysql:8.0.3
+        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-artifact-store:kubeflow
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
-    - name: replicate-45
+    - name: replicate-3
       params:
       - name: inputImage
-        value: mysql:5.7
+        value: mpioperator/mpi-operator:0.1.0
       - name: outputImage
-        value: gcr.io/kunming-dev/mysql:5.7
+        value: gcr.io/kunming-dev/mpioperator/mpi-operator:0.1.0
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
-    - name: replicate-46
+    - name: replicate-4
       params:
       - name: inputImage
-        value: minio/minio:RELEASE.2018-02-09T22-40-05Z
+        value: argoproj/argoui:v2.3.0
       - name: outputImage
-        value: gcr.io/kunming-dev/minio/minio:RELEASE.2018-02-09T22-40-05Z
+        value: gcr.io/kunming-dev/argoproj/argoui:v2.3.0
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
-    - name: replicate-47
+    - name: replicate-5
       params:
       - name: inputImage
         value: amazon/aws-efs-csi-driver:latest
       - name: outputImage
         value: gcr.io/kunming-dev/amazon/aws-efs-csi-driver:latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-6
+      params:
+      - name: inputImage
+        value: fluent/fluentd-kubernetes-daemonset:v1.1-debian-cloudwatch
+      - name: outputImage
+        value: gcr.io/kunming-dev/fluent/fluentd-kubernetes-daemonset:v1.1-debian-cloudwatch
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-7
+      params:
+      - name: inputImage
+        value: nvidia/k8s-device-plugin:1.0.0-beta
+      - name: outputImage
+        value: gcr.io/kunming-dev/nvidia/k8s-device-plugin:1.0.0-beta
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-8
+      params:
+      - name: inputImage
+        value: quay.io/jetstack/cert-manager-webhook:v0.11.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-webhook:v0.11.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-9
+      params:
+      - name: inputImage
+        value: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-cainjector:v0.11.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-10
+      params:
+      - name: inputImage
+        value: mintel/dex-k8s-authenticator:1.2.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/mintel/dex-k8s-authenticator:1.2.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-11
+      params:
+      - name: inputImage
+        value: keycloak/keycloak-gatekeeper:5.0.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/keycloak/keycloak-gatekeeper:5.0.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-12
+      params:
+      - name: inputImage
+        value: quay.io/k8scsi/driver-registrar:v0.4.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/k8scsi/driver-registrar:v0.4.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-13
+      params:
+      - name: inputImage
+        value: quay.io/k8scsi/csi-provisioner:v0.4.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/k8scsi/csi-provisioner:v0.4.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-14
+      params:
+      - name: inputImage
+        value: vertaaiofficial/modeldb-backend-proxy:kubeflow
+      - name: outputImage
+        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-backend-proxy:kubeflow
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-15
+      params:
+      - name: inputImage
+        value: mxjob/mxnet-operator:v1beta1
+      - name: outputImage
+        value: gcr.io/kunming-dev/mxjob/mxnet-operator:v1beta1
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-16
+      params:
+      - name: inputImage
+        value: $(registry)/$(controller):latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/$(registry)/$(controller):latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-17
+      params:
+      - name: inputImage
+        value: docker.io/istio/citadel:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/citadel:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-18
+      params:
+      - name: inputImage
+        value: mysql:5.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/mysql:5.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-19
+      params:
+      - name: inputImage
+        value: docker.io/istio/proxyv2:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/proxyv2:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-20
+      params:
+      - name: inputImage
+        value: grafana/grafana:6.0.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/grafana/grafana:6.0.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-21
+      params:
+      - name: inputImage
+        value: minio/minio:RELEASE.2018-02-09T22-40-05Z
+      - name: outputImage
+        value: gcr.io/kunming-dev/minio/minio:RELEASE.2018-02-09T22-40-05Z
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-22
+      params:
+      - name: inputImage
+        value: tensorflow/tensorflow:1.8.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/tensorflow/tensorflow:1.8.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-23
+      params:
+      - name: inputImage
+        value: quay.io/jetstack/cert-manager-controller:v0.11.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/jetstack/cert-manager-controller:v0.11.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-24
+      params:
+      - name: inputImage
+        value: quay.io/datawire/ambassador:0.37.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/datawire/ambassador:0.37.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-25
+      params:
+      - name: inputImage
+        value: docker.io/istio/pilot:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/pilot:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-26
+      params:
+      - name: inputImage
+        value: docker.io/istio/galley:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/galley:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-27
+      params:
+      - name: inputImage
+        value: busybox:latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/busybox:latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-28
+      params:
+      - name: inputImage
+        value: docker.io/prom/prometheus:v2.8.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/prom/prometheus:v2.8.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-29
+      params:
+      - name: inputImage
+        value: metacontroller/metacontroller:v0.3.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/metacontroller/metacontroller:v0.3.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-30
+      params:
+      - name: inputImage
+        value: $(registry)/$(webhook):latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/$(registry)/$(webhook):latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-31
+      params:
+      - name: inputImage
+        value: argoproj/workflow-controller:v2.3.0
+      - name: outputImage
+        value: gcr.io/kunming-dev/argoproj/workflow-controller:v2.3.0
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-32
+      params:
+      - name: inputImage
+        value: docker.io/amazon/aws-alb-ingress-controller:v1.1.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/amazon/aws-alb-ingress-controller:v1.1.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-33
+      params:
+      - name: inputImage
+        value: docker.io/prom/prometheus:v2.3.1
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/prom/prometheus:v2.3.1
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-34
+      params:
+      - name: inputImage
+        value: vertaaiofficial/modeldb-backend:kubeflow
+      - name: outputImage
+        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-backend:kubeflow
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-35
+      params:
+      - name: inputImage
+        value: quay.io/k8scsi/csi-attacher:v0.4.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/quay.io/k8scsi/csi-attacher:v0.4.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-36
+      params:
+      - name: inputImage
+        value: docker.io/kiali/kiali:v0.16
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/kiali/kiali:v0.16
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-37
+      params:
+      - name: inputImage
+        value: docker.io/istio/kubectl:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/kubectl:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-38
+      params:
+      - name: inputImage
+        value: docker.io/istio/sidecar_injector:1.1.6
+      - name: outputImage
+        value: gcr.io/kunming-dev/docker.io/istio/sidecar_injector:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-39
+      params:
+      - name: inputImage
+        value: mysql:8
+      - name: outputImage
+        value: gcr.io/kunming-dev/mysql:8
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-40
+      params:
+      - name: inputImage
+        value: $(registry)/kfserving-controller:0.2.2
+      - name: outputImage
+        value: gcr.io/kunming-dev/$(registry)/kfserving-controller:0.2.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-41
+      params:
+      - name: inputImage
+        value: mysql:8.0.3
+      - name: outputImage
+        value: gcr.io/kunming-dev/mysql:8.0.3
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-42
+      params:
+      - name: inputImage
+        value: mysql:5.7
+      - name: outputImage
+        value: gcr.io/kunming-dev/mysql:5.7
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-43
+      params:
+      - name: inputImage
+        value: amazon/aws-fsx-csi-driver:latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/amazon/aws-fsx-csi-driver:latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-44
+      params:
+      - name: inputImage
+        value: osixia/openldap:latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/osixia/openldap:latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-45
+      params:
+      - name: inputImage
+        value: vertaaiofficial/modeldb-frontend:kubeflow
+      - name: outputImage
+        value: gcr.io/kunming-dev/vertaaiofficial/modeldb-frontend:kubeflow
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-46
+      params:
+      - name: inputImage
+        value: osixia/phpldapadmin:latest
+      - name: outputImage
+        value: gcr.io/kunming-dev/osixia/phpldapadmin:latest
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: images-replication
+    - name: replicate-47
+      params:
+      - name: inputImage
+        value: cos-nvidia-installer:fixed
+      - name: outputImage
+        value: gcr.io/kunming-dev/cos-nvidia-installer:fixed
+      - name: context
+        value: $(params.context)
       taskRef:
         name: images-replication
 status: {}
