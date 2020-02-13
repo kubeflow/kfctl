@@ -81,7 +81,7 @@ func init() {
 		export CONFIG=./kfctl_gcp_iap.yaml
 	or a URL:
 		export CONFIG=`+gcpConfig+`
-		export CONFIG=`+arritkoConfig+`
+		export CONFIG=`+istioDexConfig+`
 		export CONFIG=`+awsConfig+`
 		export CONFIG=`+k8sConfig+`
 	kfctl build -V --file=${CONFIG}`)
