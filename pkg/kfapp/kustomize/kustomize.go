@@ -881,7 +881,10 @@ func MergeKustomizations(kfDef *kfconfig.KfConfig, compDir string, overlayParams
 				}
 			}
 		} else {
-			log.Warnf("No overlay %v for component at %v, skipping...", overlayParam, compDir)
+			return nil, &kfapisv3.KfError{
+				Code:    int(kfapisv3.INTERNAL_ERROR),
+				Message: fmt.Sprintf("no overlay %v for component at %v Error %v", overlayParam, compDir, err),
+			}
 		}
 	}
 	if len(kustomization.PatchesJson6902) > 0 {
