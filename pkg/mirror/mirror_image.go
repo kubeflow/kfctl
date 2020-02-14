@@ -285,7 +285,12 @@ func UpdateKustomize(inputFile string) error {
 						curName = strings.Join([]string{curName, image.Digest}, "@")
 					}
 					if newImg, ok := imageMapping[curName]; ok {
-						kustomization.Images[i].NewName = newImg
+						// drop image tag before write back to kustomize
+						idx := strings.Index(newImg, ":")
+						if idx == -1 {
+							idx = strings.Index(newImg, "@")
+						}
+						kustomization.Images[i].NewName = newImg[:idx]
 						rewrite = true
 					}
 				}
