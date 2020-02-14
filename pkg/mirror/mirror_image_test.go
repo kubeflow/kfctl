@@ -12,8 +12,8 @@ import (
 const KUSTOMIZATION = "kustomize/kustomization.yaml"
 
 type testCase struct {
-	Expected    string
-	Actual 		string
+	Expected string
+	Actual   string
 }
 
 func init() {
@@ -21,7 +21,6 @@ func init() {
 		log.Errorf("failed to change dir %v", err)
 	}
 }
-
 
 func TestGenerateMirroringPipeline(t *testing.T) {
 	spec := mirrorv1alpha1.ReplicationSpec{
@@ -50,11 +49,11 @@ func TestGenerateMirroringPipeline(t *testing.T) {
 	cases := []testCase{
 		{
 			Expected: "expected-pipeline.yaml",
-			Actual: "pipeline.yaml",
+			Actual:   "pipeline.yaml",
 		},
 		{
 			Expected: "expected-cloudbuild.yaml",
-			Actual: "cloudbuild.yaml",
+			Actual:   "cloudbuild.yaml",
 		},
 	}
 	compFile(cases, t)
@@ -78,7 +77,7 @@ func TestUpdateKustomize(t *testing.T) {
 	cases := []testCase{
 		{
 			Expected: "expected-kustomization.yaml",
-			Actual: KUSTOMIZATION,
+			Actual:   KUSTOMIZATION,
 		},
 	}
 	compFile(cases, t)

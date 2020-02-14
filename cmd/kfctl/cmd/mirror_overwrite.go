@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/mirror"
+	"github.com/kubeflow/kfctl/v3/pkg/mirror"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

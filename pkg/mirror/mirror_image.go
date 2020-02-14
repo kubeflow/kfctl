@@ -20,7 +20,7 @@ import (
 const INPUT_IMAGE = "inputImage"
 const OUTPUT_IMAGE = "outputImage"
 const CONTEXT = "context"
-const TASK_NAME = "images-replication"
+const TASK_NAME = "mirror-image"
 const KUSTOMIZE_FOLDER = "kustomize"
 const CLOUD_BUILD_IMAGE = "gcr.io/cloud-builders/docker"
 const CLOUD_BUILD_FILE = "cloudbuild.yaml"

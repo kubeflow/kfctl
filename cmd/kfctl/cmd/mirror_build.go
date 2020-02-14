@@ -4,7 +4,7 @@ import (
 	"fmt"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	mirrortypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/mirror"
+	"github.com/kubeflow/kfctl/v3/pkg/mirror"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
