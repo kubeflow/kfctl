@@ -25,7 +25,7 @@ def test_jupyter(record_xml_attribute, kfctl_repo_path, namespace):
   """Test the jupyter notebook.
   Args:
     record_xml_attribute: Test fixture provided by pytest.
-    env: ksonnet environment.
+    kfctl_repo_path: path to local kfctl repository.
     namespace: namespace to run in.
   """
   util.load_kube_config()
