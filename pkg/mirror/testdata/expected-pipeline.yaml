@@ -1,0 +1,125 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  creationTimestamp: null
+  name: replication-pipeline
+spec:
+  params:
+  - name: context
+    value: gs://kubeflow-examples/image-replicate/replicate-context.tar.gz
+  pipelineSpec:
+    params:
+    - name: context
+      type: string
+    tasks:
+    - name: 0-docker-io-istio-citadel-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/citadel:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/citadel:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 1-docker-io-istio-galley-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/galley:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/galley:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 2-docker-io-istio-kubectl-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/kubectl:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/kubectl:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 3-docker-io-istio-mixer-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/mixer:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/mixer:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 4-docker-io-istio-pilot-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/pilot:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/pilot:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 5-docker-io-istio-proxyv2-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/proxyv2:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/proxyv2:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 6-docker-io-istio-sidecar-injector-1-1-6
+      params:
+      - name: inputImage
+        value: docker.io/istio/sidecar_injector:1.1.6
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/istio/sidecar_injector:1.1.6
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 7-docker-io-jaegertracing-all-in-one-1-9
+      params:
+      - name: inputImage
+        value: docker.io/jaegertracing/all-in-one:1.9
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/jaegertracing/all-in-one:1.9
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 8-docker-io-kiali-kiali-v0-16
+      params:
+      - name: inputImage
+        value: docker.io/kiali/kiali:v0.16
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/kiali/kiali:v0.16
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 9-docker-io-prom-prometheus-v2-3-1
+      params:
+      - name: inputImage
+        value: docker.io/prom/prometheus:v2.3.1
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/prom/prometheus:v2.3.1
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 10-grafana-grafana-6-0-2
+      params:
+      - name: inputImage
+        value: grafana/grafana:6.0.2
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/grafana/grafana:6.0.2
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+status: {}
