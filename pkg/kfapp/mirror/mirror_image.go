@@ -1,16 +1,19 @@
-package gcp
+package mirror
 
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
-	utilsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/utils/v1alpha1"
+	mirrorv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
 	log "github.com/sirupsen/logrus"
 	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
+	cloudbuild "google.golang.org/api/cloudbuild/v1"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -19,13 +22,13 @@ const OUTPUT_IMAGE = "outputImage"
 const CONTEXT = "context"
 const TASK_NAME = "images-replication"
 const KUSTOMIZE_FOLDER = "kustomize"
+const CLOUD_BUILD_IMAGE = "gcr.io/cloud-builders/docker"
+const CLOUD_BUILD_FILE = "cloudbuild.yaml"
 
 type ReplicateTasks map[string]string
 
 // buildContext: gs://<GCS bucket>/<path to .tar.gz>
-func GenerateReplicationPipeline(spec utilsv1alpha1.ReplicationSpec,
-	//
-	outputFileName string) error {
+func GenerateMirroringPipeline(spec mirrorv1alpha1.ReplicationSpec, outputFileName string, gcb bool) error {
 	replicateTasks := make(ReplicateTasks)
 	if err := verifyCurrDir(); err != nil {
 		return err
@@ -39,9 +42,11 @@ func GenerateReplicationPipeline(spec utilsv1alpha1.ReplicationSpec,
 
 	pipelineTasks := []pipeline.PipelineTask{}
 	idx := 0
-	for newImg, oldImg := range replicateTasks {
+	re := regexp.MustCompile("[^a-z0-9]+")
+	for _, newImg := range replicateTasks.orderedKeys() {
+		oldImg := replicateTasks[newImg]
 		pipelineTasks = append(pipelineTasks, pipeline.PipelineTask{
-			Name: fmt.Sprintf("replicate-%v", idx),
+			Name: fmt.Sprintf("%v-%v", idx, re.ReplaceAllString(oldImg, "-")),
 			TaskRef: &pipeline.TaskRef{
 				Name: TASK_NAME,
 			},
@@ -108,11 +113,49 @@ func GenerateReplicationPipeline(spec utilsv1alpha1.ReplicationSpec,
 	if writeErr != nil {
 		return writeErr
 	}
+	if gcb {
+		return generateCloudBuild(replicateTasks)
+	}
 	return nil
 }
 
+func generateCloudBuild(rt ReplicateTasks) error {
+	steps := []*cloudbuild.BuildStep{}
+	images := []string{}
+	for _, newImg := range rt.orderedKeys() {
+		oldImg := rt[newImg]
+		log.Infof("add gcb step" + oldImg)
+		steps = append(steps,
+			&cloudbuild.BuildStep{
+				Name:    CLOUD_BUILD_IMAGE,
+				Args:    []string{"build", "-t", newImg, "--build-arg=INPUT_IMAGE=" + oldImg, "."},
+				WaitFor: []string{"-"},
+			},
+		)
+		images = append(images, newImg)
+	}
+	cb := cloudbuild.Build{
+		Steps:  steps,
+		Images: images,
+	}
+	buf, err := yaml.Marshal(cb)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(CLOUD_BUILD_FILE, buf, 0644)
+}
+
+func (rt *ReplicateTasks) orderedKeys() []string {
+	var keys []string
+	for k := range *rt {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, include string, exclude string) error {
-	return filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(KUSTOMIZE_FOLDER, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
@@ -126,6 +169,10 @@ func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, includ
 					curName := image.Name
 					if image.NewName != "" {
 						curName = image.NewName
+					}
+					if strings.Contains(curName, "$") {
+						log.Infof("image name %v contains kutomize parameter, skipping\n", curName)
+						continue
 					}
 					// check exclude first
 					if strings.HasPrefix(curName, exclude) {
@@ -183,6 +230,9 @@ func verifyCurrDir() error {
 }
 
 func UpdateKustomize(inputFile string) error {
+	if err := verifyCurrDir(); err != nil {
+		return err
+	}
 	buf, err := ioutil.ReadFile(inputFile)
 	if err != nil {
 		return err
@@ -207,7 +257,7 @@ func UpdateKustomize(inputFile string) error {
 		log.Infof("updating image %v to %v", oldImg, newImg)
 	}
 
-	return filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(KUSTOMIZE_FOLDER, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			absPath, err := filepath.Abs(path)
 			if err != nil {

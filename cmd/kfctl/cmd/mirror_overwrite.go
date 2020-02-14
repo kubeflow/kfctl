@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	"github.com/kubeflow/kfctl/v3/pkg/kfapp/mirror"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,7 +14,7 @@ var inputFileName string
 func init() {
 	replicateOverwriteCmd.Flags().StringVarP(&inputFileName, "input", "i", "",
 		`Name of the input pipeline file
-		kfctl alpha replicate-overwrite -o <name>`)
+		kfctl alpha  mirror overwrite -o <name>`)
 	// verbose output
 	replicateOverwriteCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
 		string(kftypes.VERBOSE)+" output default is false")
@@ -24,12 +24,12 @@ func init() {
 		return
 	}
 
-	alphaCmd.AddCommand(replicateOverwriteCmd)
+	mirrorCmd.AddCommand(replicateOverwriteCmd)
 }
 
 var replicateOverwriteCfg = viper.New()
 var replicateOverwriteCmd = &cobra.Command{
-	Use:   "replicate-overwrite <registry>",
+	Use:   "overwrite <registry>",
 	Short: "",
 	Long: `Read input tekton pipeline file with images replication info,
 update images in kustomization.yaml: image:tag -> newImage:tag
@@ -43,6 +43,6 @@ update images in kustomization.yaml: image:tag -> newImage:tag
 		if inputFileName == "" {
 			return fmt.Errorf("Please specify input tekton pipeline file by -i")
 		}
-		return gcp.UpdateKustomize(inputFileName)
+		return mirror.UpdateKustomize(inputFileName)
 	},
 }

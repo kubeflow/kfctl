@@ -3,22 +3,25 @@ package cmd
 import (
 	"fmt"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	utilsv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/utils/v1alpha1"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp"
+	mirrortypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfapp/mirror"
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"os"
 	"sigs.k8s.io/yaml"
 )
 
 var outputFileName string
+var gcb bool
 
 func init() {
 	replicateBuildCmd.Flags().StringVarP(&outputFileName, "output", "o", "",
 		`Name of the output pipeline file
-		kfctl alpha replicate-build -o <name>`)
+		kfctl alpha mirror build -o <name>`)
+	replicateBuildCmd.Flags().BoolVar(&gcb, "gcb", false, `Generate cloud build config`)
 	// verbose output
 	replicateBuildCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
 		string(kftypes.VERBOSE)+" output default is false")
@@ -28,12 +31,12 @@ func init() {
 		return
 	}
 
-	alphaCmd.AddCommand(replicateBuildCmd)
+	mirrorCmd.AddCommand(replicateBuildCmd)
 }
 
 var replicateBuildCfg = viper.New()
 var replicateBuildCmd = &cobra.Command{
-	Use:   "replicate-build <local_config_file_path> -o <pipeline_file>",
+	Use:   "build <local_config_file_path> -o <pipeline_file>",
 	Short: "Generate tekton pipeline file which will replicate images to target registry.",
 	Long: `Generate tekton pipeline file which replicate images to target registry.
 
@@ -54,11 +57,14 @@ Image replication rules are defined in config file.
 		if isRemoteFile {
 			return fmt.Errorf("config file path should be non-empty local file.")
 		}
+		if _, err := os.Stat(configFile); err != nil {
+			return err
+		}
 		confBytes, err := ioutil.ReadFile(configFile)
 		if err != nil {
 			return nil
 		}
-		replication := utilsv1alpha1.Replication{}
+		replication := mirrortypes.Replication{}
 		if err := yaml.Unmarshal(confBytes, &replication); err != nil {
 			return err
 		}
@@ -69,6 +75,6 @@ Image replication rules are defined in config file.
 			}
 
 		}
-		return gcp.GenerateReplicationPipeline(replication.Spec, outputFileName)
+		return mirror.GenerateMirroringPipeline(replication.Spec, outputFileName, gcb)
 	},
 }
