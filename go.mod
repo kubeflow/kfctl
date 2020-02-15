@@ -1,11 +1,12 @@
 module github.com/kubeflow/kfctl/v3
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go v0.47.0
+	github.com/Azure/go-autorest v13.3.3+incompatible // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
-	github.com/aws/aws-sdk-go v1.17.7
+	github.com/aws/aws-sdk-go v1.27.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1
@@ -17,34 +18,37 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
-	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
-	github.com/google/go-cmp v0.3.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/google/go-cmp v0.3.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
-	github.com/imdario/mergo v0.3.7
+	github.com/imdario/mergo v0.3.8
 	github.com/kubernetes-sigs/application v0.8.0
 	github.com/onrik/logrus v0.2.1
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/common v0.6.0
+	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
+	github.com/tektoncd/pipeline v0.10.1
+	github.com/tidwall/gjson v1.4.0
+	github.com/tidwall/pretty v1.0.1 // indirect
 	go.uber.org/zap v1.12.0 // indirect
 	golang.org/dl v0.0.0-20191220003028-84da647cadd0 // indirect
 	golang.org/x/crypto v0.0.0
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
+	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/api v0.10.0
-	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
-	gopkg.in/yaml.v2 v2.2.4
-	k8s.io/api v0.0.0
+	gopkg.in/yaml.v2 v2.2.5
+	k8s.io/api v0.17.0
 	k8s.io/apiextensions-apiserver v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/apimachinery v0.17.1
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kubernetes v1.16.2
