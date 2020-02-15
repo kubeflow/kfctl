@@ -23,6 +23,8 @@ type AwsPluginSpec struct {
 	Region string `json:"region,omitempty"`
 
 	Roles []string `json:"roles,omitempty"`
+
+	EnablePodIamPolicy *bool `json:"enablePodIamPolicy,omitempty"`
 }
 
 type Auth struct {
@@ -151,4 +153,13 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 	// TODO: BasicAuth is configured to be working in AWS env. Let's add validation back once it's supported.
 	return true, ""
 
+}
+
+func (p *AwsPluginSpec) GetEnablePodIamPolicy() bool {
+	if p.EnablePodIamPolicy == nil {
+		return true
+	}
+
+	v := p.EnablePodIamPolicy
+	return *v
 }

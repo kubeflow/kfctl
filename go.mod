@@ -20,7 +20,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.1
-	github.com/google/martian v2.1.0+incompatible
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/imdario/mergo v0.3.8
@@ -35,6 +34,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/tektoncd/pipeline v0.10.1
+	github.com/tidwall/gjson v1.4.0
+	github.com/tidwall/pretty v1.0.1 // indirect
 	go.uber.org/zap v1.12.0 // indirect
 	golang.org/x/crypto v0.0.0
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
