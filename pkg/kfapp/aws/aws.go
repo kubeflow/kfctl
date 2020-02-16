@@ -162,6 +162,23 @@ func createNamespace(k8sClientset *clientset.Clientset, namespace string) error 
 	return err
 }
 
+func deleteNamespace(k8sClientset *clientset.Clientset, namespace string) error {
+	_, err := k8sClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	if err != nil {
+		log.Infof("Namespace %v does not exist, skip deleting", namespace)
+		return nil
+	}
+	log.Infof("Deleting namespace: %v", namespace)
+	background := metav1.DeletePropagationBackground
+	err = k8sClientset.CoreV1().Namespaces().Delete(
+		namespace, &metav1.DeleteOptions{
+			PropagationPolicy: &background,
+		},
+	)
+
+	return err
+}
+
 // Create a new EKS cluster if needed
 func (aws *Aws) createEKSCluster() error {
 	config, err := aws.getFeatureConfig()
@@ -840,7 +857,7 @@ func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
 		}
 	}
 
-	// 1. Delete ingress and istio dependencies
+	// 1. Delete ingress and istio, cert-manager dependencies
 	if err := aws.uninstallK8sDependencies(); err != nil {
 		return &kfapis.KfError{
 			Code:    err.(*kfapis.KfError).Code,
@@ -914,6 +931,7 @@ func (aws *Aws) uninstallK8sDependencies() error {
 		return r
 	}
 
+	// 1. Delete Ingress and wait for 15s for alb-ingress-controller to clean up resources
 	if err := deleteManifests(rev(aws.ingressManifests)); err != nil {
 		return errors.WithStack(err)
 	}
@@ -922,6 +940,18 @@ func (aws *Aws) uninstallK8sDependencies() error {
 	log.Infof("Wait for %d seconds for alb ingress controller to clean up ALB", albCleanUpInSeconds)
 	time.Sleep(time.Duration(albCleanUpInSeconds) * time.Second)
 
+	// 2. Delete cert-manager manifest.
+	// Simplify process by deleting cert-manager namespace, don't have to delete every single manifest
+	k8sclientset, err := aws.getK8sclient()
+	if err != nil {
+		return err
+	}
+
+	if err := deleteNamespace(k8sclientset, "cert-manager"); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// 3. Delete istio dependencies
 	if err := deleteManifests(rev(aws.istioManifests)); err != nil {
 		return errors.WithStack(err)
 	}
