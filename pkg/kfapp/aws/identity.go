@@ -21,7 +21,7 @@ import (
 )
 
 const AWS_DEFAULT_AUDIENCE = "sts.amazonaws.com"
-const AWS_SUBJECT = "system:serviceaccount:%s:%s"
+const AWS_TRUST_IDENTITY_SUBJECT = "system:serviceaccount:%s:%s"
 
 // checkIdentityProviderExists will return true when the iam identity provider exists, it may return errors
 // if it was unable to call IAM API
@@ -116,9 +116,9 @@ func (aws *Aws) checkWebIdentityRoleExist(roleName string) error {
 // createWebIdentityRole creates an IAM role with trusted entity Web Identity
 func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, roleName, namespace, ksa string) error {
 	statement := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcProviderArn, MapOfInterfaces{
-		"StringEquals": map[string]string{
-			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, namespace, ksa),
-			//issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+		"StringEquals": map[string][]string{
+			issuerUrlWithProtocol + ":aud": []string{AWS_DEFAULT_AUDIENCE},
+			issuerUrlWithProtocol + ":sub": []string{fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, namespace, ksa)},
 		},
 	})
 
@@ -150,7 +150,19 @@ func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, ro
 
 // deleteWebIdentityRole delete a role we created for Web Identity
 func (aws *Aws) deleteWebIdentityRole(roleArn string) error {
-	panic("To be implemented")
+	input := &iam.DeleteRoleInput{
+		RoleName: awssdk.String(getIAMRoleNameFromIAMRoleArn(roleArn)),
+	}
+
+	if _, err := aws.iamClient.DeleteRole(input); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getIAMRoleNameFromIAMRoleArn(arn string) string {
+	return arn[strings.LastIndex(arn, "/")+1:]
 }
 
 // createOrUpdateK8sServiceAccount creates or updates k8s service account with annotation
@@ -242,15 +254,34 @@ func getUpdatedAssumeRolePolicy(policyDocument, serviceAccountNamespace, service
 	oidcRoleArn := gjson.Get(policyDocument, "Statement.0.Principal.Federated").String()
 	issuerUrlWithProtocol := getIssuerUrlFromRoleArn(oidcRoleArn)
 
+	key := fmt.Sprintf("%s:sub", issuerUrlWithProtocol)
+	trustIdentity := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName)
+
+	// We assume we only operator on first statement, don't add/remove new statement
+	statement := statements[0]
+	statementInBytes, err = json.Marshal(statement)
+	identities := gjson.Get(string(statementInBytes), "Condition.StringEquals").Map()
+
+	var originalIdentities []string
+	val, ok := identities[key]
+	if ok {
+		for _, identity := range val.Array() {
+			// avoid adding duplicate record
+			if identity.Str == trustIdentity {
+				return policyDocument, nil
+			}
+			originalIdentities = append(originalIdentities, identity.Str)
+		}
+	}
+	originalIdentities = append(originalIdentities, trustIdentity)
+
 	document := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcRoleArn, MapOfInterfaces{
-		"StringEquals": map[string]string{
-			issuerUrlWithProtocol + ":sub": fmt.Sprintf(AWS_SUBJECT, serviceAccountNamespace, serviceAccountName),
-			//issuerUrlWithProtocol + ":aud": AWS_DEFAULT_AUDIENCE,
+		"StringEquals": map[string][]string{
+			issuerUrlWithProtocol + ":aud": []string{AWS_DEFAULT_AUDIENCE},
+			issuerUrlWithProtocol + ":sub": originalIdentities,
 		},
 	})
-
-	statements = append(statements, document)
-	newAssumeRolePolicyDocument := MakePolicyDocument(statements...)
+	newAssumeRolePolicyDocument := MakePolicyDocument(document)
 	newPolicyDoc, err := json.Marshal(newAssumeRolePolicyDocument)
 	if err != nil {
 		return "", err
@@ -267,7 +298,7 @@ func getIssuerUrlFromRoleArn(arn string) string {
 func MakeAssumeRoleWithWebIdentityPolicyDocument(providerARN string, condition MapOfInterfaces) MapOfInterfaces {
 	return MapOfInterfaces{
 		"Effect": "Allow",
-		"Action": []string{"sts:AssumeRoleWithWebIdentity"},
+		"Action": "sts:AssumeRoleWithWebIdentity",
 		"Principal": map[string]string{
 			"Federated": providerARN,
 		},

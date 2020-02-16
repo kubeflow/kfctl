@@ -1111,7 +1111,7 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 	// 2. Create IAM Roles using the web identity provider created in last step.
 	for ksa, iamRole := range kubeflowSAIamRoleMapping {
 		if err := aws.checkWebIdentityRoleExist(iamRole); err == nil {
-			log.Infof("Find existing role %s to reuse", iamRole)
+			log.Infof("Find existing role %s to reuse for ksa %s", iamRole, ksa)
 			continue
 		}
 
