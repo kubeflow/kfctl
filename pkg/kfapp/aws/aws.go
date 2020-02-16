@@ -19,13 +19,11 @@ package aws
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/gogo/protobuf/proto"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -50,7 +48,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -70,8 +67,6 @@ const (
 
 	// Path in manifests repo to where the additional configs are located
 	CONFIG_LOCAL_PATH = "aws/infra_configs"
-
-	DEFAULT_AUDIENCE = "sts.amazonaws.com"
 )
 
 // Aws implements KfApp Interface
@@ -81,6 +76,7 @@ type Aws struct {
 	iamClient *iam.IAM
 	eksClient *eks.EKS
 	sess      *session.Session
+	k8sClient *clientset.Clientset
 
 	cluster *Cluster
 
@@ -118,11 +114,17 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 
 	session := session.Must(session.NewSession())
 
+	k8sClient, err := getK8sclient()
+	if err != nil {
+		return nil, err
+	}
+
 	_aws := &Aws{
 		kfDef:            kfdef,
 		sess:             session,
 		iamClient:        iam.New(session),
 		eksClient:        eks.New(session),
+		k8sClient:        k8sClient,
 		istioManifests:   istioManifests,
 		ingressManifests: ingressManifests,
 	}
@@ -142,83 +144,6 @@ func (aws *Aws) GetPluginSpec() (*awsplugin.AwsPluginSpec, error) {
 // GetK8sConfig is only used with ksonnet packageManager. NotImplemented in this version, return nil to use default config for API compatibility.
 func (aws *Aws) GetK8sConfig() (*rest.Config, *clientcmdapi.Config) {
 	return nil, nil
-}
-
-func createNamespace(k8sClientset *clientset.Clientset, namespace string) error {
-	_, err := k8sClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
-	if err == nil {
-		log.Infof("Namespace %v already exists...", namespace)
-		return nil
-	}
-	log.Infof("Creating namespace: %v", namespace)
-	_, err = k8sClientset.CoreV1().Namespaces().Create(
-		&v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-			},
-		},
-	)
-
-	return err
-}
-
-func deleteNamespace(k8sClientset *clientset.Clientset, namespace string) error {
-	_, err := k8sClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
-	if err != nil {
-		log.Infof("Namespace %v does not exist, skip deleting", namespace)
-		return nil
-	}
-	log.Infof("Deleting namespace: %v", namespace)
-	background := metav1.DeletePropagationBackground
-	err = k8sClientset.CoreV1().Namespaces().Delete(
-		namespace, &metav1.DeleteOptions{
-			PropagationPolicy: &background,
-		},
-	)
-
-	return err
-}
-
-// Create a new EKS cluster if needed
-func (aws *Aws) createEKSCluster() error {
-	config, err := aws.getFeatureConfig()
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Reading config file error: %v", err),
-		}
-	}
-
-	if _, ok := config["managed_cluster"]; !ok {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Unable to read YAML"),
-		}
-	}
-
-	if config["managed_cluster"] == true {
-		log.Infoln("Start to create eks cluster. Please wait for 10-15 mins...")
-		clusterConfigFile := filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, CLUSTER_CONFIG_FILE)
-		output, err := exec.Command("eksctl", "create", "cluster", "--config-file="+clusterConfigFile).Output()
-		if err != nil {
-			return &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("Call 'eksctl create cluster --config-file=%s' with errors: %v", clusterConfigFile, string(output)),
-			}
-		}
-		log.Infoln(string(output))
-
-		nodeGroupIamRoles, getRoleError := aws.getWorkerNodeGroupRoles(aws.kfDef.Name)
-		if getRoleError != nil {
-			return errors.WithStack(getRoleError)
-		}
-
-		aws.roles = nodeGroupIamRoles
-	} else {
-		log.Infof("You already have cluster setup. Skip creating new eks cluster. ")
-	}
-
-	return nil
 }
 
 func (aws *Aws) attachPoliciesToRoles(roles []string) error {
@@ -429,25 +354,6 @@ func (aws *Aws) generateInfraConfigs() error {
 	return nil
 }
 
-func insertSecret(client *clientset.Clientset, secretName string, namespace string, data map[string][]byte) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-		Data: data,
-	}
-	_, err := client.CoreV1().Secrets(namespace).Create(secret)
-	if err == nil {
-		return nil
-	} else {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: err.Error(),
-		}
-	}
-}
-
 // Use username and password provided by user and create secret for basic auth.
 func (aws *Aws) createBasicAuthSecret(client *clientset.Clientset) error {
 	awsPluginSpec, err := aws.GetPluginSpec()
@@ -485,7 +391,7 @@ func (aws *Aws) createBasicAuthSecret(client *clientset.Clientset) error {
 	_, err = client.CoreV1().Secrets(aws.kfDef.Namespace).Update(secret)
 	if err != nil {
 		log.Warnf("Updating basic auth login failed, trying to create one: %v", err)
-		return insertSecret(client, BASIC_AUTH_SECRET, aws.kfDef.Namespace, map[string][]byte{
+		return createSecret(client, BASIC_AUTH_SECRET, aws.kfDef.Namespace, map[string][]byte{
 			"username":     []byte(awsPluginSpec.Auth.BasicAuth.Username),
 			"passwordhash": []byte(encodedPassword),
 		})
@@ -773,15 +679,7 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 		}
 	}
 
-	k8sclientset, err := aws.getK8sclient()
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("Could not get k8s client %v", err),
-		}
-	}
-
-	if err := createNamespace(k8sclientset, aws.kfDef.Namespace); err != nil {
+	if err := createNamespace(aws.k8sClient, aws.kfDef.Namespace); err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
 			Message: fmt.Sprintf("Could not create namespace %v", err),
@@ -820,25 +718,6 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 	return nil
 }
 
-// IsEksCluster checks if an AWS cluster is EKS cluster.
-func (aws *Aws) IsEksCluster(clusterName string) (bool, error) {
-	input := &eks.DescribeClusterInput{
-		Name: awssdk.String(clusterName),
-	}
-
-	exist := true
-	if _, err := aws.eksClient.DescribeCluster(input); err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != eks.ErrCodeResourceNotFoundException {
-				return false, err
-			}
-			exist = false
-		}
-	}
-
-	return exist, nil
-}
-
 func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
 	// use aws to call sts get-caller-identity to verify aws credential works.
 	if err := utils.CheckAwsStsCallerIdentity(aws.sess); err != nil {
@@ -874,7 +753,7 @@ func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
 	}
 
 	// 3. Delete EKS cluster
-	if err := aws.uninstallEKSCluster(); err != nil {
+	if err := aws.deleteEKSCluster(); err != nil {
 		return &kfapis.KfError{
 			Code:    err.(*kfapis.KfError).Code,
 			Message: fmt.Sprintf("Could not uninstall eks cluster Error: %v", err.(*kfapis.KfError).Message),
@@ -942,12 +821,7 @@ func (aws *Aws) uninstallK8sDependencies() error {
 
 	// 2. Delete cert-manager manifest.
 	// Simplify process by deleting cert-manager namespace, don't have to delete every single manifest
-	k8sclientset, err := aws.getK8sclient()
-	if err != nil {
-		return err
-	}
-
-	if err := deleteNamespace(k8sclientset, "cert-manager"); err != nil {
+	if err := deleteNamespace(aws.k8sClient, "cert-manager"); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -1059,40 +933,6 @@ func (aws *Aws) detachPoliciesToWorkerRoles() error {
 	return nil
 }
 
-func (aws *Aws) uninstallEKSCluster() error {
-	config, err := aws.getFeatureConfig()
-	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Reading feature config file error: %v", err),
-		}
-	}
-
-	if _, ok := config["managed_cluster"]; !ok {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Unable to read YAML: %v", err),
-		}
-	}
-
-	// Delete cluster if it's a managed cluster created by kfctl
-	if config["managed_cluster"] == true {
-		log.Infoln("Start to delete eks cluster. Please wait for 5 mins...")
-		clusterConfigFile := filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, CLUSTER_CONFIG_FILE)
-		output, err := exec.Command("eksctl", "delete", "cluster", "--config-file="+clusterConfigFile).Output()
-		log.Infoln("Please go to aws console to check CloudFormation status and double make sure your cluster has been shutdown.")
-		if err != nil {
-			return &kfapis.KfError{
-				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("could not call 'eksctl delete cluster --config-file=%s': %v", clusterConfigFile, string(output)),
-			}
-		}
-		log.Infoln(string(output))
-	}
-
-	return nil
-}
-
 func (aws *Aws) deleteIamRolePolicy(roleName, policyName string) error {
 	log.Infof("Deleting inline policy %s for iam role %s", policyName, roleName)
 
@@ -1145,7 +985,7 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 		return errors.Errorf("Can not find accountId for cluster %v", aws.kfDef.Name)
 	}
 
-	// 1. Create Identity Provider.
+	// Create Identity Provider.
 	issuerURLWithoutProtocol := eksCluster.oidcIssuerUrl[len("https://"):]
 	exist, arn, err := aws.checkIdentityProviderExists(accountId, issuerURLWithoutProtocol)
 	if err != nil {
@@ -1169,104 +1009,26 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 		"kf-user":                             fmt.Sprintf("kf-user-%v", eksCluster.name),
 	}
 
-	// 2. Create IAM Roles using the web identity provider created in last step.
-	for ksa, iamRole := range kubeflowSAIamRoleMapping {
-		if err := aws.checkWebIdentityRoleExist(iamRole); err == nil {
-			log.Infof("Find existing role %s to reuse for ksa %s", iamRole, ksa)
-			continue
+	for ksa, iamRoleName := range kubeflowSAIamRoleMapping {
+		// 1. Create AWS IAM Roles with web identity provider as trusted identities
+		if err := aws.createOrUpdateWebIdentityRole(oidcProviderArn, issuerURLWithoutProtocol, iamRoleName, aws.kfDef.Namespace, ksa); err != nil {
+			return errors.Errorf("Can not create web identity role: %v", err)
 		}
 
-		log.Infof("Creating IAM role %s", iamRole)
-		if err := aws.createWebIdentityRole(oidcProviderArn, issuerURLWithoutProtocol, iamRole, aws.kfDef.Namespace, ksa); err != nil {
-			return errors.Errorf("Can not create web identity role: %v", err)
+		// 2. Create Kubernetes Service Account
+		iamRoleArn := fmt.Sprintf(AWS_IAM_ROLE_ARN, accountId, iamRoleName)
+		if err := aws.createOrUpdateK8sServiceAccount(aws.k8sClient, aws.kfDef.Namespace, ksa, iamRoleArn); err != nil {
+			return errors.Errorf("Can not create Service Account %s/%s, %v", aws.kfDef.Namespace, ksa, err)
+		}
+
+		// 3. Link KSA to IAM Role - add service account in Role Trust Relationships
+		if err := aws.updateRoleTrustIdentity(iamRoleName, aws.kfDef.Namespace, ksa); err != nil {
+			return errors.Errorf("Can not update IAM role trust relationships %v", err)
 		}
 	}
 
 	// We only want to attach admin role at this moment.
+	// TODO: grant kf-user policies
 	aws.roles = append(aws.roles, fmt.Sprintf("kf-admin-%v", eksCluster.name))
-
-	// 3. Link KSA to IAM Role.
-	k8sclientset, err := aws.getK8sclient()
-	if err != nil {
-		return err
-	}
-
-	for ksa, iamRole := range kubeflowSAIamRoleMapping {
-		if err := aws.setupIAMForServiceAccount(k8sclientset, aws.kfDef.Namespace, ksa, accountId, iamRole); err != nil {
-			return err
-		}
-	}
-
 	return nil
-}
-
-func (aws *Aws) setupIAMForServiceAccount(k8sclientset *clientset.Clientset, namespace, ksa, accountId, iamRole string) error {
-	// Add IAMRole in service account annotation
-	if err := aws.createOrUpdateK8sServiceAccount(k8sclientset, namespace, ksa, accountId, iamRole); err != nil {
-		return errors.Errorf("Can not link KSA %s/%s to IAM Role %s/%s, %v", namespace, ksa, accountId, iamRole, err)
-	}
-
-	// Add service account in Role Trust Relationships
-	if err := aws.updateRoleTrustIdentity(aws.kfDef.Namespace, ksa, iamRole); err != nil {
-		return errors.Errorf("Can not update IAM role trust relationships %v", err)
-	}
-
-	return nil
-}
-
-func (aws *Aws) getK8sclient() (*clientset.Clientset, error) {
-	home := homeDir()
-	kubeconfig := filepath.Join(home, ".kube", "config")
-
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, errors.Errorf("Failed to create config file from %s", kubeconfig)
-	}
-
-	clientset, err := clientset.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Errorf("Failed to create kubernetes clientset")
-	}
-
-	return clientset, nil
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
-func (aws *Aws) getEksCluster(clusterName string) (*Cluster, error) {
-	input := &eks.DescribeClusterInput{
-		Name: awssdk.String(clusterName),
-	}
-
-	result, err := aws.eksClient.DescribeCluster(input)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster := &Cluster{
-		name:              awssdk.StringValue(result.Cluster.Name),
-		apiServerEndpoint: awssdk.StringValue(result.Cluster.Endpoint),
-		oidcIssuerUrl:     awssdk.StringValue(result.Cluster.Identity.Oidc.Issuer),
-		clusterArn:        awssdk.StringValue(result.Cluster.Arn),
-		roleArn:           awssdk.StringValue(result.Cluster.RoleArn),
-		kubernetesVersion: awssdk.StringValue(result.Cluster.Version),
-	}
-
-	log.Infof("EKS cluster info %v", cluster)
-	return cluster, nil
-}
-
-type Cluster struct {
-	name              string
-	apiServerEndpoint string
-	oidcIssuerUrl     string
-	clusterArn        string
-	roleArn           string
-	kubernetesVersion string
 }
