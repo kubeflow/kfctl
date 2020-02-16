@@ -148,10 +148,10 @@ func (aws *Aws) createWebIdentityRole(oidcProviderArn, issuerUrlWithProtocol, ro
 	return nil
 }
 
-// deleteWebIdentityRole delete a role we created for Web Identity
-func (aws *Aws) deleteWebIdentityRole(roleArn string) error {
+// deleteIAMRole delete an IAM role
+func (aws *Aws) deleteIAMRole(roleName string) error {
 	input := &iam.DeleteRoleInput{
-		RoleName: awssdk.String(getIAMRoleNameFromIAMRoleArn(roleArn)),
+		RoleName: awssdk.String(roleName),
 	}
 
 	if _, err := aws.iamClient.DeleteRole(input); err != nil {

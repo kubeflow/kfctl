@@ -996,6 +996,10 @@ func (aws *Aws) detachPoliciesToWorkerRoles() error {
 	}
 
 	var roles []string
+	awsPluginSpec, err := aws.GetPluginSpec()
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	// Find worker roles based on new cluster kfctl created or existing cluster
 	if config["managed_cluster"] == true {
@@ -1006,11 +1010,6 @@ func (aws *Aws) detachPoliciesToWorkerRoles() error {
 
 		roles = workerRoles
 	} else {
-		awsPluginSpec, err := aws.GetPluginSpec()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
 		roles = awsPluginSpec.Roles
 	}
 
@@ -1022,6 +1021,38 @@ func (aws *Aws) detachPoliciesToWorkerRoles() error {
 
 		if config["worker_node_group_logging"] == "true" {
 			aws.deleteIamRolePolicy(iamRole, "iam_cloudwatch_policy")
+		}
+	}
+
+	// Delete WebIdentityIAMRole and OIDC Provider
+	if awsPluginSpec.GetEnablePodIamPolicy() {
+		eksCluster, err := aws.getEksCluster(aws.kfDef.Name)
+		if err != nil {
+			return err
+		}
+
+		aws.deleteIAMRole(fmt.Sprintf("kf-admin-%v", eksCluster.name))
+		aws.deleteIAMRole(fmt.Sprintf("kf-user-%v", eksCluster.name))
+
+		accountId, err := utils.CheckAwsAccountId(aws.sess)
+		if err != nil {
+			return errors.Errorf("Can not find accountId for cluster %v", aws.kfDef.Name)
+		}
+
+		// 1. Create Identity Provider.
+		issuerURLWithoutProtocol := eksCluster.oidcIssuerUrl[len("https://"):]
+		exist, arn, err := aws.checkIdentityProviderExists(accountId, issuerURLWithoutProtocol)
+		if err != nil {
+			return errors.Errorf("Can not check identity provider existence: %v", err)
+		}
+
+		if !exist {
+			log.Warnf("Identity provider %v of cluster %v doesnot exist", arn, eksCluster.name)
+			return nil
+		}
+
+		if err := aws.DeleteIdentityProvider(arn); err != nil {
+			return err
 		}
 	}
 
