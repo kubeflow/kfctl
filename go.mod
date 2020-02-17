@@ -22,6 +22,7 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
+	github.com/hashicorp/go-version v1.2.0
 	github.com/imdario/mergo v0.3.8
 	github.com/kubernetes-sigs/application v0.8.0
 	github.com/onrik/logrus v0.2.1

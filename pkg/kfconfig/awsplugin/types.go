@@ -25,6 +25,30 @@ type AwsPluginSpec struct {
 	Roles []string `json:"roles,omitempty"`
 
 	EnablePodIamPolicy *bool `json:"enablePodIamPolicy,omitempty"`
+
+	EnableNodeGroupLog *bool `json:"enableNodeGroupLog,omitempty"`
+
+	ManagedCluster *bool `json:"managedCluster,omitempty"`
+
+	ManagedRelationDatabase *RelationDatabaseConfig `json:"managedRelationDatabase,omitempty"`
+
+	ManagedObjectStorage *ObjectStorageConfig `json:"managedObjectStorage,omitempty"`
+
+	// Addon is used to host some optional aws specific components
+	// EFS, FSX CSI Plugin, Fluentd-CloudWatch, Device Plugin
+	AddOns []string `json:"addons,omitempty"`
+}
+
+type RelationDatabaseConfig struct {
+	Host     string `json:"host,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type ObjectStorageConfig struct {
+	Endpoint string `json:"endpoint,omitempty"`
+	Bucket   string `json:"bucket,omitempty"`
+	//Password string `json:"password,omitempty"`
 }
 
 type Auth struct {
@@ -64,7 +88,6 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 
 	if basicAuthSet {
 		msg := ""
-
 		isValid := true
 
 		if plugin.Auth.BasicAuth.Username == "" {
@@ -149,17 +172,36 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	// return false, "Either BasicAuth, ODC or Cognito must be set"
-	// TODO: BasicAuth is configured to be working in AWS env. Let's add validation back once it's supported.
+	// TODO: return false, "Either BasicAuth, OIDC or Cognito must be set"
 	return true, ""
-
 }
 
+// GetEnablePodIamPolicy return true if user want to enable pod iam policy
 func (p *AwsPluginSpec) GetEnablePodIamPolicy() bool {
 	if p.EnablePodIamPolicy == nil {
-		return true
+		return false
 	}
 
 	v := p.EnablePodIamPolicy
+	return *v
+}
+
+// GetEnableNodeGroupLog return true if user want to enable fluentd cloud watch logs
+func (p *AwsPluginSpec) GetEnableNodeGroupLog() bool {
+	if p.EnableNodeGroupLog == nil {
+		return false
+	}
+
+	v := p.EnableNodeGroupLog
+	return *v
+}
+
+// GetManagedCluster return true if user want to create a new cluster and then deploy kubeflow
+func (p *AwsPluginSpec) GetManagedCluster() bool {
+	if p.ManagedCluster == nil {
+		return false
+	}
+
+	v := p.ManagedCluster
 	return *v
 }

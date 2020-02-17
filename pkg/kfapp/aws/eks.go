@@ -5,6 +5,7 @@ import (
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/eks"
+	versionChecker "github.com/hashicorp/go-version"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -66,23 +67,14 @@ func (aws *Aws) IsEksCluster(clusterName string) (bool, error) {
 
 // createEKSCluster creates a new EKS cluster if want kfctl to manage cluster
 // @Deprecated. In order to simplify workflow, user should always brings their own cluster and install kubeflow on top of it.
+// We still leave this option here and probably remove codes in future version
 func (aws *Aws) createEKSCluster() error {
-	config, err := aws.getFeatureConfig()
+	awsPluginSpec, err := aws.GetPluginSpec()
 	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Reading config file error: %v", err),
-		}
+		return err
 	}
 
-	if _, ok := config["managed_cluster"]; !ok {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Unable to read YAML"),
-		}
-	}
-
-	if config["managed_cluster"] == true {
+	if awsPluginSpec.GetManagedCluster() {
 		log.Infoln("Start to create eks cluster. Please wait for 10-15 mins...")
 		clusterConfigFile := filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, CLUSTER_CONFIG_FILE)
 		output, err := exec.Command("eksctl", "create", "cluster", "--config-file="+clusterConfigFile).Output()
@@ -109,23 +101,13 @@ func (aws *Aws) createEKSCluster() error {
 
 // deleteEKSCluster deletes eks cluster if current cluster is a managed cluster
 func (aws *Aws) deleteEKSCluster() error {
-	config, err := aws.getFeatureConfig()
+	awsPluginSpec, err := aws.GetPluginSpec()
 	if err != nil {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Reading feature config file error: %v", err),
-		}
-	}
-
-	if _, ok := config["managed_cluster"]; !ok {
-		return &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Unable to read YAML: %v", err),
-		}
+		return err
 	}
 
 	// Delete cluster if it's a managed cluster created by kfctl
-	if config["managed_cluster"] == true {
+	if awsPluginSpec.GetManagedCluster() {
 		log.Infoln("Start to delete eks cluster. Please wait for 5 mins...")
 		clusterConfigFile := filepath.Join(aws.kfDef.Spec.AppDir, KUBEFLOW_AWS_INFRA_DIR, CLUSTER_CONFIG_FILE)
 		output, err := exec.Command("eksctl", "delete", "cluster", "--config-file="+clusterConfigFile).Output()
@@ -137,6 +119,24 @@ func (aws *Aws) deleteEKSCluster() error {
 			}
 		}
 		log.Infoln(string(output))
+	}
+
+	return nil
+}
+
+func isEksctlVersionValid(v1, v2 string) error {
+	version, err := versionChecker.NewVersion(v1)
+	if err != nil {
+		return err
+	}
+
+	minimum, err := versionChecker.NewVersion(v2)
+	if err != nil {
+		return err
+	}
+
+	if version.LessThan(minimum) {
+		return fmt.Errorf("version %s is less than minimum version %s", v1, v2)
 	}
 
 	return nil

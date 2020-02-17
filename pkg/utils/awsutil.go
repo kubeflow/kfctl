@@ -67,13 +67,13 @@ func CheckCommandExist(commandName string) error {
 }
 
 // GetEksctlVersion return eksctl version on user's environment
-func GetEksctlVersion() error {
+func GetEksctlVersion() (string, error) {
 	log.Infof("Running `eksctl version` ...")
 	output, err := exec.Command("eksctl", "version").Output()
 
 	if err != nil {
 		log.Errorf("Failed to run `eksctl version` command %v", err)
-		return err
+		return "", err
 	}
 
 	// [ℹ]  version.Info{BuiltAt:"", GitCommit:"", GitTag:"0.1.32"}
@@ -81,9 +81,10 @@ func GetEksctlVersion() error {
 	matchGroups := r.FindStringSubmatch(string(output))
 
 	if len(matchGroups) == 0 {
-		return fmt.Errorf("can not find eksctl version from %v", string(output))
+		return "", fmt.Errorf("can not find eksctl version from %v", string(output))
 	}
 
-	log.Infof("eksctl version: %s", matchGroups[0])
-	return nil
+	version := matchGroups[0]
+	log.Infof("eksctl version: %s", version)
+	return version, nil
 }
