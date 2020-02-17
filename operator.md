@@ -107,7 +107,7 @@ cd kfctl
 
 2. Build and push the operator
 ```shell
-export IMG=<docker_username>/kubeflow-operator:v0.1.0
+export OPERATOR_IMG=<docker_username>/kubeflow-operator:v0.1.0
 make build-operator
 make push-operator
 ```
