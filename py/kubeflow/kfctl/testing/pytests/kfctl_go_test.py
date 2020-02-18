@@ -1,6 +1,6 @@
 import logging
 import os
-
+import time
 import pytest
 
 from kubernetes import client as k8s_client
@@ -27,6 +27,7 @@ def test_build_kfctl_go(record_xml_attribute, app_name, app_path, project, use_b
   """
   util.set_pytest_junit(record_xml_attribute, "test_build_kfctl_go")
 
+  time.sleep(1800)
   # Need to activate account for scopes.
   if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
     util.run([
