@@ -30,7 +30,7 @@ PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
 ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
-OPERATOR_IMG ?= kubeflow-operator:v0.1.0
+OPERATOR_IMG ?= kubeflow-operator
 
 # Location of junit file
 JUNIT_FILE ?= /tmp/report.xml
