@@ -1,37 +1,37 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 images:
 - name: docker.io/istio/kubectl
-  newName: gcr.io/kubeflow-dev/docker.io/istio/kubectl:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/kubectl
   newTag: 1.1.6
 - name: docker.io/istio/galley
-  newName: gcr.io/kubeflow-dev/docker.io/istio/galley:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/galley
   newTag: 1.1.6
 - name: docker.io/istio/proxyv2
-  newName: gcr.io/kubeflow-dev/docker.io/istio/proxyv2:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/proxyv2
   newTag: 1.1.6
 - name: grafana/grafana
-  newName: gcr.io/kubeflow-dev/grafana/grafana:6.0.2
+  newName: gcr.io/kubeflow-dev/grafana/grafana
   newTag: 6.0.2
 - name: docker.io/kiali/kiali
-  newName: gcr.io/kubeflow-dev/docker.io/kiali/kiali:v0.16
+  newName: gcr.io/kubeflow-dev/docker.io/kiali/kiali
   newTag: v0.16
 - name: docker.io/istio/mixer
-  newName: gcr.io/kubeflow-dev/docker.io/istio/mixer:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/mixer
   newTag: 1.1.6
 - name: docker.io/istio/pilot
-  newName: gcr.io/kubeflow-dev/docker.io/istio/pilot:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/pilot
   newTag: 1.1.6
 - name: docker.io/prom/prometheus
-  newName: gcr.io/kubeflow-dev/docker.io/prom/prometheus:v2.3.1
+  newName: gcr.io/kubeflow-dev/docker.io/prom/prometheus
   newTag: v2.3.1
 - name: docker.io/istio/citadel
-  newName: gcr.io/kubeflow-dev/docker.io/istio/citadel:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/citadel
   newTag: 1.1.6
 - name: docker.io/istio/sidecar_injector
-  newName: gcr.io/kubeflow-dev/docker.io/istio/sidecar_injector:1.1.6
+  newName: gcr.io/kubeflow-dev/docker.io/istio/sidecar_injector
   newTag: 1.1.6
 - name: docker.io/jaegertracing/all-in-one
-  newName: gcr.io/kubeflow-dev/docker.io/jaegertracing/all-in-one:1.9
+  newName: gcr.io/kubeflow-dev/docker.io/jaegertracing/all-in-one
   newTag: "1.9"
 kind: Kustomization
 namespace: kubeflow
