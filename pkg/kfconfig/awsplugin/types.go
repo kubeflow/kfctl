@@ -82,11 +82,7 @@ type Coginito struct {
 // IsValid returns true if the spec is a valid and complete spec.
 // If false it will also return a string providing a message about why its invalid.
 func (plugin *AwsPluginSpec) IsValid() (bool, string) {
-	basicAuthSet := plugin.Auth.BasicAuth != nil
-	oidcAuthSet := plugin.Auth.Oidc != nil
-	cognitoAuthSet := plugin.Auth.Cognito != nil
-
-	if basicAuthSet {
+	if plugin.Auth.BasicAuth != nil {
 		msg := ""
 		isValid := true
 
@@ -103,7 +99,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	if oidcAuthSet {
+	if plugin.Auth.Oidc != nil {
 		msg := ""
 		isValid := true
 
@@ -145,7 +141,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	if cognitoAuthSet {
+	if plugin.Auth.Cognito != nil {
 		msg := ""
 		isValid := true
 
@@ -172,7 +168,45 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	// TODO: return false, "Either BasicAuth, OIDC or Cognito must be set"
+	if plugin.ManagedRelationDatabase != nil {
+		msg := ""
+		isValid := true
+
+		if plugin.ManagedRelationDatabase.Host == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Host is required"
+		}
+
+		if plugin.ManagedRelationDatabase.Username == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Username is required"
+		}
+
+		if plugin.ManagedRelationDatabase.Password == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Password is required"
+		}
+
+		return isValid, msg
+	}
+
+	if plugin.ManagedObjectStorage != nil {
+		msg := ""
+		isValid := true
+
+		if plugin.ManagedObjectStorage.Endpoint == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Endpoint is required"
+		}
+
+		if plugin.ManagedObjectStorage.Bucket == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Bucket is required"
+		}
+
+		return isValid, msg
+	}
+
 	return true, ""
 }
 

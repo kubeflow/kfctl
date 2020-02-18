@@ -42,7 +42,6 @@ func (aws *Aws) getEksCluster(clusterName string) (*Cluster, error) {
 		kubernetesVersion: awssdk.StringValue(result.Cluster.Version),
 	}
 
-	log.Infof("EKS cluster info %v", cluster)
 	return cluster, nil
 }
 
@@ -124,20 +123,21 @@ func (aws *Aws) deleteEKSCluster() error {
 	return nil
 }
 
-func isEksctlVersionValid(v1, v2 string) error {
-	version, err := versionChecker.NewVersion(v1)
+// isEksctlVersionLessThan compare two version and return true if v1 is less than v2
+func isEksctlVersionLessThan(v1, v2 string) (bool, error) {
+	version1, err := versionChecker.NewVersion(v1)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	minimum, err := versionChecker.NewVersion(v2)
+	version2, err := versionChecker.NewVersion(v2)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if version.LessThan(minimum) {
-		return fmt.Errorf("version %s is less than minimum version %s", v1, v2)
+	if version1.LessThan(version2) {
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }

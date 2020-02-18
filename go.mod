@@ -19,6 +19,7 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
 	github.com/gogo/protobuf v1.3.1
+	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e
 	github.com/google/go-cmp v0.3.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
