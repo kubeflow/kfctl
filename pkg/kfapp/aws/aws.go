@@ -50,11 +50,11 @@ import (
 )
 
 const (
-	KUBEFLOW_AWS_INFRA_DIR      = "aws_config"
-	KUBEFLOW_MANIFEST_DIR       = "kustomize"
-	CLUSTER_CONFIG_FILE         = "cluster_config.yaml"
-	PATH                        = "path"
-	BASIC_AUTH_SECRET           = "kubeflow-login"
+	KUBEFLOW_AWS_INFRA_DIR = "aws_config"
+	KUBEFLOW_MANIFEST_DIR  = "kustomize"
+	CLUSTER_CONFIG_FILE    = "cluster_config.yaml"
+	PATH                   = "path"
+	BASIC_AUTH_SECRET      = "kubeflow-login"
 	// Path in manifests repo to where the additional configs are located
 	CONFIG_LOCAL_PATH = "aws/infra_configs"
 
@@ -67,7 +67,7 @@ const (
 	MINIMUM_EKSCTL_VERSION = "0.1.32"
 
 	KUBEFLOW_ADMIN_ROLE_NAME = "kf-admin-%v"
-	KUBEFLOW_USER_ROLE_NAME = "kf-user-%v"
+	KUBEFLOW_USER_ROLE_NAME  = "kf-user-%v"
 )
 
 // Aws implements KfApp Interface
@@ -84,8 +84,9 @@ type Aws struct {
 	region string
 	roles  []string
 
-	istioManifests   []manifest
-	ingressManifests []manifest
+	istioManifests       []manifest
+	ingressManifests     []manifest
+	certManagerManifests []manifest
 }
 
 type manifest struct {
@@ -106,11 +107,28 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 			path: path.Join(KUBEFLOW_MANIFEST_DIR, "istio-install", "base", "istio-noauth.yaml"),
 		},
 	}
-
 	ingressManifests := []manifest{
 		{
 			name: "ALB Ingress",
 			path: path.Join(KUBEFLOW_MANIFEST_DIR, "istio-ingress", "base", "ingress.yaml"),
+		},
+	}
+	certManagerManifests := []manifest{
+		{
+			name: "Cert Manager",
+			path: path.Join(KUBEFLOW_MANIFEST_DIR, "cert-manager-crds", "base", "crd.yaml"),
+		},
+		{
+			name: "Cert Manager API Service",
+			path: path.Join(KUBEFLOW_MANIFEST_DIR, "cert-manager", "base", "api-service.yaml"),
+		},
+		{
+			name: "Cert Manager MutationWebhookConfig",
+			path: path.Join(KUBEFLOW_MANIFEST_DIR, "cert-manager", "base", "mutating-webhook-configuration.yaml"),
+		},
+		{
+			name: "Cert Manager ValidatingWebhookConfiguration",
+			path: path.Join(KUBEFLOW_MANIFEST_DIR, "cert-manager", "base", "validating-webhook-configuration.yaml"),
 		},
 	}
 
@@ -122,13 +140,14 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 	}
 
 	_aws := &Aws{
-		kfDef:            kfdef,
-		sess:             session,
-		iamClient:        iam.New(session),
-		eksClient:        eks.New(session),
-		k8sClient:        k8sClient,
-		istioManifests:   istioManifests,
-		ingressManifests: ingressManifests,
+		kfDef:                kfdef,
+		sess:                 session,
+		iamClient:            iam.New(session),
+		eksClient:            eks.New(session),
+		k8sClient:            k8sClient,
+		istioManifests:       istioManifests,
+		ingressManifests:     ingressManifests,
+		certManagerManifests: certManagerManifests,
 	}
 
 	return _aws, nil
@@ -763,6 +782,10 @@ func (aws *Aws) uninstallK8sDependencies() error {
 		return errors.WithStack(err)
 	}
 
+	if err := deleteManifests(rev(aws.certManagerManifests)); err != nil {
+		return errors.WithStack(err)
+	}
+
 	// 3. Delete istio dependencies
 	if err := deleteManifests(rev(aws.istioManifests)); err != nil {
 		return errors.WithStack(err)
@@ -848,8 +871,6 @@ func (aws *Aws) deleteIamRolePolicy(roleName, policyName string) error {
 	// It's possible user make any changes on IAM role.
 	if err != nil {
 		log.Warnf("Unable to delete iam inline policy %s because %v", policyName, err.Error())
-	} else {
-		log.Infof("Successfully delete policy from IAM Role %v", roleName)
 	}
 
 	return nil
@@ -954,8 +975,11 @@ func (aws *Aws) deleteWebIdentityRolesAndProvider() error {
 	}
 
 	// Delete IAM role we created
-	aws.deleteIAMRole(fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name))
-	aws.deleteIAMRole(fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name))
+	kfAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name)
+	kfUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name)
+	aws.deleteIAMRole(kfAdminRoleName)
+	aws.deleteIAMRole(kfUserRoleName)
+	log.Infof("IAM Role %s, %s has been deleted", kfAdminRoleName, kfUserRoleName)
 
 	accountId, err := utils.CheckAwsAccountId(aws.sess)
 	if err != nil {
@@ -970,13 +994,15 @@ func (aws *Aws) deleteWebIdentityRolesAndProvider() error {
 	}
 
 	if !exist {
-		log.Warnf("Identity provider %v of cluster %v doesnot exist", arn, eksCluster.name)
+		log.Warnf("Identity provider %v of cluster %v does not exist", arn, eksCluster.name)
 		return nil
 	}
 
 	if err := aws.DeleteIdentityProvider(arn); err != nil {
 		return err
 	}
+
+	log.Infof("OIDC Identity Provider has been delete %s", issuerURLWithoutProtocol)
 
 	return nil
 }

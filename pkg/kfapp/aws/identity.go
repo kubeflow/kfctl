@@ -90,7 +90,7 @@ func (aws *Aws) createOrUpdateWebIdentityRole(oidcProviderArn, issuerUrl, roleNa
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
-				log.Infof("Role %v doesn't, creating it for KSA %s/%s", roleName, serviceAccountNamespace, serviceAccountName)
+				log.Infof("Role %v doesn't exist, creating for KSA %s/%s", roleName, serviceAccountNamespace, serviceAccountName)
 			default:
 				return err
 			}
@@ -98,7 +98,7 @@ func (aws *Aws) createOrUpdateWebIdentityRole(oidcProviderArn, issuerUrl, roleNa
 			return err
 		}
 	} else {
-		log.Warnf("Role %v exists, skip creating role", roleName)
+		log.Info("Role %v exists, skip creating role", roleName)
 		return nil
 	}
 
@@ -155,7 +155,7 @@ func (aws *Aws) createOrUpdateK8sServiceAccount(k8sClientset *clientset.Clientse
 		return nil
 	}
 
-	log.Infof("Can not find existing service account, creating service account %s/%s", serviceAccountNamespace, serviceAccountName)
+	log.Infof("Can not find existing service account, creating %s/%s", serviceAccountNamespace, serviceAccountName)
 	_, err = k8sClientset.CoreV1().ServiceAccounts(serviceAccountNamespace).Create(
 		&v1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
