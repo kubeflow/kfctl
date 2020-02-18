@@ -370,7 +370,6 @@ class Builder(object):
     command = ["pytest",
                "pytorch_job_deploy.py",
                "-s",
-               "--timeout=600",
                "--junitxml=" + self.artifacts_dir + "/junit_pytorch-test.xml",
                "--kfctl_repo_path=" + self.src_dir,
                "--namespace=" + self.steps_namespace,
@@ -386,7 +385,6 @@ class Builder(object):
     command =  ["pytest",
                 "jupyter_test.py",
                 "-s",
-                "--timeout=500",
                 "--junitxml=" + self.artifacts_dir + "/junit_jupyter-test.xml",
                 "--kfctl_repo_path=" + self.src_dir,
                 "--namespace=" + self.steps_namespace,
@@ -407,8 +405,6 @@ class Builder(object):
                 # I think -s mean stdout/stderr will print out to aid in debugging.
                 # Failures still appear to be captured and stored in the junit file.
                 "-s",
-                # Test timeout in seconds.
-                "--timeout=600",
                 "--junitxml=" + self.artifacts_dir + "/junit_profiles-test.xml",
              ]
 
@@ -426,7 +422,6 @@ class Builder(object):
     command = ["pytest",
                "kfam_test.py",
                "-s",
-               "--timeout=600",
                "--junitxml=" + self.artifacts_dir + "/junit_kfam-test.xml",
                ]
 
@@ -448,7 +443,6 @@ class Builder(object):
         "kfctl_delete_wrong_cluster.py",
         "-s",
         "--log-cli-level=info",
-        "--timeout=1000",
         "--junitxml=" + self.artifacts_dir + "/junit_kfctl-go-delete-wrong-cluster-test.xml",
         "--app_path=" + self.app_dir,
         "--kfctl_path=" + self.kfctl_path,
@@ -465,7 +459,6 @@ class Builder(object):
         "kfctl_delete_test.py",
         "-s",
         "--log-cli-level=info",
-        "--timeout=1000",
         "--junitxml=" + self.artifacts_dir + "/junit_kfctl-go-delete-test.xml",
         "--app_path=" + self.app_dir,
         "--kfctl_path=" + self.kfctl_path,
