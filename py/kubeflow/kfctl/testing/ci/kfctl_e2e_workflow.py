@@ -555,6 +555,7 @@ class Builder(object):
     # Change the workfing directory for all subsequent steps
     task_template["container"]["workingDir"] = os.path.join(
       self.kfctl_pytest_dir)
+    py3_template["container"]["workingDir"] = os.path.join(self.kfctl_pytest_dir)
 
     #**************************************************************************
     # Run build_kfctl and deploy kubeflow
