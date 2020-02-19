@@ -16,7 +16,7 @@ kubectl create clusterrolebinding kubeflow-operator --clusterrole cluster-admin 
 kubectl create -f deploy/operator.yaml -n ${OPERATOR_NAMESPACE}
 ```
 
-2. Setup Kubeflow namespace. You can optionally apply ResourceQuota if your Kubernetes version is 1.15+, which will allow only one _kfdef_ instance or one deployment of Kubeflow on this cluster, which follows the singleton model.
+2. Setup Kubeflow namespace. You can optionally apply ResourceQuota if your Kubernetes version is 1.15+, which will allow only one _kfdef_ instance or one deployment of Kubeflow on the cluster. This follows the singleton model, and is the current recommended and supported mode.
 we use ResourceQuota to provide constraints that only one instance of kfdef is allowed within the Kubeflow namespace.
 ```shell
 KUBEFLOW_NAMESPACE=kubeflow
@@ -30,11 +30,11 @@ kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 ```
 _kfdef_ above can point to a remote URL or to a local kfdef file. If you want to use the set of default kfdefs from Kubeflow. You will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the KubeFlow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
 ```shell
-export KUBEFLOW_DEPLOY_NAME=kubeflow
+export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
 export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
 export KFDEF=$(echo "${KFDEF_URL}" | rev | cut -d/ -f1 | rev)
 curl -L ${KFDEF_URL} > ${KFDEF}
-perl -pi -e $'s@metadata:@metadata:\\\n  name: '"${KUBEFLOW_DEPLOY_NAME}"'@' ${KFDEF}
+perl -pi -e $'s@metadata:@metadata:\\\n  name: '"${KUBEFLOW_DEPLOYMENT_NAME}"'@' ${KFDEF}
 kubectl create -f ${KFDEF} -n ${KUBEFLOW_NAMESPACE}
 ```
 
