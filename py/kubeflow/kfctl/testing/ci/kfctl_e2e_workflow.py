@@ -439,6 +439,8 @@ class Builder(object):
   def _build_exit_dag(self):
     """Build the exit handler dag"""
     task_template = self._build_task_template()
+    py3_template = argo_build_util.deep_copy(task_template)
+    py3_template["container"]["image"] = "gcr.io/kubeflow-ci/test-worker-py3:789005d"
 
     #***********************************************************************
     # Delete Kubeflow
@@ -637,8 +639,6 @@ class Builder(object):
                  "--use_basic_auth={0}".format(self.use_basic_auth),
               ]
 
-      py3_template = argo_build_util.deep_copy(task_template)
-      py3_template["container"]["image"] = "gcr.io/kubeflow-ci/test-worker-py3:789005d"
       dependencies = [build_kfctl["name"]]
       endpoint_ready = self._build_step(self._test_endpoint_step_name,
                                         self.workflow, E2E_DAG_NAME, py3_template,
