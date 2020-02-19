@@ -555,6 +555,7 @@ class Builder(object):
     # Change the workfing directory for all subsequent steps
     task_template["container"]["workingDir"] = os.path.join(
       self.kfctl_pytest_dir)
+    py3_template["container"]["workingDir"] = os.path.join(self.kfctl_pytest_dir)
 
     #**************************************************************************
     # Run build_kfctl and deploy kubeflow
@@ -631,8 +632,6 @@ class Builder(object):
                  "-s",
                  # Increase the log level so that info level log statements show up.
                  "--log-cli-level=info",
-                 # Test timeout in seconds.
-                 "--timeout=1800",
                  "--junitxml=" + self.artifacts_dir + "/junit_endpoint-is-ready-test-" + self.config_name + ".xml",
                  # Test suite name needs to be unique based on parameters
                  "-o", "junit_suite_name=test_endpoint_is_ready_" + self.config_name,
@@ -643,7 +642,7 @@ class Builder(object):
 
       dependencies = [build_kfctl["name"]]
       endpoint_ready = self._build_step(self._test_endpoint_step_name,
-                                        self.workflow, E2E_DAG_NAME, task_template,
+                                        self.workflow, E2E_DAG_NAME, py3_template,
                                         command, dependencies)
       self._test_endpoint_template_name = endpoint_ready["name"]
 
