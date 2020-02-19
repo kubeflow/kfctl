@@ -439,8 +439,6 @@ class Builder(object):
   def _build_exit_dag(self):
     """Build the exit handler dag"""
     task_template = self._build_task_template()
-    py3_template = argo_build_util.deep_copy(task_template)
-    py3_template["container"]["image"] = "gcr.io/kubeflow-ci/test-worker-py3:789005d"
 
     #***********************************************************************
     # Delete Kubeflow
@@ -517,6 +515,8 @@ class Builder(object):
   def build(self):
     self.workflow = self._build_workflow()
     task_template = self._build_task_template()
+    py3_template = argo_build_util.deep_copy(task_template)
+    py3_template["container"]["image"] = "gcr.io/kubeflow-ci/test-worker-py3:789005d"
 
     #**************************************************************************
     # Checkout
