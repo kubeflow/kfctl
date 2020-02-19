@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"github.com/ghodss/yaml"
+	gogetter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
@@ -21,6 +22,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"strings"
 )
@@ -496,62 +498,76 @@ func (c *KfConfig) SyncCache() error {
 		}
 
 		log.Infof("Fetching %v to %v", r.URI, cacheDir)
-		if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
-			log.Errorf("Could not create dir %v; error %v", cacheDir, err)
-			return errors.WithStack(err)
-		}
-
-		// Manifests are local dir
-		if fi, err := os.Stat(r.URI); err == nil && fi.Mode().IsDir() {
-			// check whether the cache directory is a sub directory of manifests
-			absCacheDir, err := filepath.Abs(cacheDir)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			absURI, err := filepath.Abs(r.URI)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			relDir, err := filepath.Rel(absURI, absCacheDir)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			if !strings.HasPrefix(relDir, ".."+string(filepath.Separator)) {
-				return errors.WithStack(errors.New("SyncCache: could not sync cache when the cache path " + cacheDir + " is sub directory of manifests " + r.URI))
-			}
-
-			if err := copy.Copy(r.URI, cacheDir); err != nil {
-				return errors.WithStack(err)
-			}
-		} else {
-			t := &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-			}
-			t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
-			t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
-			hclient := &http.Client{Transport: t}
-			req, _ := http.NewRequest("GET", r.URI, nil)
-			req.Header.Set("User-Agent", "kfctl")
-			resp, err := hclient.Do(req)
-			if err != nil {
+		fu, err := gogetter.Detect(r.URI, "", gogetter.Detectors)
+		// from gogetter.getForcedGetter
+		var forcedRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)::(.+)$`)
+		// uri is in go-getter format (i.e. not http, may also handle local)
+		if ms := forcedRegexp.FindStringSubmatch(fu); ms != nil {
+			tarballUrlErr := gogetter.GetAny(cacheDir, fu)
+			if tarballUrlErr != nil {
 				return &kfapis.KfError{
 					Code:    int(kfapis.INVALID_ARGUMENT),
-					Message: fmt.Sprintf("couldn't download URI %v: %v", r.URI, err),
+					Message: fmt.Sprintf("couldn't download URI %v Error %v", fu, tarballUrlErr),
 				}
 			}
-			defer resp.Body.Close()
-
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Errorf("Could not read response body; error %v", err)
+		} else {
+			if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
+				log.Errorf("Could not create dir %v; error %v", cacheDir, err)
 				return errors.WithStack(err)
 			}
-			if err := untar(body, cacheDir); err != nil {
-				log.Errorf("Could not untar file %v; error %v", r.URI, err)
-				return errors.WithStack(err)
+
+			// Manifests are local dir
+			if fi, err := os.Stat(r.URI); err == nil && fi.Mode().IsDir() {
+				// check whether the cache directory is a sub directory of manifests
+				absCacheDir, err := filepath.Abs(cacheDir)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				absURI, err := filepath.Abs(r.URI)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				relDir, err := filepath.Rel(absURI, absCacheDir)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				if !strings.HasPrefix(relDir, ".."+string(filepath.Separator)) {
+					return errors.WithStack(errors.New("SyncCache: could not sync cache when the cache path " + cacheDir + " is sub directory of manifests " + r.URI))
+				}
+
+				if err := copy.Copy(r.URI, cacheDir); err != nil {
+					return errors.WithStack(err)
+				}
+			} else {
+				t := &http.Transport{
+					Proxy: http.ProxyFromEnvironment,
+				}
+				t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
+				t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
+				hclient := &http.Client{Transport: t}
+				req, _ := http.NewRequest("GET", r.URI, nil)
+				req.Header.Set("User-Agent", "kfctl")
+				resp, err := hclient.Do(req)
+				if err != nil {
+					return &kfapis.KfError{
+						Code:    int(kfapis.INVALID_ARGUMENT),
+						Message: fmt.Sprintf("couldn't download URI %v : %v", r.URI, err),
+					}
+				}
+				defer resp.Body.Close()
+
+				body, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Errorf("Could not read response body; error %v", err)
+					return errors.WithStack(err)
+				}
+				if err := untar(body, cacheDir); err != nil {
+					log.Errorf("Could not untar file %v; error %v", r.URI, err)
+					return errors.WithStack(err)
+				}
 			}
 		}
 
