@@ -105,36 +105,9 @@ git clone https://github.com/kubeflow/kfctl
 cd kfctl
 ```
 
-2. Create vendor dependency.
+2. Build and push the operator
 ```shell
-go mod vendor
-```
-
-3. Fix duplicated logrus library bugs due to the logrus version that kfctl is using.
-```shell
-pushd vendor/github.com/Sirupsen/logrus/
-echo -n '
-// +build linux aix
-
-package logrus
-
-import "golang.org/x/sys/unix"
-
-func isTerminal(fd int) bool {
-	_, err := unix.IoctlGetTermios(fd, unix.TCGETS)
-	return err == nil
-} ' > terminal_check_unix.go
-
-popd
-```
-
-4. Build the operator image
-```shell
-operator-sdk build <docker_username>/kubeflow-operator:v0.1.0
-```
-
-5. Push the operator image and update the operator.yaml spec with the new operator image.
-```shell
-docker push <docker_username>/kubeflow-operator:v0.1.0
-vi deploy/operator.yaml
+export OPERATOR_IMG=<docker_username>/kubeflow-operator
+make build-operator
+make push-operator
 ```
