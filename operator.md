@@ -29,6 +29,7 @@ kubectl create ns ${KUBEFLOW_NAMESPACE}
 kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 ```
 _kfdef_ above can point to a remote URL or to a local kfdef file. If you want to use the set of default kfdefs from Kubeflow. You will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the KubeFlow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
+> If you are pointing the kfdef file on the local machine, set the `KFDEF` to the kfdef file path and skip the `curl` command.
 ```shell
 export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
 export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
