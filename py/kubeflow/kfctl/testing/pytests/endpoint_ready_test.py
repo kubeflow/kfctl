@@ -41,6 +41,14 @@ def test_endpoint_is_ready(record_xml_attribute, project, app_path, app_name, us
     if not gcp_util.iap_is_ready(url):
       raise Exception("IAP endpoint is not ready")
 
+# Todo(jlewi): Should this only run in postsubmit?
+@pytest.mark.skipif(os.getenv("JOB_TYPE") == "presubmit",
+                    reason="test endpoint doesn't run in presubmits")
+def test_central_dash_is_running(record_xml_attribute, app_path):
+  """Test that Kubeflow Central Dash was successfully deployed."""
+  util.set_pytest_junit(record_xml_attribute, "test_central_dash_is_running")
+  subprocess.check_call('cd "{}" && npm run test-e2e'.format(app_path), shell=True)
+
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
                       format=('%(levelname)s|%(asctime)s'
