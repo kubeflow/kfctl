@@ -44,9 +44,14 @@ def test_endpoint_is_ready(record_xml_attribute, project, app_path, app_name, us
 # Todo(jlewi): Should this only run in postsubmit?
 @pytest.mark.skipif(os.getenv("JOB_TYPE") == "presubmit",
                     reason="test endpoint doesn't run in presubmits")
-def test_central_dash_is_running(record_xml_attribute, app_path):
+def test_central_dash_is_running(record_xml_attribute, app_path, kf_host, client_id, service_acct_email, service_acct_key_file):
   """Test that Kubeflow Central Dash was successfully deployed."""
   util.set_pytest_junit(record_xml_attribute, "test_central_dash_is_running")
+  os.environ["KF_HOST"] = kf_host       # The url to your cluster, usually: https://<cluster>.endpoints.<project>.cloud.goog/
+  os.environ["CLIENT_ID"] = client_id   # This is the CLIENT_ID token used to create the cluster (used in http://deploy.kubeflow.cloud/)
+  os.environ["SERVICE_ACCOUNT_EMAIL"] = service_acct_email  # The email address for the service account you created <name>@<project>.iam.gserviceaccount.com
+  os.environ["SERVICE_ACCOUNT_KEY"] = service_acct_key_file # Should be a JSON file downloaded from cloud console service accounts
+
   subprocess.check_call('cd "{}" && npm run test-e2e'.format(app_path), shell=True)
 
 if __name__ == "__main__":
