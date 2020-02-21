@@ -24,18 +24,30 @@ kubectl create ns ${KUBEFLOW_NAMESPACE}
 # kubectl create -f deploy/crds/kfdef_quota.yaml -n ${KUBEFLOW_NAMESPACE} # only deploy this if the k8s cluster is 1.15+ and has resource quota support
 ```
 
-3. Deploy KfDef.
-```
+3. Deploy KfDef. _kfdef_ can point to a remote URL or to a local kfdef file. If you want to use the set of default kfdefs from Kubeflow. Follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
+```shell
 kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 ```
-_kfdef_ above can point to a remote URL or to a local kfdef file. If you want to use the set of default kfdefs from Kubeflow. You will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the KubeFlow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
+
+#### Deploy with default kfdefs
+To use the set of default kfdefs from Kubeflow, you will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the Kubeflow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
 > If you are pointing the kfdef file on the local machine, set the `KFDEF` to the kfdef file path and skip the `curl` command.
 ```shell
 export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
 export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
 export KFDEF=$(echo "${KFDEF_URL}" | rev | cut -d/ -f1 | rev)
 curl -L ${KFDEF_URL} > ${KFDEF}
-perl -pi -e $'s@metadata:@metadata:\\\n  name: '"${KUBEFLOW_DEPLOYMENT_NAME}"'@' ${KFDEF}
+```
+
+Next, we need to update the KFDEF file with the KUBEFLOW_DEPLOYMENT_NAME. We strongly recommend to install the [yq](https://github.com/mikefarah/yq) tool and run the `yq` command. However, if you can't install `yq`, you can run the `perl` command to do the same thing assuming you are using one of the kfdefs under the [manifests repository](https://github.com/kubeflow/manifests/tree/master/kfdef).
+
+```shell
+yq w ${KFDEF} 'metadata.name' ${KUBEFLOW_DEPLOYMENT_NAME} > ${KFDEF}.tmp && mv ${KFDEF}.tmp ${KFDEF}
+# perl -pi -e $'s@metadata:@metadata:\\\n  name: '"${KUBEFLOW_DEPLOYMENT_NAME}"'@' ${KFDEF}
+```
+
+Lastly, deploy the kfdef resource to the cluster.
+```shell
 kubectl create -f ${KFDEF} -n ${KUBEFLOW_NAMESPACE}
 ```
 
