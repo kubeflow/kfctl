@@ -65,6 +65,8 @@ replace (
 	github.com/go-openapi/spec => github.com/go-openapi/spec v0.18.0
 	github.com/go-openapi/swag => github.com/go-openapi/swag v0.17.0
 	github.com/mitchellh/go-homedir => github.com/mitchellh/go-homedir v1.0.0
+	github.com/otiai10/copy => github.com/otiai10/copy v1.0.2
+	github.com/otiai10/mint => github.com/otiai10/mint v1.3.0
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2-0.20180428102519-11635eb403ff // indirect
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
 	k8s.io/api => k8s.io/api v0.0.0-20190620084959-7cf5895f2711
