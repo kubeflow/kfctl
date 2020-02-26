@@ -34,21 +34,24 @@ type AwsPluginSpec struct {
 
 	ManagedObjectStorage *ObjectStorageConfig `json:"managedObjectStorage,omitempty"`
 
-	// Addon is used to host some optional aws specific components
-	// EFS, FSX CSI Plugin, Fluentd-CloudWatch, Device Plugin
-	AddOns []string `json:"addons,omitempty"`
+	// TODO: Addon is used to host some optional aws specific components
+	// EFS, FSX CSI Plugin, Device Plugin, etc
+	//AddOns []string `json:"addons,omitempty"`
 }
 
 type RelationDatabaseConfig struct {
 	Host     string `json:"host,omitempty"`
+	Port     *int   `json:"port,omitempty"`
+	Database string `json:database,omitempty`
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
 type ObjectStorageConfig struct {
-	Endpoint string `json:"endpoint,omitempty"`
-	Bucket   string `json:"bucket,omitempty"`
-	//Password string `json:"password,omitempty"`
+	Endpoint   string `json:"endpoint,omitempty"`
+	Region     string `json:"region,omitempty"`
+	Bucket     string `json:"bucket,omitempty"`
+	PathPrefix string `json:"pathPrefix,omitempty`
 }
 
 type Auth struct {
@@ -197,6 +200,11 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		if plugin.ManagedObjectStorage.Endpoint == "" {
 			isValid = false
 			msg += "ManagedObjectStorage.Endpoint is required"
+		}
+
+		if plugin.ManagedObjectStorage.Region == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Region is required"
 		}
 
 		if plugin.ManagedObjectStorage.Bucket == "" {

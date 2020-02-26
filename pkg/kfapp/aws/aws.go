@@ -557,7 +557,55 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 
 	// Special handling for managed SQL service
 	if pluginSpec.ManagedRelationDatabase != nil {
-		// TODO: replace katib, metadata, pipeline db layer
+		// Setup metadata -> remove `db` overlay, add `external-mysql` overlay
+		if err := aws.kfDef.RemoveApplicationOverlay("metadata", "db"); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.AddApplicationOverlay("metadata", "external-mysql"); err != nil {
+			return errors.WithStack(err)
+		}
+
+		// add external-mysql to pipeline/api-service and external-mysql to metadata,
+		if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_HOST", pluginSpec.ManagedRelationDatabase.Host); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_USERNAME", string(pluginSpec.ManagedRelationDatabase.Username)); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_ROOT_PASSWORD", string(pluginSpec.ManagedRelationDatabase.Password)); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if pluginSpec.ManagedRelationDatabase.Port != nil {
+			if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_PORT", string(*pluginSpec.ManagedRelationDatabase.Port)); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		// Setup pipeline/api-service -> move mysql application, add external-mysql overlay to pipeline/api-service
+		if err := aws.kfDef.DeleteApplication("mysql"); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.AddApplicationOverlay("api-service", "external-mysql"); err != nil {
+			return errors.WithStack(err)
+		}
+
+		// add external-mysql to pipeline/api-service and external-mysql to metadata,
+		if err := aws.kfDef.SetApplicationParameter("api-service", "mysqlHost", pluginSpec.ManagedRelationDatabase.Host); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.SetApplicationParameter("api-service", "mysqlUser", pluginSpec.ManagedRelationDatabase.Username); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := aws.kfDef.SetApplicationParameter("api-service", "mysqlPassword", pluginSpec.ManagedRelationDatabase.Password); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	// Special handling for managed object storage

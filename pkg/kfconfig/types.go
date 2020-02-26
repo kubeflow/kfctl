@@ -695,7 +695,7 @@ func (c *KfConfig) DeleteApplication(appName string) error {
 		}
 
 		if appIndex >= 0 {
-			c.Spec.Applications = append(c.Spec.Applications[:appIndex], c.Spec.Applications[appIndex + 1:]...)
+			c.Spec.Applications = append(c.Spec.Applications[:appIndex], c.Spec.Applications[appIndex+1:]...)
 			return nil
 		}
 
@@ -755,7 +755,7 @@ func (c *KfConfig) RemoveApplicationOverlay(appName, overlayName string) error {
 
 			if overlayIndex >= 0 {
 				c.Spec.Applications[appIndex].KustomizeConfig.Overlays = append(c.Spec.Applications[appIndex].KustomizeConfig.Overlays[:overlayIndex],
-					c.Spec.Applications[appIndex].KustomizeConfig.Overlays[overlayIndex + 1:]...)
+					c.Spec.Applications[appIndex].KustomizeConfig.Overlays[overlayIndex+1:]...)
 			} else {
 				log.Warnf("Cannot find overlay %v in Application %v, skip removing", appName, overlayName)
 			}

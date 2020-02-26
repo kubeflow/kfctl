@@ -602,7 +602,7 @@ func TestKfConfig_DeleteApplication(t *testing.T) {
 				Spec: KfConfigSpec{
 					Applications: []Application{
 						{
-							Name: "app2",
+							Name:            "app2",
 							KustomizeConfig: &KustomizeConfig{},
 						},
 					},
@@ -646,11 +646,10 @@ func TestKfConfig_DeleteApplication(t *testing.T) {
 	}
 }
 
-
 func TestKfConfig_AddApplicationOverlay(t *testing.T) {
 	type testCase struct {
 		Input        *KfConfig
-		AppName string
+		AppName      string
 		OverlayToAdd string
 		Expected     *KfConfig
 	}
@@ -674,7 +673,7 @@ func TestKfConfig_AddApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:      "app1",
 			OverlayToAdd: "overlay1",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -709,7 +708,7 @@ func TestKfConfig_AddApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app2",
+			AppName:      "app2",
 			OverlayToAdd: "overlay1",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -742,7 +741,7 @@ func TestKfConfig_AddApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:      "app1",
 			OverlayToAdd: "overlay2",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -772,8 +771,6 @@ func TestKfConfig_AddApplicationOverlay(t *testing.T) {
 	}
 }
 
-
-
 func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 	type testCase struct {
 		Input           *KfConfig
@@ -789,7 +786,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 				Spec: KfConfigSpec{
 					Applications: []Application{
 						{
-							Name:            "app1",
+							Name: "app1",
 							KustomizeConfig: &KustomizeConfig{
 								Overlays: []string{
 									"overlay1",
@@ -801,7 +798,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:         "app1",
 			OverlayToRemove: "overlay1",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -825,7 +822,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 				Spec: KfConfigSpec{
 					Applications: []Application{
 						{
-							Name:            "app1",
+							Name: "app1",
 							KustomizeConfig: &KustomizeConfig{
 								Overlays: []string{
 									"overlay1",
@@ -837,7 +834,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:         "app1",
 			OverlayToRemove: "overlay2",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -873,7 +870,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app2",
+			AppName:         "app2",
 			OverlayToRemove: "overlay2",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -910,7 +907,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:         "app1",
 			OverlayToRemove: "overlay4",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
@@ -943,7 +940,7 @@ func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
 					},
 				},
 			},
-			AppName: "app1",
+			AppName:         "app1",
 			OverlayToRemove: "overlay1",
 			Expected: &KfConfig{
 				Spec: KfConfigSpec{
