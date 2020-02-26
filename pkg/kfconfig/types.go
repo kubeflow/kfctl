@@ -684,6 +684,89 @@ func (c *KfConfig) SetApplicationParameter(appName string, paramName string, val
 	return nil
 }
 
+func (c *KfConfig) DeleteApplication(appName string) error {
+	// First we check applications for an application with the specified name.
+	if c.Spec.Applications != nil {
+		appIndex := -1
+		for i, a := range c.Spec.Applications {
+			if a.Name == appName {
+				appIndex = i
+			}
+		}
+
+		if appIndex >= 0 {
+			c.Spec.Applications = append(c.Spec.Applications[:appIndex], c.Spec.Applications[appIndex + 1:]...)
+			return nil
+		}
+
+	}
+	log.Warnf("Application %v not found", appName)
+	return nil
+}
+
+func (c *KfConfig) AddApplicationOverlay(appName, overlayName string) error {
+	// First we check applications for an application with the specified name.
+	if c.Spec.Applications != nil {
+		appIndex := -1
+		for i, a := range c.Spec.Applications {
+			if a.Name == appName {
+				appIndex = i
+			}
+		}
+
+		if appIndex >= 0 {
+			overlayIndex := -1
+			for i, o := range c.Spec.Applications[appIndex].KustomizeConfig.Overlays {
+				if o == overlayName {
+					overlayIndex = i
+				}
+			}
+
+			if overlayIndex >= 0 {
+				log.Warnf("Found existing overlay %v in Application %v, skip adding", appName, overlayName)
+			} else {
+				c.Spec.Applications[appIndex].KustomizeConfig.Overlays = append(c.Spec.Applications[appIndex].KustomizeConfig.Overlays, overlayName)
+			}
+		} else {
+			log.Warnf("Application %v not found, overlay %v cannot be added", appName, overlayName)
+		}
+	}
+
+	return nil
+}
+
+func (c *KfConfig) RemoveApplicationOverlay(appName, overlayName string) error {
+	// First we check applications for an application with the specified name.
+	if c.Spec.Applications != nil {
+		appIndex := -1
+		for i, a := range c.Spec.Applications {
+			if a.Name == appName {
+				appIndex = i
+			}
+		}
+
+		if appIndex >= 0 {
+			overlayIndex := -1
+			for i, o := range c.Spec.Applications[appIndex].KustomizeConfig.Overlays {
+				if o == overlayName {
+					overlayIndex = i
+				}
+			}
+
+			if overlayIndex >= 0 {
+				c.Spec.Applications[appIndex].KustomizeConfig.Overlays = append(c.Spec.Applications[appIndex].KustomizeConfig.Overlays[:overlayIndex],
+					c.Spec.Applications[appIndex].KustomizeConfig.Overlays[overlayIndex + 1:]...)
+			} else {
+				log.Warnf("Cannot find overlay %v in Application %v, skip removing", appName, overlayName)
+			}
+		} else {
+			log.Warnf("Application %v not found, overlay %v cannot be deleted", appName, overlayName)
+		}
+	}
+
+	return nil
+}
+
 // SetSecret sets the specified secret; if a secret with the given name already exists it is overwritten.
 func (c *KfConfig) SetSecret(newSecret Secret) {
 	for i, s := range c.Spec.Secrets {
