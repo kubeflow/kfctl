@@ -42,7 +42,7 @@ type AwsPluginSpec struct {
 type RelationDatabaseConfig struct {
 	Host     string `json:"host,omitempty"`
 	Port     *int   `json:"port,omitempty"`
-	Database string `json:database,omitempty`
+	Database string `json:"database,omitempty"`
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
@@ -51,7 +51,7 @@ type ObjectStorageConfig struct {
 	Endpoint   string `json:"endpoint,omitempty"`
 	Region     string `json:"region,omitempty"`
 	Bucket     string `json:"bucket,omitempty"`
-	PathPrefix string `json:"pathPrefix,omitempty`
+	PathPrefix string `json:"pathPrefix,omitempty"`
 }
 
 type Auth struct {

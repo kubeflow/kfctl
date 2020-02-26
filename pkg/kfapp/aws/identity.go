@@ -98,7 +98,7 @@ func (aws *Aws) createOrUpdateWebIdentityRole(oidcProviderArn, issuerUrl, roleNa
 			return err
 		}
 	} else {
-		log.Info("Role %v exists, skip creating role", roleName)
+		log.Infof("Role %v exists, skip creating role", roleName)
 		return nil
 	}
 
