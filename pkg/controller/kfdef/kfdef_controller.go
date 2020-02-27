@@ -257,8 +257,8 @@ func kfLoadConfig(instance *kfdefv1.KfDef, reqLogger logr.Logger, action string)
 			forceDeleteAnn: "true",
 		})
 	}
-	kfApp, e := coordinator.NewLoadKfAppFromURI(configFilePath)
-	if e != nil {
+	kfApp, err := coordinator.NewLoadKfAppFromURI(configFilePath)
+	if err != nil {
 		reqLogger.Info("failed to build kfApp from URI ", configFilePath, err)
 		return nil, err
 	}
