@@ -1,4 +1,3 @@
-gomodules.xyz/jsonpatch/v2,gomodules/jsonpatch
-honnef.co/go/tools,dominikh/go-tools
-k8s.io/repo-infra,kubernetes/repo-infra
-sigs.k8s.io/kustomize/v3,kubernetes-sigs/kustomize
+dmitri.shuralyov.com/gpu/mtl
+gitlab.com/nyarla/go-crypt
+gotest.tools
