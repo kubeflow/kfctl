@@ -92,7 +92,7 @@ func watchKubeflowResources(c controller.Controller) error {
 			}),
 		}, ownedResourcePredicates)
 		if err != nil {
-			log.Infof("cannot create watch for resources %v %v/%v. Error: %v.", t.Kind, t.Group, t.Version, err)
+			log.Errorf("cannot create watch for resources %v %v/%v. Error: %v.", t.Kind, t.Group, t.Version, err)
 		}
 	}
 	return nil
@@ -168,7 +168,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 
 		err = kfDelete(instance)
 		if err != nil {
-			log.Infof("kfdef deletion failed.")
+			log.Errorf("kfdef deletion failed.")
 			return reconcile.Result{}, err
 		}
 		// Remove finalizer once kfDelete is completed.
@@ -186,7 +186,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			finalizerError = r.client.Update(context.TODO(), instance)
 		}
 		if finalizerError != nil {
-			log.Infof("error removing finalizer. Error: %v.", finalizerError)
+			log.Errorf("error removing finalizer. Error: %v.", finalizerError)
 			return reconcile.Result{}, finalizerError
 		}
 		return reconcile.Result{}, err
@@ -196,7 +196,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		instance.SetFinalizers(finalizers.List())
 		err := r.client.Update(context.TODO(), instance)
 		if err != nil {
-			log.Infof("Failed to update kfdef with finalizer. Error: %v.", err)
+			log.Errorf("Failed to update kfdef with finalizer. Error: %v.", err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -216,7 +216,7 @@ func kfApply(instance *kfdefv1.KfDef) error {
 	log.Infof("Creating a new KubeFlow Deployment. KubeFlow.Namespace: %v.", instance.Namespace)
 	kfApp, err := kfLoadConfig(instance, "apply")
 	if err != nil {
-		log.Infof("Failed to load KfApp. Error: %v.", err)
+		log.Errorf("Failed to load KfApp. Error: %v.", err)
 		return err
 	}
 	// Apply kfApp.
@@ -229,7 +229,7 @@ func kfDelete(instance *kfdefv1.KfDef) error {
 	log.Infof("Deleting the KubeFlow Deployment. KubeFlow.Namespace: %v.", instance.Namespace)
 	kfApp, err := kfLoadConfig(instance, "delete")
 	if err != nil {
-		log.Infof("Failed to load KfApp. Error: %v.", err)
+		log.Errorf("Failed to load KfApp. Error: %v.", err)
 		return err
 	}
 	err = kfApp.Delete(kftypesv3.ALL)
@@ -242,7 +242,7 @@ func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, erro
 	configFilePath := "/tmp/config.yaml"
 	err := ioutil.WriteFile(configFilePath, kfdefBytes, 0644)
 	if err != nil {
-		log.Infof("Failed to write config.yaml. Error: %v.", err)
+		log.Errorf("Failed to write config.yaml. Error: %v.", err)
 		return nil, err
 	}
 	if action == "delete" {
@@ -254,7 +254,7 @@ func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, erro
 	}
 	kfApp, e := coordinator.NewLoadKfAppFromURI(configFilePath)
 	if e != nil {
-		log.Infof("failed to build kfApp from URI %v: Error: %v.", configFilePath, err)
+		log.Errorf("failed to build kfApp from URI %v: Error: %v.", configFilePath, err)
 		return nil, err
 	}
 	return kfApp, nil
