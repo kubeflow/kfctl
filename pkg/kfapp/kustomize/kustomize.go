@@ -22,15 +22,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	errutil "k8s.io/apimachinery/pkg/util/errors"
 	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"time"
+
+	errutil "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
@@ -161,13 +162,13 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 	// Read clusterName and write to KfDef.
 	kubeconfig := kftypesv3.GetKubeConfig()
 	if kubeconfig == nil {
-		log.Warnf("unable to load .kubeconfig.")
+		log.Warnf("Unable to load .kubeconfig.")
 	} else {
 		currentCtx := kubeconfig.CurrentContext
 		if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
-			log.Errorf("cannot find current-context in kubeconfig.")
+			log.Errorf("Cannot find current-context in kubeconfig.")
 		} else {
-			log.Infof("log cluster name into KfDef: %v", ctx.Cluster)
+			log.Infof("Log cluster name into KfDef: %v", ctx.Cluster)
 			kustomize.kfDef.ClusterName = ctx.Cluster
 		}
 	}
@@ -177,10 +178,10 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 		log.Infof("Deploying application %v", app.Name)
 		resMap, err := EvaluateKustomizeManifest(path.Join(kustomizeDir, app.Name))
 		if err != nil {
-			log.Errorf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+			log.Errorf("Error evaluating kustomization manifest for %v: %v", app.Name, err)
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
+				Message: fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err),
 			}
 		}
 
@@ -202,7 +203,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			if err != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("failed to create dynamic client Error %v", err),
+					Message: fmt.Sprintf("failed to create dynamic client: %v", err),
 				}
 			}
 			kfDefRes := schema.GroupVersionResource{Group: "kfdef.apps.kubeflow.org", Version: "v1", Resource: "kfdefs"}
@@ -210,14 +211,14 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			if err != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("failed to get the KfDef object Error %v", err),
+					Message: fmt.Sprintf("failed to get the KfDef object: %v", err),
 				}
 			}
 			data, err = GenerateYamlWithOwnerReferences(resMap, instance)
 			if err != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
+					Message: fmt.Sprintf("can not encode component %v as yaml: %v", app.Name, err),
 				}
 			}
 		} else {
@@ -225,7 +226,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 			if err != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
+					Message: fmt.Sprintf("can not encode component %v as yaml: %v", app.Name, err),
 				}
 			}
 		}
@@ -246,7 +247,7 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				log.Warnf("Will retry in %.0f seconds.", duration.Seconds())
 			})
 		if err != nil {
-			log.Errorf("Permanently failed applying application %v; error: %v", app.Name, err)
+			log.Errorf("Permanently failed applying application %v: %v", app.Name, err)
 			return err
 		}
 		log.Infof("Successfully applied application %v", app.Name)
@@ -279,14 +280,14 @@ func (kustomize *kustomize) deleteGlobalResources() error {
 	if err := kustomize.initK8sClients(); err != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
+			Message: fmt.Sprintf("kustomize plugin couldn't initialize a K8s client: %v", err),
 		}
 	}
 	apiextclientset, err := crdclientset.NewForConfig(kustomize.restConfig)
 	if err != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("couldn't get apiextensions client Error: %v", err),
+			Message: fmt.Sprintf("couldn't get apiextensions client: %v", err),
 		}
 	}
 	do := &metav1.DeleteOptions{}
@@ -297,28 +298,28 @@ func (kustomize *kustomize) deleteGlobalResources() error {
 	if crdsErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete customresourcedefinitions Error: %v", crdsErr),
+			Message: fmt.Sprintf("couldn't delete customresourcedefinitions: %v", crdsErr),
 		}
 	}
 	rbacclient, err := rbacv1.NewForConfig(kustomize.restConfig)
 	if err != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("couldn't get rbac/v1 client Error: %v", err),
+			Message: fmt.Sprintf("couldn't get rbac/v1 client: %v", err),
 		}
 	}
 	crbsErr := rbacclient.ClusterRoleBindings().DeleteCollection(do, lo)
 	if crbsErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete clusterrolebindings Error: %v", crbsErr),
+			Message: fmt.Sprintf("couldn't delete clusterrolebindings: %v", crbsErr),
 		}
 	}
 	crsErr := rbacclient.ClusterRoles().DeleteCollection(do, lo)
 	if crsErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't delete clusterroles Error: %v", crsErr),
+			Message: fmt.Sprintf("couldn't delete clusterroles: %v", crsErr),
 		}
 	}
 	return nil
@@ -334,7 +335,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 	if forceDelete {
-		log.Warnf("running force deletion.")
+		log.Warnf("Running force deletion.")
 	}
 
 	// Get kubeconfig for cluster and initialize clients
@@ -368,7 +369,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 	if err != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("error initializing k8s client Error %v", err),
+			Message: fmt.Sprintf("error initializing k8s client: %v", err),
 		}
 	}
 
@@ -380,17 +381,17 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		log.Infof("Deleting application %v", app.Name)
 		resMap, err := EvaluateKustomizeManifest(path.Join(kustomizeDir, app.Name))
 		if err != nil {
-			log.Errorf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+			log.Errorf("Error evaluating kustomization manifest for %v: %v", app.Name, err)
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
+				Message: fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err),
 			}
 		}
 		yamlBytes, err := resMap.AsYaml()
 		if err != nil {
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
+				Message: fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err),
 			}
 		}
 		resources, err := utils.SplitYAML(yamlBytes)
@@ -404,7 +405,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 
 			err := utils.DeleteResource(r, kubeclient, 5*time.Minute)
 			if err != nil {
-				msg := fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+				msg := fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err)
 				errList = append(errList, errors.New(msg))
 				log.Warn(msg)
 			}
@@ -415,7 +416,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 	if aggrError != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("error deleting kustomize manifests... Error %v", aggrError),
+			Message: fmt.Sprintf("error deleting kustomize manifests: %v", aggrError),
 		}
 	}
 
@@ -426,18 +427,18 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 	if err != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("couldn't get core/v1 client Error: %v", err),
+			Message: fmt.Sprintf("couldn't get core/v1 client: %v", err),
 		}
 	}
 	namespace := kustomize.kfDef.Namespace
-	log.Infof("deleting namespace: %v", namespace)
+	log.Infof("Deleting namespace: %v", namespace)
 	ns, nsMissingErr := corev1client.Namespaces().Get(namespace, metav1.GetOptions{})
 	if nsMissingErr == nil {
 		nsErr := corev1client.Namespaces().Delete(ns.Name, metav1.NewDeleteOptions(int64(100)))
 		if nsErr != nil {
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't delete namespace %v Error: %v", namespace, nsErr),
+				Message: fmt.Sprintf("couldn't delete namespace %v: %v", namespace, nsErr),
 			}
 		}
 	}
@@ -457,7 +458,7 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 			// the existing code path of not rerunning generate if the directory already exists.
 			if !kustomize.kfDef.UsingStacks() {
 				// Noop if the directory already exists.
-				log.Infof("folder %v exists, skip kustomize.Generate", kustomizeDir)
+				log.Infof("Folder %v exists, skip kustomize.Generate", kustomizeDir)
 				return nil
 			}
 		} else if !os.IsNotExist(err) {
@@ -469,7 +470,7 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 		if kustomizeDirErr != nil {
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't create directory %v Error %v", kustomizeDir, kustomizeDirErr),
+				Message: fmt.Sprintf("couldn't create directory %v: %v", kustomizeDir, kustomizeDirErr),
 			}
 		}
 
@@ -477,7 +478,7 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 		if !ok {
 			log.Infof("Repo %v not listed in KfDef.Status; Resync'ing cache", kftypesv3.ManifestsRepoName)
 			if err := kustomize.kfDef.SyncCache(); err != nil {
-				log.Errorf("Syncing the cached failed; error %v", err)
+				log.Errorf("Syncing the cached failed: %v", err)
 				return errors.WithStack(err)
 			}
 		}
@@ -490,12 +491,11 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 
 		// determine whether we are using the new pattern of using kustomize to build stacks.
 		// hasStack := kustomize.kfDef.UsingStacks()
-
 		for _, app := range kustomize.kfDef.Spec.Applications {
 			log.Infof("Processing application: %v", app.Name)
 
 			if app.KustomizeConfig == nil {
-				err := fmt.Errorf("Application %v is missing KustomizeConfig", app.Name)
+				err := fmt.Errorf("application %v is missing KustomizeConfig", app.Name)
 				log.Errorf("%v", err)
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
@@ -506,7 +506,7 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 			repoName := app.KustomizeConfig.RepoRef.Name
 			repoCache, ok := kustomize.kfDef.GetRepoCache(repoName)
 			if !ok {
-				err := fmt.Errorf("Application %v refers to repo %v which wasn't found in KfDef.Status.ReposCache", app.Name, repoName)
+				err := fmt.Errorf("application %v refers to repo %v which wasn't found in KfDef.Status.ReposCache", app.Name, repoName)
 				log.Errorf("%v", err)
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
@@ -548,14 +548,14 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 				if err := copy.Copy(appPath, path.Join(kustomizeDir, app.Name)); err != nil {
 					return &kfapisv3.KfError{
 						Code:    int(kfapisv3.INTERNAL_ERROR),
-						Message: fmt.Sprintf("couldn't copy application %s", app.Name),
+						Message: fmt.Sprintf("couldn't copy application %s: %v", app.Name, err),
 					}
 				}
 				if err := GenerateKustomizationFile(kustomize.kfDef, kustomizeDir, app.Name,
 					app.KustomizeConfig.Overlays, app.KustomizeConfig.Parameters); err != nil {
 					return &kfapisv3.KfError{
 						Code:    int(kfapisv3.INTERNAL_ERROR),
-						Message: fmt.Sprintf("couldn't generate kustomization file for component %s", app.Name),
+						Message: fmt.Sprintf("couldn't generate kustomization file for component %s: %v", app.Name, err),
 					}
 				}
 			}
@@ -570,7 +570,7 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 	case kftypesv3.K8S:
 		generateErr := generate()
 		if generateErr != nil {
-			return fmt.Errorf("kustomize generate failed Error: %v", generateErr)
+			return fmt.Errorf("Kustomize generate failed: %v", generateErr)
 		}
 	}
 	return nil
@@ -687,7 +687,7 @@ func (kustomize *kustomize) mapDirs(dirPath string, root bool, depth int, leafMa
 	if depth == 2 {
 		repoCache, ok := kustomize.kfDef.GetRepoCache(kftypesv3.ManifestsRepoName)
 		if !ok {
-			log.Fatal("manifest repo not found in cache")
+			log.Fatal("Manifest repo not found in cache")
 		}
 		componentPath := extractSuffix(repoCache.LocalPath, dirPath)
 		packageName := strings.Split(componentPath, "/")[0]
@@ -711,12 +711,12 @@ func GetKustomization(kustomizationPath string) *types.Kustomization {
 	kustomizationFile := filepath.Join(kustomizationPath, kftypesv3.KustomizationFile)
 	data, err := ioutil.ReadFile(kustomizationFile)
 	if err != nil {
-		log.Warnf("Cannot get kustomization from %v: error %v", kustomizationPath, err)
+		log.Warnf("Cannot get kustomization from %v: %v", kustomizationPath, err)
 		return nil
 	}
 	kustomization := &types.Kustomization{}
 	if err = yaml.Unmarshal(data, kustomization); err != nil {
-		log.Warnf("Cannot unmarshal kustomization from %v: error %v", kustomizationPath, err)
+		log.Warnf("Cannot unmarshal kustomization from %v: %v", kustomizationPath, err)
 		return nil
 	}
 	return kustomization
@@ -781,7 +781,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			if paramFileErr != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INVALID_ARGUMENT),
-					Message: fmt.Sprintf("could not open %v. Error: %v", paramFile, paramFileErr),
+					Message: fmt.Sprintf("could not open %v: %v", paramFile, paramFileErr),
 				}
 			}
 			// in params.env look for name=value that we can substitute from componentParams[component]
@@ -815,7 +815,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			if paramFileErr != nil {
 				return &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("could not update %v. Error: %v", paramFile, paramFileErr),
+					Message: fmt.Sprintf("could not update %v: %v", paramFile, paramFileErr),
 				}
 			}
 		}
@@ -885,20 +885,6 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			kustomizationMaps[basesMap][childPath] = true
 		}
 	}
-	/*
-		if child.NamePrefix != "" {
-			log.Fatalf("cannot merge nameprefix %v ", child.NamePrefix)
-		}
-		if child.NameSuffix != "" {
-			log.Fatalf("cannot merge namesuffix %v ", child.NamePrefix)
-		}
-		if (child.CommonLabels != nil && len(child.CommonLabels) > 0) {
-			log.Fatalf("cannot merge commonLabels for %v ", compDir)
-		}
-		if (child.CommonAnnotations != nil && len(child.CommonAnnotations) > 0) {
-			log.Fatalf("cannot merge commonAnnotations for %v ", compDir)
-		}
-	*/
 	if child.NamePrefix != "" && parent.NamePrefix == "" {
 		parent.NamePrefix = child.NamePrefix
 	}
@@ -934,7 +920,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			kustomizationMaps[imagesMap][imageName] = true
 		} else {
 			kFile := filepath.Join(targetDir, kftypesv3.KustomizationFile)
-			log.Warnf("ignoring image %v specified in %v", imageName, kFile)
+			log.Warnf("Ignoring image %v specified in %v", imageName, kFile)
 		}
 	}
 	for _, value := range child.Crds {
@@ -943,7 +929,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			kustomizationMaps[crdsMap][value] = true
 		} else {
 			kFile := filepath.Join(targetDir, kftypesv3.KustomizationFile)
-			log.Warnf("ignoring crd %v specified in %v", value, kFile)
+			log.Warnf("Ignoring crd %v specified in %v", value, kFile)
 		}
 	}
 	for _, value := range child.ConfigMapGenerator {
@@ -976,7 +962,7 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 			kustomizationMaps[varsMap][varName] = true
 		} else {
 			kFile := filepath.Join(targetDir, kftypesv3.KustomizationFile)
-			log.Warnf("ignoring var %v specified in %v", varName, kFile)
+			log.Warnf("Ignoring var %v specified in %v", varName, kFile)
 		}
 	}
 	for _, value := range child.PatchesStrategicMerge {
@@ -1046,7 +1032,7 @@ func MergeKustomizations(kfDef *kfconfig.KfConfig, compDir string, overlayParams
 		if err != nil {
 			return nil, &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("error merging kustomization at %v Error %v", baseDir, err),
+				Message: fmt.Sprintf("error merging kustomization at %v: %v", baseDir, err),
 			}
 		}
 	}
@@ -1067,13 +1053,13 @@ func MergeKustomizations(kfDef *kfconfig.KfConfig, compDir string, overlayParams
 			if err != nil {
 				return nil, &kfapisv3.KfError{
 					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("error merging kustomization at %v Error %v", overlayDir, err),
+					Message: fmt.Sprintf("error merging kustomization at %v: %v", overlayDir, err),
 				}
 			}
 		} else {
 			return nil, &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("no overlay %v for component at %v Error %v", overlayParam, compDir, err),
+				Message: fmt.Sprintf("no overlay %v for component at %v: %v", overlayParam, compDir, err),
 			}
 		}
 	}
@@ -1250,11 +1236,10 @@ func WriteKustomizationFile(name string, kustomizeDir string, resMap resmap.ResM
 	// Output the objects.
 
 	yamlResources, yamlResourcesErr := resMap.AsYaml()
-
 	if yamlResourcesErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("error generating yaml Error %v", yamlResourcesErr),
+			Message: fmt.Sprintf("error generating yaml: %v", yamlResourcesErr),
 		}
 	}
 	kustomizeFile := filepath.Join(kustomizeDir, name+".yaml")
@@ -1262,7 +1247,7 @@ func WriteKustomizationFile(name string, kustomizeDir string, resMap resmap.ResM
 	if kustomizationFileErr != nil {
 		return &kfapisv3.KfError{
 			Code:    int(kfapisv3.INTERNAL_ERROR),
-			Message: fmt.Sprintf("error writing to %v Error %v", kustomizeFile, kustomizationFileErr),
+			Message: fmt.Sprintf("error writing to %v: %v", kustomizeFile, kustomizationFileErr),
 		}
 	}
 	return nil
