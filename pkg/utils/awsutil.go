@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	awssdk "github.com/aws/aws-sdk-go/aws"
 	"os/exec"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -24,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CheckAwsStsCallerIdentity runs GetCallIdentity to make sure aws credentials is configured correclty
+// CheckAwsStsCallerIdentity runs GetCallIdentity to make sure aws credentials is configured correctly
 func CheckAwsStsCallerIdentity(sess *session.Session) error {
 	svc := sts.New(sess)
 	input := &sts.GetCallerIdentityInput{}
@@ -37,6 +38,20 @@ func CheckAwsStsCallerIdentity(sess *session.Session) error {
 
 	log.Infof("Caller ARN Info: %s", result)
 	return nil
+}
+
+// CheckAwsAccountId runs GetCallIdentity to retrieve account information
+func CheckAwsAccountId(sess *session.Session) (string, error) {
+	svc := sts.New(sess)
+	input := &sts.GetCallerIdentityInput{}
+
+	output, err := svc.GetCallerIdentity(input)
+	if err != nil {
+		log.Warnf("AWS Credentials seems not correct %v", err.Error())
+		return "", err
+	}
+
+	return awssdk.StringValue(output.Account), nil
 }
 
 // CheckCommandExist check if a command can be found in PATH.

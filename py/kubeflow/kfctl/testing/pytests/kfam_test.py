@@ -6,6 +6,7 @@ from kubeflow.testing import util
 import json
 from retrying import retry
 from time import sleep
+import uuid
 
 
 logging.basicConfig(level=logging.INFO,
@@ -27,21 +28,22 @@ def test_kfam(record_xml_attribute):
 
   sleep(10)
   # Profile Creation
+  profile_name = "testprofile-%s" % uuid.uuid4().hex[0:7]
   util.run(['kubectl', 'exec', jupyterpod, '-n', 'kubeflow', '--', 'curl',
             '--silent', '-X', 'POST', '-d',
-            '{"metadata":{"name":"testprofile"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}',
+            '{"metadata":{"name":"%s"},"spec":{"owner":{"kind":"User","name":"user1@kubeflow.org"}}}' % profile_name,
             'profiles-kfam.kubeflow:8081/kfam/v1/profiles'])
 
-  assert verify_profile_creation(jupyterpod)
+  assert verify_profile_creation(jupyterpod, profile_name)
 
 @retry(wait_fixed=2000, stop_max_delay=20 * 1000)
-def verify_profile_creation(jupyterpod):
+def verify_profile_creation(jupyterpod, profile_name):
   # Verify Profile Creation
   bindingsstr = util.run(['kubectl', 'exec', jupyterpod, '-n', 'kubeflow', '--', 'curl', '--silent',
                           'profiles-kfam.kubeflow:8081/kfam/v1/bindings'])
   bindings = json.loads(bindingsstr)
 
-  if "testprofile" not in [binding['referredNamespace'] for binding in bindings['bindings']]:
+  if profile_name not in [binding['referredNamespace'] for binding in bindings['bindings']]:
     raise Exception("testprofile not created yet!")
   return True
 

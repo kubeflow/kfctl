@@ -32,10 +32,10 @@ var err error
 
 // KFDef example configs to be printed out from apply --help
 const (
-	arritkoConfig = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_existing_arrikto.0.7.0.yaml"
-	awsConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_aws.0.7.0.yaml"
-	gcpConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_gcp_iap.0.7.0.yaml"
-	k8sConfig     = "https://raw.githubusercontent.com/kubeflow/manifests/v0.7-branch/kfdef/kfctl_k8s_istio.0.7.0.yaml"
+	awsConfig      = "https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_aws.v1.0.0.yaml"
+	gcpConfig      = "https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_gcp_iap.v1.0.0.yaml"
+	istioDexConfig = "https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_istio_dex.v1.0.0.yaml"
+	k8sConfig      = "https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_k8s_istio.v1.0.0.yaml"
 )
 
 // applyCmd represents the apply command
@@ -100,7 +100,7 @@ func init() {
 		export CONFIG=./kfctl_gcp_iap.yaml
 	or a URL:
 		export CONFIG=`+gcpConfig+`
-		export CONFIG=`+arritkoConfig+`
+		export CONFIG=`+istioDexConfig+`
 		export CONFIG=`+awsConfig+`
 		export CONFIG=`+k8sConfig+`
 	kfctl apply -V --file=${CONFIG}`)

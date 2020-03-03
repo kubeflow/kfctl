@@ -30,6 +30,7 @@ PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
 ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
+OPERATOR_IMG ?= kubeflow-operator
 
 # Location of junit file
 JUNIT_FILE ?= /tmp/report.xml
@@ -133,6 +134,32 @@ build-kfctl-tgz: build-kfctl
 	rm -f bin/*.tgz
 	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
 	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
+
+build-and-push-operator: build-operator push-operator
+
+# Build operator image
+build-operator:
+	go mod vendor
+	# Fix duplicated logrus library (Sirupsen/logrus and sirupsen/logrus) bug
+	# due to the two different logrus versions that kfctl is using.
+	pushd vendor/github.com/Sirupsen/logrus/ && \
+	echo '\
+	// +build linux aix\n\
+	package logrus\n\
+	import "golang.org/x/sys/unix"\n\
+	func isTerminal(fd int) bool {\n\
+		_, err := unix.IoctlGetTermios(fd, unix.TCGETS)\n\
+		return err == nil\n\
+	} ' > terminal_check_unix.go && \
+	popd
+	operator-sdk build ${OPERATOR_IMG}
+
+# push operator image and update deployment files.
+push-operator:
+	docker push ${OPERATOR_IMG}
+	# Use perl instead of sed to avoid OSX/Linux compatibility issue:
+	# https://stackoverflow.com/questions/34533893/sed-command-creating-unwanted-duplicates-of-file-with-e-extension
+	perl -pi -e 's@image: .*@image: '"${OPERATOR_IMG}"'@' ./deploy/operator.yaml
 
 # push the releases to a GitHub page
 push-to-github-release: build-kfctl-tgz

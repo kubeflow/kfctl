@@ -1,11 +1,12 @@
 module github.com/kubeflow/kfctl/v3
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go v0.47.0
+	github.com/Azure/go-autorest v13.3.3+incompatible // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 // indirect
-	github.com/aws/aws-sdk-go v1.16.26
+	github.com/aws/aws-sdk-go v1.27.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1
@@ -13,48 +14,47 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
-	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/color v1.7.0
-	github.com/ghodss/yaml v1.0.0
-	github.com/go-logr/zapr v0.1.1 // indirect
+	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
+	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/jsonpointer v0.19.2 // indirect
-	github.com/go-openapi/swag v0.19.2 // indirect
-	github.com/gogo/protobuf v1.2.1
-	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/google/go-cmp v0.3.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/google/go-cmp v0.3.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
-	github.com/imdario/mergo v0.3.7
-	github.com/jonboulle/clockwork v0.1.0 // indirect
+	github.com/imdario/mergo v0.3.8
 	github.com/kubernetes-sigs/application v0.8.0
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/onrik/logrus v0.2.1
+	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/common v0.2.0
-	github.com/russross/blackfriday v1.5.2 // indirect
+	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.3
-	github.com/spf13/viper v1.3.1
+	github.com/spf13/cobra v0.0.5
+	github.com/spf13/pflag v1.0.5
+	github.com/spf13/viper v1.4.0
+	github.com/tektoncd/pipeline v0.10.1
+	github.com/tidwall/gjson v1.4.0
+	github.com/tidwall/pretty v1.0.1 // indirect
 	go.uber.org/zap v1.12.0 // indirect
 	golang.org/x/crypto v0.0.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/api v0.10.0
-	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873
+	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
-	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0
+	gopkg.in/yaml.v2 v2.2.8
+	k8s.io/api v0.17.0
 	k8s.io/apiextensions-apiserver v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/apimachinery v0.17.1
 	k8s.io/cli-runtime v0.0.0
-	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/kubernetes v1.15.0
+	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
-	sigs.k8s.io/controller-runtime v0.2.0
-	sigs.k8s.io/kustomize/v3 v3.1.0
+	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/kustomize/v3 v3.2.0
+	sigs.k8s.io/yaml v1.1.0
 )
 
 replace (
@@ -65,6 +65,8 @@ replace (
 	github.com/go-openapi/spec => github.com/go-openapi/spec v0.18.0
 	github.com/go-openapi/swag => github.com/go-openapi/swag v0.17.0
 	github.com/mitchellh/go-homedir => github.com/mitchellh/go-homedir v1.0.0
+	github.com/otiai10/copy => github.com/otiai10/copy v1.0.2
+	github.com/otiai10/mint => github.com/otiai10/mint v1.3.0
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2-0.20180428102519-11635eb403ff // indirect
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
 	k8s.io/api => k8s.io/api v0.0.0-20190620084959-7cf5895f2711
@@ -83,6 +85,7 @@ replace (
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.0.0-20190620085942-b7f18460b210
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.0.0-20190620085809-589f994ddf7f
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.0.0-20190620085912-4acac5405ec6
+	k8s.io/kubectl => k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
 	k8s.io/kubelet => k8s.io/kubelet v0.0.0-20190620085838-f1cb295a73c9
 	k8s.io/kubernetes => k8s.io/kubernetes v1.15.0
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.0.0-20190620090156-2138f2c9de18
@@ -90,7 +93,7 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190620085408-1aef9010884e
 	sigs.k8s.io/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0
-	sigs.k8s.io/kustomize/v3 => sigs.k8s.io/kustomize/v3 v3.1.0
+	sigs.k8s.io/kustomize/v3 => sigs.k8s.io/kustomize/v3 v3.2.0
 )
 
 go 1.13
