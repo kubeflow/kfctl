@@ -25,6 +25,7 @@ ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 # use go modules
 ENV GO111MODULE=on
 ENV GOPATH=/go
+ENV GOROOT=/usr/local/go # Workaround for https://github.com/kubernetes/gengo/issues/146
 
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl
