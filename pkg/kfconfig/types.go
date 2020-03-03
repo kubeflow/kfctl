@@ -445,7 +445,7 @@ func (c *KfConfig) SyncCache() error {
 		log.Infof("Creating directory %v", baseCacheDir)
 		appdirErr := os.MkdirAll(baseCacheDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v Error %v", baseCacheDir, appdirErr)
+			log.Errorf("couldn't create directory %v: %v", baseCacheDir, appdirErr)
 			return appdirErr
 		}
 	}
@@ -510,7 +510,7 @@ func (c *KfConfig) SyncCache() error {
 			if err != nil {
 				return &kfapis.KfError{
 					Code:    int(kfapis.INVALID_ARGUMENT),
-					Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, err),
+					Message: fmt.Sprintf("couldn't download URI %v: %v", r.URI, err),
 				}
 			}
 			defer resp.Body.Close()

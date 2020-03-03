@@ -178,7 +178,7 @@ func LoadKfApp(name string, kfdef *kfdefs.KfDef) (KfApp, error) {
 	if err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("could not load plugin %v for platform %v Error %v", pluginpath, pluginname, err),
+			Message: fmt.Sprintf("could not load plugin %v for platform %v: %v", pluginpath, pluginname, err),
 		}
 	}
 	symName := "GetKfApp"
@@ -186,7 +186,7 @@ func LoadKfApp(name string, kfdef *kfdefs.KfDef) (KfApp, error) {
 	if symbolErr != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not find symbol %v for platform %v Error %v", symName, pluginname, symbolErr),
+			Message: fmt.Sprintf("could not find symbol %v for platform %v: %v", symName, pluginname, symbolErr),
 		}
 	}
 	return symbol.(func(*kfdefs.KfDef) KfApp)(kfdef), nil
@@ -201,7 +201,7 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 	if _, err := os.Stat(appDir); os.IsNotExist(err) {
 		appdirErr := os.Mkdir(appDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v Error %v", appDir, appdirErr)
+			log.Errorf("couldn't create directory %v: %v", appDir, appdirErr)
 		}
 	}
 	cacheDir := path.Join(appDir, DefaultCacheDir)
@@ -214,7 +214,7 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 	if cacheDirErr != nil {
 		return "", &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't create directory %v Error %v", cacheDir, cacheDirErr),
+			Message: fmt.Sprintf("couldn't create directory %v: %v", cacheDir, cacheDirErr),
 		}
 	}
 	// Version can be
@@ -231,14 +231,14 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 	if tarballUrlErr != nil {
 		return "", &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't download kubeflow repo %v Error %v", tarballUrl, tarballUrlErr),
+			Message: fmt.Sprintf("couldn't download kubeflow repo %v: %v", tarballUrl, tarballUrlErr),
 		}
 	}
 	files, filesErr := ioutil.ReadDir(cacheDir)
 	if filesErr != nil {
 		return "", &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't read %v Error %v", cacheDir, filesErr),
+			Message: fmt.Sprintf("couldn't read %v: %v", cacheDir, filesErr),
 		}
 	}
 	subdir := files[0].Name()
@@ -253,7 +253,7 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 			if versionPathErr != nil {
 				return "", &kfapis.KfError{
 					Code: int(kfapis.INTERNAL_ERROR),
-					Message: fmt.Sprintf("couldn't create directory %v Error %v",
+					Message: fmt.Sprintf("couldn't create directory %v: %v",
 						versionPath, versionPathErr),
 				}
 			}
@@ -263,7 +263,7 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 	if renameErr != nil {
 		return "", &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("couldn't rename %v to %v Error %v", extractedPath, newPath, renameErr),
+			Message: fmt.Sprintf("couldn't rename %v to %v: %v", extractedPath, newPath, renameErr),
 		}
 	}
 	return newPath, nil
@@ -295,7 +295,7 @@ func GetConfig() *rest.Config {
 	overrides := &clientcmd.ConfigOverrides{}
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides).ClientConfig()
 	if err != nil {
-		log.Warnf("could not open %v Error %v", loadingRules.ExplicitPath, err)
+		log.Warnf("could not open %v: %v", loadingRules.ExplicitPath, err)
 		log.Infof("trying to load rest.config with inClusterConfig...")
 		config, err = rest.InClusterConfig()
 		if err != nil {
