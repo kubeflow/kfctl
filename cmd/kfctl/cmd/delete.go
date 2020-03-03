@@ -82,7 +82,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := deleteCfg.BindPFlag(string(kftypes.VERBOSE), deleteCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 
@@ -91,7 +91,7 @@ func init() {
 		string(kftypes.FORCE_DELETION)+" output default is false")
 	bindErr = deleteCfg.BindPFlag(string(kftypes.FORCE_DELETION), deleteCmd.Flags().Lookup(string(kftypes.FORCE_DELETION)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.FORCE_DELETION), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.FORCE_DELETION), bindErr)
 		return
 	}
 
@@ -99,7 +99,7 @@ func init() {
 		"Set if you want to delete app's storage cluster used for mlpipeline.")
 	bindErr = deleteCfg.BindPFlag(string(kftypes.DELETE_STORAGE), deleteCmd.Flags().Lookup(string(kftypes.DELETE_STORAGE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.DELETE_STORAGE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.DELETE_STORAGE), bindErr)
 		return
 	}
 }

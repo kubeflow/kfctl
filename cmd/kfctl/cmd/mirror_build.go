@@ -27,7 +27,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := replicateBuildCfg.BindPFlag(string(kftypes.VERBOSE), replicateBuildCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 
@@ -69,7 +69,7 @@ Image replication rules are defined in config file.
 			return err
 		}
 		for _, pattern := range replication.Spec.Patterns {
-			log.Infof("context: %v; destination registry: %v", replication.Spec.Context, pattern.Dest)
+			log.Infof("Context: %v; destination registry: %v", replication.Spec.Context, pattern.Dest)
 			if replication.Spec.Context == "" || pattern.Dest == "" {
 				return fmt.Errorf("Config: context and dest registry cannot be empty")
 			}

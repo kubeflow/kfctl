@@ -65,7 +65,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := showCfg.BindPFlag(string(kftypes.VERBOSE), showCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 }

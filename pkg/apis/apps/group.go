@@ -201,7 +201,7 @@ func DownloadToCache(appDir string, repo string, version string) (string, error)
 	if _, err := os.Stat(appDir); os.IsNotExist(err) {
 		appdirErr := os.Mkdir(appDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v: %v", appDir, appdirErr)
+			log.Errorf("Couldn't create directory %v: %v", appDir, appdirErr)
 		}
 	}
 	cacheDir := path.Join(appDir, DefaultCacheDir)
@@ -295,11 +295,11 @@ func GetConfig() *rest.Config {
 	overrides := &clientcmd.ConfigOverrides{}
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides).ClientConfig()
 	if err != nil {
-		log.Warnf("could not open %v: %v", loadingRules.ExplicitPath, err)
-		log.Infof("trying to load rest.config with inClusterConfig...")
+		log.Warnf("Could not open %v: %v", loadingRules.ExplicitPath, err)
+		log.Infof("Trying to load rest.config with inClusterConfig...")
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			log.Warnf("could not load rest.config with inClusterConfig and %v", loadingRules.ExplicitPath)
+			log.Warnf("Could not load rest.config with inClusterConfig and %v", loadingRules.ExplicitPath)
 		}
 	}
 	return config
@@ -309,7 +309,7 @@ func GetConfig() *rest.Config {
 func GetServerVersion(c *clientset.Clientset) string {
 	serverVersion, serverVersionErr := c.ServerVersion()
 	if serverVersionErr != nil {
-		log.Fatalf("couldn't get server version info. Error: %v", serverVersionErr)
+		log.Fatalf("Couldn't get server version info. Error: %v", serverVersionErr)
 	}
 	re := regexp.MustCompile("^v[0-9]+.[0-9]+.[0-9]+")
 	version := re.FindString(serverVersion.String())
@@ -321,7 +321,7 @@ func GetKubeConfig() *clientcmdapi.Config {
 	kubeconfig := KubeConfigPath()
 	config, configErr := clientcmd.LoadFromFile(kubeconfig)
 	if configErr != nil {
-		log.Warnf("could not load config Error: %v", configErr)
+		log.Warnf("Could not load config Error: %v", configErr)
 	}
 	return config
 }
