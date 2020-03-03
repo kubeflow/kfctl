@@ -124,7 +124,7 @@ func generateCloudBuild(rt ReplicateTasks) error {
 	images := []string{}
 	for _, newImg := range rt.orderedKeys() {
 		oldImg := rt[newImg]
-		log.Infof("add gcb step" + oldImg)
+		log.Infof("Add gcb step" + oldImg)
 		steps = append(steps,
 			&cloudbuild.BuildStep{
 				Name:    CLOUD_BUILD_IMAGE,
@@ -171,17 +171,17 @@ func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, includ
 						curName = image.NewName
 					}
 					if strings.Contains(curName, "$") {
-						log.Infof("image name %v contains kutomize parameter, skipping\n", curName)
+						log.Infof("Image name %v contains kutomize parameter, skipping\n", curName)
 						continue
 					}
 					// check exclude first
 					if strings.HasPrefix(curName, exclude) {
-						log.Infof("image %v matches exclude prefix %v, skipping\n", curName, exclude)
+						log.Infof("Image %v matches exclude prefix %v, skipping\n", curName, exclude)
 						continue
 					}
 					// then check include
 					if include != "" && (!strings.HasPrefix(curName, include)) {
-						log.Infof("image %v doesn't match include prefix %v, skipping\n", curName, include)
+						log.Infof("Image %v doesn't match include prefix %v, skipping\n", curName, include)
 						continue
 					}
 					newName := strings.Join([]string{registry, image.Name}, "/")
@@ -254,7 +254,7 @@ func UpdateKustomize(inputFile string) error {
 			}
 		}
 		imageMapping[oldImg] = newImg
-		log.Infof("updating image %v to %v", oldImg, newImg)
+		log.Infof("Updating image %v to %v", oldImg, newImg)
 	}
 
 	return filepath.Walk(KUSTOMIZE_FOLDER, func(path string, info os.FileInfo, err error) error {

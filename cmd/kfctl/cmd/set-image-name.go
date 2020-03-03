@@ -31,7 +31,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := setImageNameCfg.BindPFlag(string(kftypes.VERBOSE), setImageNameCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 
@@ -72,7 +72,7 @@ The flatten flag discards both registry and name components except for the last 
 			}
 
 			if info.IsDir() {
-				log.Debugf("looking for kustomization.yaml in %q\n", path)
+				log.Debugf("Looking for kustomization.yaml in %q\n", path)
 				absPath, err := filepath.Abs(path)
 				if err != nil {
 					return err

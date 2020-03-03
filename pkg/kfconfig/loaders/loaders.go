@@ -71,7 +71,7 @@ func LoadConfigFromURI(configFile string) (*kfconfig.KfConfig, error) {
 		log.Infof("Downloading %v to %v", configFile, appFile)
 		configFileUri, err := netUrl.Parse(configFile)
 		if err != nil {
-			log.Errorf("could not parse configFile url")
+			log.Errorf("Could not parse configFile url")
 		}
 		if isValidUrl(configFile) {
 			errGet := gogetter.GetFile(appFile, configFile)

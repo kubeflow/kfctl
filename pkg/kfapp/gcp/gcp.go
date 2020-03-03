@@ -534,7 +534,7 @@ func bindAdmin(k8sClientset *clientset.Clientset, user string) error {
 		log.Infof("Updating default-admin...")
 		_, err = k8sClientset.RbacV1().ClusterRoleBindings().Update(binding)
 	} else {
-		log.Infof("default-admin not found, creating...")
+		log.Infof("Default-admin not found, creating...")
 		_, err = k8sClientset.RbacV1().ClusterRoleBindings().Create(binding)
 	}
 	if err == nil {
@@ -941,15 +941,15 @@ func (gcp *Gcp) deleteEndpoints(ctx context.Context) error {
 		}
 	}
 
-	log.Infof("deleting endpoint: %v", gcp.kfDef.Spec.Hostname)
+	log.Infof("Deleting endpoint: %v", gcp.kfDef.Spec.Hostname)
 	services := servicemanagement.NewServicesService(servicemanagementService)
 	op, deleteErr := services.Delete(gcp.kfDef.Spec.Hostname).Context(ctx).Do()
 	if deleteErr != nil {
-		log.Warningf("endpoint deletion error: %v", deleteErr)
+		log.Warningf("Endpoint deletion error: %v", deleteErr)
 		nextPage := ""
 		// Use a loop to read multi-page managed services list.
 		for {
-			log.Info("checking all endpoints...")
+			log.Info("Checking all endpoints...")
 			list := services.List().ProducerProjectId(gcp.kfDef.Spec.Project)
 			if nextPage != "" {
 				list = list.PageToken(nextPage)
@@ -986,7 +986,7 @@ func (gcp *Gcp) deleteEndpoints(ctx context.Context) error {
 	return backoff.Retry(func() error {
 		newOp, retryErr := opService.Get(opName).Context(ctx).Do()
 		if retryErr != nil {
-			log.Errorf("long running endpoint deletion error: %v", retryErr)
+			log.Errorf("Long running endpoint deletion error: %v", retryErr)
 			return &kfapis.KfError{
 				Code:    int(kfapis.INTERNAL_ERROR),
 				Message: fmt.Sprintf("long running endpoint deletion error: %v", retryErr),
@@ -1005,7 +1005,7 @@ func (gcp *Gcp) deleteEndpoints(ctx context.Context) error {
 					Message: fmt.Sprintf("Abnormal response code: %v", newOp.HTTPStatusCode),
 				})
 			}
-			log.Infof("endpoint deletion %v is completed: %v", gcp.kfDef.Spec.Hostname, string(newOp.Response))
+			log.Infof("Endpoint deletion %v is completed: %v", gcp.kfDef.Spec.Hostname, string(newOp.Response))
 			return nil
 		}
 		log.Infof("Endpoint deletion is running: %v (op = %v)", gcp.kfDef.Spec.Hostname, newOp.Name)
@@ -2015,40 +2015,40 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 	if gcp.kfDef.Spec.Email == "" && gcp.gcpAccountGetter != nil {
 		email, err := gcp.gcpAccountGetter()
 		if err != nil {
-			log.Errorf("cannot get gcloud account email. Error: %v", err)
+			log.Errorf("Cannot get gcloud account email. Error: %v", err)
 			return err
 		}
 		gcp.kfDef.Spec.Email = strings.TrimSpace(email)
 		pluginSpec.Email = strings.TrimSpace(email)
 		log.Infof("Setting Email to default: %v", gcp.kfDef.Spec.Email)
 	} else if gcp.kfDef.Spec.Email == "" {
-		log.Warnf("gcpAccountGetter not set; can't get default email")
+		log.Warnf("GcpAccountGetter not set; can't get default email")
 	}
 	// Set the project
 	if gcp.kfDef.Spec.Project == "" && gcp.gcpProjectGetter != nil {
 		project, err := gcp.gcpProjectGetter()
 		if err != nil {
-			log.Errorf("cannot get gcloud project. Error: %v", err)
+			log.Errorf("Cannot get gcloud project. Error: %v", err)
 			return err
 		}
 		gcp.kfDef.Spec.Project = strings.TrimSpace(project)
 		pluginSpec.Project = strings.TrimSpace(project)
 		log.Infof("Setting Project to default: %v", gcp.kfDef.Spec.Project)
 	} else if gcp.kfDef.Spec.Project == "" {
-		log.Warnf("gcpProjectGetter not set; can't get default project")
+		log.Warnf("GcpProjectGetter not set; can't get default project")
 	}
 	// Set the zone
 	if gcp.kfDef.Spec.Zone == "" && gcp.gcpZoneGetter != nil {
 		zone, err := gcp.gcpZoneGetter()
 		if err != nil {
-			log.Errorf("cannot get gcloud compute/zone. Error: %v", err)
+			log.Errorf("Cannot get gcloud compute/zone. Error: %v", err)
 			return err
 		}
 		gcp.kfDef.Spec.Zone = strings.TrimSpace(zone)
 		pluginSpec.Zone = strings.TrimSpace(zone)
 		log.Infof("Setting Zone to default: %v", gcp.kfDef.Spec.Zone)
 	} else if gcp.kfDef.Spec.Zone == "" {
-		log.Warnf("gcpZoneGetter not set; can't get default zone")
+		log.Warnf("GcpZoneGetter not set; can't get default zone")
 	}
 
 	return gcp.kfDef.SetPluginSpec(GcpPluginName, pluginSpec)
@@ -2060,7 +2060,7 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 	gcpDir := path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG)
 	if _, err := os.Stat(gcpDir); err == nil {
 		// Noop if the directory already exists.
-		log.Infof("folder %v exists, skip gcp.Generate", gcpDir)
+		log.Infof("Folder %v exists, skip gcp.Generate", gcpDir)
 		return nil
 	} else if !os.IsNotExist(err) {
 		log.Errorf("Stat folder %v error: %v; try deleting it...", gcpDir, err)
@@ -2238,7 +2238,7 @@ func (gcp *Gcp) gcpInitProject() error {
 	return backoff.Retry(func() error {
 		newOp, retryErr := opService.Get(opName).Context(ctx).Do()
 		if retryErr != nil {
-			log.Errorf("long running batch API enabling services error: %v", retryErr)
+			log.Errorf("Long running batch API enabling services error: %v", retryErr)
 			return &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
 				Message: fmt.Sprintf("long running batch API enabling services error: %v", retryErr),
@@ -2257,11 +2257,11 @@ func (gcp *Gcp) gcpInitProject() error {
 					Message: fmt.Sprintf("Abnormal response code: %v", newOp.HTTPStatusCode),
 				})
 			}
-			log.Infof("batch API enabling is completed: %v", enabledApis)
+			log.Infof("Batch API enabling is completed: %v", enabledApis)
 			return nil
 
 		}
-		log.Infof("batch API enabling is running: %v (op = %v)", enabledApis, newOp.Name)
+		log.Infof("Batch API enabling is running: %v (op = %v)", enabledApis, newOp.Name)
 		opName = "" + newOp.Name
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),

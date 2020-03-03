@@ -110,7 +110,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := applyCfg.BindPFlag(string(kftypes.VERBOSE), applyCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 }

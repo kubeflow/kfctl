@@ -119,7 +119,7 @@ func CreateResourceFromFile(config *rest.Config, filename string, elems ...confi
 
 		err := c.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, u.DeepCopy())
 		if err == nil {
-			log.Info("object already exists...")
+			log.Info("Object already exists...")
 			continue
 		}
 		if !k8serrors.IsNotFound(err) {
@@ -231,7 +231,7 @@ func DeleteResourceFromFile(config *rest.Config, filename string) error {
 
 		err := c.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, u.DeepCopy())
 		if k8serrors.IsNotFound(err) {
-			log.Info("object already deleted...")
+			log.Info("Object already deleted...")
 			continue
 		}
 		if err != nil {
