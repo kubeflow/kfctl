@@ -881,7 +881,7 @@ func (gcp *Gcp) Apply(resources kftypesv3.ResourceEnum) error {
 	if updateDMErr != nil {
 		return &kfapis.KfError{
 			Code: updateDMErr.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("gcp apply could not update deployment manager Error %v",
+			Message: fmt.Sprintf("gcp apply could not update deployment manager: %v",
 				updateDMErr.(*kfapis.KfError).Message),
 		}
 	}
@@ -890,7 +890,7 @@ func (gcp *Gcp) Apply(resources kftypesv3.ResourceEnum) error {
 	if secretsErr != nil {
 		return &kfapis.KfError{
 			Code: secretsErr.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("gcp apply could not create secrets Error %v",
+			Message: fmt.Sprintf("gcp apply could not create secrets: %v",
 				secretsErr.(*kfapis.KfError).Message),
 		}
 	}
@@ -899,7 +899,7 @@ func (gcp *Gcp) Apply(resources kftypesv3.ResourceEnum) error {
 	if err = gcp.allowAdmineditUserSA(gcpAdminSa, gcpUserSa); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Fail to setup workload identity: Error %v",
+			Message: fmt.Sprintf("Fail to setup workload identity:: %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}
@@ -911,7 +911,7 @@ func (gcp *Gcp) Apply(resources kftypesv3.ResourceEnum) error {
 	if err = gcp.setupWorkloadIdentity(gcp.kfDef.Namespace, kubeflowWorkloadIdentityMapping); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Fail to setup workload identity: Error %v",
+			Message: fmt.Sprintf("Fail to setup workload identity:: %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}
@@ -921,7 +921,7 @@ func (gcp *Gcp) Apply(resources kftypesv3.ResourceEnum) error {
 	if err = gcp.setupWorkloadIdentity(gcp.getIstioNamespace(), istioWorkloadIdentityMapping); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Fail to setup workload identity: Error %v",
+			Message: fmt.Sprintf("Fail to setup workload identity:: %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}
@@ -1139,7 +1139,7 @@ func (gcp *Gcp) copyFile(source string, dest string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("cannot create dest file %v  Error %v", dest, err),
+			Message: fmt.Sprintf("cannot create dest file %v : %v", dest, err),
 		}
 	}
 	defer to.Close()
@@ -1147,7 +1147,7 @@ func (gcp *Gcp) copyFile(source string, dest string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("copy failed source %v dest %v Error %v", source, dest, err),
+			Message: fmt.Sprintf("copy failed source %v dest %v: %v", source, dest, err),
 		}
 	}
 
@@ -1399,7 +1399,7 @@ func (gcp *Gcp) generateDMConfigs() error {
 		if copyErr != nil {
 			return &kfapis.KfError{
 				Code: copyErr.(*kfapis.KfError).Code,
-				Message: fmt.Sprintf("could not copy %v to %v using repo local path %v Error %v",
+				Message: fmt.Sprintf("could not copy %v to %v using repo local path %v: %v",
 					sourceFile, destFile, repo.LocalPath, copyErr.(*kfapis.KfError).Message),
 			}
 		}
@@ -1812,7 +1812,7 @@ func (gcp *Gcp) SetupWorkloadIdentityPermission() error {
 	if err := gcp.setupWorkloadIdentity(gcp.kfDef.Namespace, kubeflowWorkloadIdentityMapping); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Fail to setup workload identity: Error %v",
+			Message: fmt.Sprintf("Fail to setup workload identity:: %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}

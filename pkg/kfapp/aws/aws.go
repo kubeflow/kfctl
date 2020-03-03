@@ -19,7 +19,6 @@ package aws
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -29,6 +28,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -227,7 +228,7 @@ func copyFile(source string, dest string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("cannot create dest file %v  Error %v", dest, err),
+			Message: fmt.Sprintf("cannot create dest file %v : %v", dest, err),
 		}
 	}
 	defer to.Close()
@@ -235,7 +236,7 @@ func copyFile(source string, dest string) error {
 	if err != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("copy failed source %v dest %v Error %v", source, dest, err),
+			Message: fmt.Sprintf("copy failed source %v dest %v: %v", source, dest, err),
 		}
 	}
 
@@ -326,7 +327,7 @@ func (aws *Aws) generateInfraConfigs() error {
 		if copyErr != nil {
 			return &kfapis.KfError{
 				Code: copyErr.(*kfapis.KfError).Code,
-				Message: fmt.Sprintf("Could not copy %v to %v Error %v",
+				Message: fmt.Sprintf("Could not copy %v to %v: %v",
 					sourceFile, destFile, copyErr.(*kfapis.KfError).Message),
 			}
 		}
@@ -456,7 +457,7 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 	if setAwsPluginDefaultsErr := aws.setAwsPluginDefaults(); setAwsPluginDefaultsErr != nil {
 		return &kfapis.KfError{
 			Code: setAwsPluginDefaultsErr.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Set aws plugin defaults Error %v",
+			Message: fmt.Sprintf("set aws plugin defaults: %v",
 				setAwsPluginDefaultsErr.(*kfapis.KfError).Message),
 		}
 	}
@@ -685,7 +686,7 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 	if err := aws.setAwsPluginDefaults(); err != nil {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("aws set aws plugin defaults Error %v",
+			Message: fmt.Sprintf("aws set aws plugin defaults: %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}
@@ -791,7 +792,7 @@ func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
 	if setAwsPluginDefaultsErr != nil {
 		return &kfapis.KfError{
 			Code: setAwsPluginDefaultsErr.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("aws set aws plugin defaults Error %v",
+			Message: fmt.Sprintf("aws set aws plugin defaults: %v",
 				setAwsPluginDefaultsErr.(*kfapis.KfError).Message),
 		}
 	}
