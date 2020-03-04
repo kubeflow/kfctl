@@ -574,6 +574,399 @@ func TestKfConfig_GetApplicationParameter(t *testing.T) {
 	}
 }
 
+func TestKfConfig_DeleteApplication(t *testing.T) {
+	type testCase struct {
+		Input           *KfConfig
+		AppNameToDelete string
+		Expected        *KfConfig
+	}
+
+	cases := []testCase{
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name:            "app1",
+							KustomizeConfig: &KustomizeConfig{},
+						},
+						{
+							Name:            "app2",
+							KustomizeConfig: &KustomizeConfig{},
+						},
+					},
+				},
+			},
+			AppNameToDelete: "app1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name:            "app2",
+							KustomizeConfig: &KustomizeConfig{},
+						},
+					},
+				},
+			},
+		},
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Parameters: []NameValue{
+									{
+										Name:  "p1",
+										Value: "old1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			AppNameToDelete: "app1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		c.Input.DeleteApplication(c.AppNameToDelete)
+		if !reflect.DeepEqual(c.Input, c.Expected) {
+			pGot, _ := Pformat(c.Input)
+			pWant, _ := Pformat(c.Expected)
+			t.Errorf("Error setting App %v; got;\n%v\nwant;\n%v", c.AppNameToDelete, pGot, pWant)
+		}
+	}
+}
+
+func TestKfConfig_AddApplicationOverlay(t *testing.T) {
+	type testCase struct {
+		Input        *KfConfig
+		AppName      string
+		OverlayToAdd string
+		Expected     *KfConfig
+	}
+
+	cases := []testCase{
+		// overlay already exist
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:      "app1",
+			OverlayToAdd: "overlay1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// app not found
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:      "app2",
+			OverlayToAdd: "overlay1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// normal
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:      "app1",
+			OverlayToAdd: "overlay2",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		c.Input.AddApplicationOverlay(c.AppName, c.OverlayToAdd)
+		if !reflect.DeepEqual(c.Input, c.Expected) {
+			pGot, _ := Pformat(c.Input)
+			pWant, _ := Pformat(c.Expected)
+			t.Errorf("Error setting App %v; got;\n%v\nwant;\n%v", c.OverlayToAdd, pGot, pWant)
+		}
+	}
+}
+
+func TestKfConfig_RemoveApplicationOverlay(t *testing.T) {
+	type testCase struct {
+		Input           *KfConfig
+		AppName         string
+		OverlayToRemove string
+		Expected        *KfConfig
+	}
+
+	cases := []testCase{
+		// Normal case - remove overlay on boarder
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:         "app1",
+			OverlayToRemove: "overlay1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Normal case - remove overlay in the middle
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:         "app1",
+			OverlayToRemove: "overlay2",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Can not find app -> remain same
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:         "app2",
+			OverlayToRemove: "overlay2",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Can not find overlay -> remain same
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+			AppName:         "app1",
+			OverlayToRemove: "overlay4",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{
+									"overlay1",
+									"overlay2",
+									"overlay3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// no overlay -> remain same
+		{
+			Input: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{},
+							},
+						},
+					},
+				},
+			},
+			AppName:         "app1",
+			OverlayToRemove: "overlay1",
+			Expected: &KfConfig{
+				Spec: KfConfigSpec{
+					Applications: []Application{
+						{
+							Name: "app1",
+							KustomizeConfig: &KustomizeConfig{
+								Overlays: []string{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		c.Input.RemoveApplicationOverlay(c.AppName, c.OverlayToRemove)
+		if !reflect.DeepEqual(c.Input, c.Expected) {
+			pGot, _ := Pformat(c.Input)
+			pWant, _ := Pformat(c.Expected)
+			t.Errorf("Error setting App %v; overlay %v; got;\n%v\nwant;\n%v", c.AppName, c.OverlayToRemove, pGot, pWant)
+		}
+	}
+}
+
 // Pformat returns a pretty format output of any value.
 func Pformat(value interface{}) (string, error) {
 	if s, ok := value.(string); ok {

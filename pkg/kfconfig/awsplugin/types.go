@@ -25,6 +25,33 @@ type AwsPluginSpec struct {
 	Roles []string `json:"roles,omitempty"`
 
 	EnablePodIamPolicy *bool `json:"enablePodIamPolicy,omitempty"`
+
+	EnableNodeGroupLog *bool `json:"enableNodeGroupLog,omitempty"`
+
+	ManagedCluster *bool `json:"managedCluster,omitempty"`
+
+	ManagedRelationDatabase *RelationDatabaseConfig `json:"managedRelationDatabase,omitempty"`
+
+	ManagedObjectStorage *ObjectStorageConfig `json:"managedObjectStorage,omitempty"`
+
+	// TODO: Addon is used to host some optional aws specific components
+	// EFS, FSX CSI Plugin, Device Plugin, etc
+	//AddOns []string `json:"addons,omitempty"`
+}
+
+type RelationDatabaseConfig struct {
+	Host     string `json:"host,omitempty"`
+	Port     *int   `json:"port,omitempty"`
+	Database string `json:"database,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type ObjectStorageConfig struct {
+	Endpoint   string `json:"endpoint,omitempty"`
+	Region     string `json:"region,omitempty"`
+	Bucket     string `json:"bucket,omitempty"`
+	PathPrefix string `json:"pathPrefix,omitempty"`
 }
 
 type Auth struct {
@@ -58,13 +85,8 @@ type Coginito struct {
 // IsValid returns true if the spec is a valid and complete spec.
 // If false it will also return a string providing a message about why its invalid.
 func (plugin *AwsPluginSpec) IsValid() (bool, string) {
-	basicAuthSet := plugin.Auth.BasicAuth != nil
-	oidcAuthSet := plugin.Auth.Oidc != nil
-	cognitoAuthSet := plugin.Auth.Cognito != nil
-
-	if basicAuthSet {
+	if plugin.Auth.BasicAuth != nil {
 		msg := ""
-
 		isValid := true
 
 		if plugin.Auth.BasicAuth.Username == "" {
@@ -80,7 +102,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	if oidcAuthSet {
+	if plugin.Auth.Oidc != nil {
 		msg := ""
 		isValid := true
 
@@ -122,7 +144,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	if cognitoAuthSet {
+	if plugin.Auth.Cognito != nil {
 		msg := ""
 		isValid := true
 
@@ -149,17 +171,79 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 		return isValid, msg
 	}
 
-	// return false, "Either BasicAuth, ODC or Cognito must be set"
-	// TODO: BasicAuth is configured to be working in AWS env. Let's add validation back once it's supported.
-	return true, ""
+	if plugin.ManagedRelationDatabase != nil {
+		msg := ""
+		isValid := true
 
+		if plugin.ManagedRelationDatabase.Host == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Host is required"
+		}
+
+		if plugin.ManagedRelationDatabase.Username == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Username is required"
+		}
+
+		if plugin.ManagedRelationDatabase.Password == "" {
+			isValid = false
+			msg += "ManagedRelationDatabase.Password is required"
+		}
+
+		return isValid, msg
+	}
+
+	if plugin.ManagedObjectStorage != nil {
+		msg := ""
+		isValid := true
+
+		if plugin.ManagedObjectStorage.Endpoint == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Endpoint is required"
+		}
+
+		if plugin.ManagedObjectStorage.Region == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Region is required"
+		}
+
+		if plugin.ManagedObjectStorage.Bucket == "" {
+			isValid = false
+			msg += "ManagedObjectStorage.Bucket is required"
+		}
+
+		return isValid, msg
+	}
+
+	return true, ""
 }
 
+// GetEnablePodIamPolicy return true if user want to enable pod iam policy
 func (p *AwsPluginSpec) GetEnablePodIamPolicy() bool {
 	if p.EnablePodIamPolicy == nil {
-		return true
+		return false
 	}
 
 	v := p.EnablePodIamPolicy
+	return *v
+}
+
+// GetEnableNodeGroupLog return true if user want to enable fluentd cloud watch logs
+func (p *AwsPluginSpec) GetEnableNodeGroupLog() bool {
+	if p.EnableNodeGroupLog == nil {
+		return false
+	}
+
+	v := p.EnableNodeGroupLog
+	return *v
+}
+
+// GetManagedCluster return true if user want to create a new cluster and then deploy kubeflow
+func (p *AwsPluginSpec) GetManagedCluster() bool {
+	if p.ManagedCluster == nil {
+		return false
+	}
+
+	v := p.ManagedCluster
 	return *v
 }
