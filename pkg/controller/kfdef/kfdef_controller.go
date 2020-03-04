@@ -252,9 +252,11 @@ func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, erro
 			forceDeleteAnn: "true",
 		})
 	}
-	kfApp, e := coordinator.NewLoadKfAppFromURI(configFilePath)
-	if e != nil {
+
+	kfApp, err := coordinator.NewLoadKfAppFromURI(configFilePath)
+	if err != nil {
 		log.Errorf("failed to build kfApp from URI %v: Error: %v.", configFilePath, err)
+
 		return nil, err
 	}
 	return kfApp, nil
