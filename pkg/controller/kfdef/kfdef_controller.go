@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/go-logr/logr"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,14 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-var log = logf.Log.WithName("controller_kfdef")
 
 const (
 	finalizer = "kfdef-finalizer.kfdef.apps.kubeflow.org"
@@ -55,8 +52,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	reqLogger := log.WithValues("add controller")
-	reqLogger.Info("Adding controller for kfdef")
+	log.Infof("Adding controller for kfdef.")
 	// Create a new controller
 	c, err := controller.New("kfdef-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -74,7 +70,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-	reqLogger.Info("Controller added")
+	log.Infof("Controller added.")
 	return nil
 }
 
@@ -89,14 +85,14 @@ func watchKubeflowResources(c controller.Controller) error {
 		})
 		err := c.Watch(&source.Kind{Type: u}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				log.Info("watch a change for kfdef resource: %s.%s", a.Meta.GetName(), a.Meta.GetNamespace())
+				log.Infof("watch a change for kfdef resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
 				return []reconcile.Request{
 					{NamespacedName: kfdefSingletonNN},
 				}
 			}),
 		}, ownedResourcePredicates)
 		if err != nil {
-			log.Info("cannot create watch for resources ", t.Kind, t.Group, t.Version, ". Error: ", err)
+			log.Errorf("cannot create watch for resources %v %v/%v. Error: %v.", t.Kind, t.Group, t.Version, err)
 		}
 	}
 	return nil
@@ -113,7 +109,7 @@ var ownedResourcePredicates = predicate.Funcs{
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		object, err := meta.Accessor(e.Object)
-		log.Info("got delete event for ", object.GetName(), object.GetNamespace())
+		log.Infof("got delete event for %v.%v.", object.GetName(), object.GetNamespace())
 		if err != nil {
 			return false
 		}
@@ -145,8 +141,7 @@ type ReconcileKfDef struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling KfDef")
+	log.Infof("Reconciling KfDef. Request.Namespace: %v, Request.Name: %v.", request.Namespace, request.Name)
 
 	// Fetch the KfDef instance
 	instance := &kfdefv1.KfDef{}
@@ -166,14 +161,14 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	finalizers := sets.NewString(instance.GetFinalizers()...)
 	if deleted {
 		if !finalizers.Has(finalizer) {
-			log.Info("kfdef deleted")
+			log.Infof("kfdef deleted.")
 			return reconcile.Result{}, nil
 		}
-		log.Info("Deleting kfdef")
+		log.Infof("Deleting kfdef.")
 
-		err = kfDelete(instance, reqLogger)
+		err = kfDelete(instance)
 		if err != nil {
-			reqLogger.Info("kfdef deletion failed.")
+			log.Errorf("kfdef deletion failed.")
 			return reconcile.Result{}, err
 		}
 		// Remove finalizer once kfDelete is completed.
@@ -183,7 +178,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		for retryCount := 0; errors.IsConflict(finalizerError) && retryCount < finalizerMaxRetries; retryCount++ {
 			// Based on Istio operator at https://github.com/istio/istio/blob/master/operator/pkg/controller/istiocontrolplane/istiocontrolplane_controller.go
 			// for finalizer removal errors workaround.
-			log.Info("conflict during finalizer removal, retrying")
+			log.Infof("conflict during finalizer removal, retrying.")
 			_ = r.client.Get(context.TODO(), request.NamespacedName, instance)
 			finalizers = sets.NewString(instance.GetFinalizers()...)
 			finalizers.Delete(finalizer)
@@ -191,37 +186,37 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			finalizerError = r.client.Update(context.TODO(), instance)
 		}
 		if finalizerError != nil {
-			log.Info("error removing finalizer ", finalizerError)
+			log.Errorf("error removing finalizer. Error: %v.", finalizerError)
 			return reconcile.Result{}, finalizerError
 		}
 		return reconcile.Result{}, err
 	} else if !finalizers.Has(finalizer) {
-		log.Info("Adding finalizer ", finalizer, request)
+		log.Infof("Adding finalizer %v: %v.", finalizer, request)
 		finalizers.Insert(finalizer)
 		instance.SetFinalizers(finalizers.List())
 		err := r.client.Update(context.TODO(), instance)
 		if err != nil {
-			log.Info("Failed to update kfdef with finalizer ", err)
+			log.Errorf("Failed to update kfdef with finalizer. Error: %v.", err)
 			return reconcile.Result{}, err
 		}
 	}
-	err = kfApply(instance, reqLogger)
+	err = kfApply(instance)
 
 	// Make the current kfdef as default if kfApply is successed.
 	if err == nil {
 		kfdefSingletonNN = request.NamespacedName
-		reqLogger.Info("KubeFlow Deployment Completed.")
+		log.Infof("KubeFlow Deployment Completed.")
 	}
 	// If deployment created successfully - don't requeue
 	return reconcile.Result{}, err
 }
 
 // kfApply is equivalent of kfctl apply
-func kfApply(instance *kfdefv1.KfDef, reqLogger logr.Logger) error {
-	reqLogger.Info("Creating a new KubeFlow Deployment", "KubeFlow.Namespace", instance.Namespace)
-	kfApp, err := kfLoadConfig(instance, reqLogger, "apply")
+func kfApply(instance *kfdefv1.KfDef) error {
+	log.Infof("Creating a new KubeFlow Deployment. KubeFlow.Namespace: %v.", instance.Namespace)
+	kfApp, err := kfLoadConfig(instance, "apply")
 	if err != nil {
-		reqLogger.Info("Failed to load KfApp: ", err)
+		log.Errorf("Failed to load KfApp. Error: %v.", err)
 		return err
 	}
 	// Apply kfApp.
@@ -230,24 +225,24 @@ func kfApply(instance *kfdefv1.KfDef, reqLogger logr.Logger) error {
 }
 
 // kfDelete is equivalent of kfctl delete
-func kfDelete(instance *kfdefv1.KfDef, reqLogger logr.Logger) error {
-	reqLogger.Info("Deleting the KubeFlow Deployment", "KubeFlow.Namespace", instance.Namespace)
-	kfApp, err := kfLoadConfig(instance, reqLogger, "delete")
+func kfDelete(instance *kfdefv1.KfDef) error {
+	log.Infof("Deleting the KubeFlow Deployment. KubeFlow.Namespace: %v.", instance.Namespace)
+	kfApp, err := kfLoadConfig(instance, "delete")
 	if err != nil {
-		reqLogger.Info("Failed to load KfApp: ", err)
+		log.Errorf("Failed to load KfApp. Error: %v.", err)
 		return err
 	}
 	err = kfApp.Delete(kftypesv3.ALL)
 	return err
 }
 
-func kfLoadConfig(instance *kfdefv1.KfDef, reqLogger logr.Logger, action string) (kftypesv3.KfApp, error) {
+func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, error) {
 	// Define kfApp
 	kfdefBytes, _ := yaml.Marshal(instance)
 	configFilePath := "/tmp/config.yaml"
 	err := ioutil.WriteFile(configFilePath, kfdefBytes, 0644)
 	if err != nil {
-		reqLogger.Info("Failed to write config.yaml ", err)
+		log.Errorf("Failed to write config.yaml. Error: %v.", err)
 		return nil, err
 	}
 	if action == "delete" {
@@ -259,7 +254,7 @@ func kfLoadConfig(instance *kfdefv1.KfDef, reqLogger logr.Logger, action string)
 	}
 	kfApp, e := coordinator.NewLoadKfAppFromURI(configFilePath)
 	if e != nil {
-		reqLogger.Info("failed to build kfApp from URI ", configFilePath, err)
+		log.Errorf("failed to build kfApp from URI %v: Error: %v.", configFilePath, err)
 		return nil, err
 	}
 	return kfApp, nil
