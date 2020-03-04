@@ -82,6 +82,7 @@ func createSecret(client *clientset.Clientset, secretName string, namespace stri
 		},
 		Data: data,
 	}
+	log.Infof("Creating secret: %v/%v", namespace, secretName)
 	_, err := client.CoreV1().Secrets(namespace).Create(secret)
 	if err == nil {
 		return nil

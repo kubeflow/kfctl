@@ -58,6 +58,8 @@ const (
 	// Path in manifests repo to where the additional configs are located
 	CONFIG_LOCAL_PATH = "aws/infra_configs"
 
+	ALB_OIDC_SECRET = "alb-oidc-secret"
+
 	// Namespace for istio
 	IstioNamespace = "istio-system"
 
@@ -509,8 +511,17 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 			}
 		}
 
+		// By default we use cognito overlay in manifest, remove cognito and add oidc overlay if this is enabled.
 		if pluginSpec.Auth.Oidc != nil {
 			if err := aws.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "ON"); err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := aws.kfDef.RemoveApplicationOverlay("istio-ingress", "cognito"); err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := aws.kfDef.AddApplicationOverlay("istio-ingress", "oidc"); err != nil {
 				return errors.WithStack(err)
 			}
 
@@ -534,11 +545,8 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 				return errors.WithStack(err)
 			}
 
-			if err := aws.kfDef.SetApplicationParameter("istio-ingress", "clientId", pluginSpec.Auth.Oidc.OAuthClientId); err != nil {
-				return errors.WithStack(err)
-			}
-
-			if err := aws.kfDef.SetApplicationParameter("istio-ingress", "clientSecret", pluginSpec.Auth.Oidc.OAuthClientSecret); err != nil {
+			//TODO: consider to use secret from secretGenerator?
+			if err := aws.kfDef.SetApplicationParameter("istio-ingress", "oidcSecretName", ALB_OIDC_SECRET); err != nil {
 				return errors.WithStack(err)
 			}
 		}
@@ -744,6 +752,15 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 		return &kfapis.KfError{
 			Code: err.(*kfapis.KfError).Code,
 			Message: fmt.Sprintf("Failed to update eks cluster configs %v",
+				err.(*kfapis.KfError).Message),
+		}
+	}
+
+	// 5. Setup OIDC create OIDC secret for ALB
+	if err := aws.setupOIDC(); err != nil {
+		return &kfapis.KfError{
+			Code: err.(*kfapis.KfError).Code,
+			Message: fmt.Sprintf("Failed to update create OIDC secret for ALB %v",
 				err.(*kfapis.KfError).Message),
 		}
 	}
@@ -1051,6 +1068,31 @@ func (aws *Aws) deleteWebIdentityRolesAndProvider() error {
 	}
 
 	log.Infof("OIDC Identity Provider has been delete %s", issuerURLWithoutProtocol)
+
+	return nil
+}
+
+// setupOIDC creates secret for ALB ingress controller
+func (aws *Aws) setupOIDC() error {
+	awsPluginSpec, err := aws.GetPluginSpec()
+	if err != nil {
+		return err
+	}
+
+	if awsPluginSpec.Auth.Oidc != nil {
+		// Create OIDC Secret from clientId and clientSecret.
+		_, err = aws.k8sClient.CoreV1().Secrets(IstioNamespace).Get(ALB_OIDC_SECRET, metav1.GetOptions{})
+		if err == nil {
+			log.Warnf("Secret %v already exists...", ALB_OIDC_SECRET)
+			return nil
+		}
+
+		// This secret need to be in istio-system, same namespace as istio-ingress
+		return createSecret(aws.k8sClient, ALB_OIDC_SECRET, IstioNamespace, map[string][]byte{
+			"clientId":     []byte(awsPluginSpec.Auth.Oidc.OAuthClientId),
+			"clientSecret": []byte(awsPluginSpec.Auth.Oidc.OAuthClientSecret),
+		})
+	}
 
 	return nil
 }
