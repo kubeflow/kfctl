@@ -15,6 +15,7 @@
 GCLOUD_PROJECT ?= kubeflow-images-public
 GOLANG_VERSION ?= 1.12.7
 GOPATH ?= $(HOME)/go
+GOROOT ?= /usr/local/go # Workaround for https://github.com/kubernetes/gengo/issues/146
 # To build without the cache set the environment variable
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
