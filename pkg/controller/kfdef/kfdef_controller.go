@@ -166,11 +166,6 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		log.Infof("Deleting kfdef.")
 
-		err = kfDelete(instance)
-		if err != nil {
-			log.Errorf("kfdef deletion failed.")
-			return reconcile.Result{}, err
-		}
 		// Remove finalizer once kfDelete is completed.
 		finalizers.Delete(finalizer)
 		instance.SetFinalizers(finalizers.List())
@@ -224,18 +219,6 @@ func kfApply(instance *kfdefv1.KfDef) error {
 	return err
 }
 
-// kfDelete is equivalent of kfctl delete
-func kfDelete(instance *kfdefv1.KfDef) error {
-	log.Infof("Deleting the KubeFlow Deployment. KubeFlow.Namespace: %v.", instance.Namespace)
-	kfApp, err := kfLoadConfig(instance, "delete")
-	if err != nil {
-		log.Errorf("Failed to load KfApp. Error: %v.", err)
-		return err
-	}
-	err = kfApp.Delete(kftypesv3.ALL)
-	return err
-}
-
 func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, error) {
 	// Define kfApp
 	kfdefBytes, _ := yaml.Marshal(instance)
@@ -245,6 +228,15 @@ func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, erro
 		log.Errorf("Failed to write config.yaml. Error: %v.", err)
 		return nil, err
 	}
+
+	if action == "apply" {
+		// Indicate to set ownerReferences to the top level resources
+		setOwnerReferenceAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.SetOwnerReference}, "/")
+		setAnnotations(configFilePath, map[string]string{
+			setOwnerReferenceAnn: "true",
+		})
+	}
+
 	if action == "delete" {
 		// Enable force delete since inClusterConfig has no ./kube/config file to pass the delete safety check.
 		forceDeleteAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.ForceDelete}, "/")

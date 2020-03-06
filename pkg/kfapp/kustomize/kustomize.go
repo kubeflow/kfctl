@@ -18,6 +18,7 @@ package kustomize
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -43,6 +44,8 @@ import (
 	crdclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
@@ -178,12 +181,50 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
 			}
 		}
+
+		// check to set owner references for resources if installed through kubeflow operator
+		annotations := kustomize.kfDef.GetAnnotations()
+		setOwnerReference := false
+		if setOwner, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.SetOwnerReference}, "/")]; ok {
+			if setOwnerBool, err := strconv.ParseBool(setOwner); err == nil {
+				setOwnerReference = setOwnerBool
+			}
+		}
+
 		//TODO this should be streamed
-		data, err := resMap.AsYaml()
-		if err != nil {
-			return &kfapisv3.KfError{
-				Code:    int(kfapisv3.INTERNAL_ERROR),
-				Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
+		var data []byte
+		if setOwnerReference {
+			// retrieve the UID of the KfDef resource using dynamic client
+			config, _ := rest.InClusterConfig()
+			dyn, err := dynamic.NewForConfig(config)
+			if err != nil {
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INTERNAL_ERROR),
+					Message: fmt.Sprintf("failed to create dynamic client Error %v", err),
+				}
+			}
+			kfDefRes := schema.GroupVersionResource{Group: "kfdef.apps.kubeflow.org", Version: "v1", Resource: "kfdefs"}
+			instance, err := dyn.Resource(kfDefRes).Namespace(kustomize.kfDef.GetNamespace()).Get(kustomize.kfDef.GetName(), metav1.GetOptions{})
+			if err != nil {
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INTERNAL_ERROR),
+					Message: fmt.Sprintf("failed to get the KfDef object Error %v", err),
+				}
+			}
+			data, err = GenerateYamlWithOwnerReferences(resMap, instance)
+			if err != nil {
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INTERNAL_ERROR),
+					Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
+				}
+			}
+		} else {
+			data, err = resMap.AsYaml()
+			if err != nil {
+				return &kfapisv3.KfError{
+					Code:    int(kfapisv3.INTERNAL_ERROR),
+					Message: fmt.Sprintf("can not encode component %v as yaml Error %v", app.Name, err),
+				}
 			}
 		}
 
@@ -1128,4 +1169,50 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 		patchesStrategicMergeMap: make(map[string]bool),
 		patchesJson6902Map:       make(map[string]bool),
 	}
+}
+
+// GenerateYamlWithOwnerReferences adds ownerReferences to every resource
+// some code copied from ResMap.AsYaml() func
+func GenerateYamlWithOwnerReferences(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
+	firstObj := true
+	var b []byte
+	buf := bytes.NewBuffer(b)
+	for _, res := range resMap.Resources() {
+		y, err := res.AsYAML()
+		if err != nil {
+			return nil, err
+		}
+		m := &unstructured.Unstructured{}
+		if err = yaml.Unmarshal(y, m); err != nil {
+			return nil, err
+		}
+		boolPtr := func(b bool) *bool { return &b }
+		owner := []metav1.OwnerReference{
+			{
+				Kind:               instance.GetKind(),
+				Name:               instance.GetName(),
+				APIVersion:         instance.GetAPIVersion(),
+				UID:                instance.GetUID(),
+				BlockOwnerDeletion: boolPtr(true),
+				Controller:         boolPtr(true),
+			},
+		}
+		m.SetOwnerReferences(owner)
+		out, err := yaml.Marshal(m)
+		if err != nil {
+			return nil, err
+		}
+		log.Infof("ownerReferences added for resource %v.%v", m.GetName(), m.GetNamespace())
+		if firstObj {
+			firstObj = false
+		} else {
+			if _, err = buf.WriteString("---\n"); err != nil {
+				return nil, err
+			}
+		}
+		if _, err = buf.Write(out); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
 }
