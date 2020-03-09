@@ -722,6 +722,13 @@ func (aws *Aws) Apply(resources kftypes.ResourceEnum) error {
 		}
 	}
 
+	if err := createNamespace(aws.k8sClient, IstioNamespace); err != nil {
+		return &kfapis.KfError{
+			Code:    int(kfapis.INTERNAL_ERROR),
+			Message: fmt.Sprintf("Could not create namespace %v", err),
+		}
+	}
+
 	// Create IAM role binding for k8s service account.
 	if awsPluginSpec.GetEnablePodIamPolicy() && isEksCluster {
 		err := aws.setupIamRoleForServiceAccount()
