@@ -2,7 +2,7 @@
 
 Kubeflow Operator helps deploy, monitor and manage the lifecycle of Kubeflow. Built using the [Operator Framework](https://coreos.com/blog/introducing-operator-framework) which offers an open source toolkit to build, test, package operators and manage the lifecycle of operators.
 
-The Operator is currently in incubation phase and is based on this [design doc](https://docs.google.com/document/d/1vNBZOM-gDMpwTbhx0EDU6lDpyUjc7vhT3bdOWWCRjdk/edit#). It is built on top of _kfdef_ CR, and uses _kfctl_ as the nucleus for Controller. Current roadmap for this Operator is listed [here](https://github.com/kubeflow/kfctl/issues/193). 
+The Operator is currently in incubation phase and is based on this [design doc](https://docs.google.com/document/d/1vNBZOM-gDMpwTbhx0EDU6lDpyUjc7vhT3bdOWWCRjdk/edit#). It is built on top of _kfdef_ CR, and uses _kfctl_ as the nucleus for Controller. Current roadmap for this Operator is listed [here](https://github.com/kubeflow/kfctl/issues/193). The Operator is also [published on OperatorHub](https://operatorhub.io/operator/kubeflow)
 
 ## Deployment Instructions
 1. Clone this repository and deploy the CRD and controller
@@ -24,7 +24,7 @@ kubectl create ns ${KUBEFLOW_NAMESPACE}
 # kubectl create -f deploy/crds/kfdef_quota.yaml -n ${KUBEFLOW_NAMESPACE} # only deploy this if the k8s cluster is 1.15+ and has resource quota support
 ```
 
-3. Deploy KfDef. _kfdef_ can point to a remote URL or to a local kfdef file. If you want to use the set of default kfdefs from Kubeflow. Follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
+3. Deploy KfDef. _kfdef_ can point to a remote URL or to a local kfdef file. To use the set of default kfdefs from Kubeflow, follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
 ```shell
 kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 ```
@@ -32,9 +32,23 @@ kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 #### Deploy with default kfdefs
 To use the set of default kfdefs from Kubeflow, you will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the Kubeflow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
 > If you are pointing the kfdef file on the local machine, set the `KFDEF` to the kfdef file path and skip the `curl` command.
+
+First point to your Cloud provider kfdef. For e.g. for OpenShift, point to the kfdef in OpenDataHub repo
+
+```shell
+export KFDEF_URL=https://raw.githubusercontent.com/opendatahub-io/manifests/v0.7-branch-openshift/kfdef/kfctl_openshift.yaml
+```
+
+Similary for GCP, IBM Cloud etc. you can point to the respective kfdefs in Kubeflow repository, e.g.
+
+```shell
+export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
+```
+
+Then specify the `KUBEFLOW_DEPLOYMENT_NAME` you want to give to your deployment
+
 ```shell
 export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
-export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
 export KFDEF=$(echo "${KFDEF_URL}" | rev | cut -d/ -f1 | rev)
 curl -L ${KFDEF_URL} > ${KFDEF}
 ```
@@ -94,7 +108,7 @@ kubectl delete ns ${OPERATOR_NAMESPACE}
 
 ## Optional: Registering the Operator to OLM Catalog
 
-Please follow the instructions [here](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#testing-operator-deployment-on-openshift) to register your Operator to OLM if you are using that to install and manage the Operator.
+Please follow the instructions [here](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#testing-operator-deployment-on-openshift) to register your Operator to OLM if you are using that to install and manage the Operator. If you want to leverage the OperatorHub, please use the default [Kubeflow Operator registered there](https://operatorhub.io/operator/kubeflow)
 
 ## TroubleShooting
 - When deleting the KubeFlow deployment, it's using kfctl delete in the background where it only deletes the deployment namespace. 
