@@ -84,6 +84,7 @@ const (
 	CLIENT_SECRET     = "CLIENT_SECRET"
 	BASIC_AUTH_SECRET = "kubeflow-login"
 	KUBECONFIG_FORMAT = "gke_{project}_{zone}_{cluster}"
+	IAP_INGRESS       = "iap-ingress"
 
 	// The default path in kubeflow/kubeflow to the deployment manager configs.
 	// TODO(jlewi): This is only provided for legacy reasons. In 0.7 the path should be set explicitly
@@ -1125,6 +1126,7 @@ func (gcp *Gcp) getAccount() string {
 }
 
 // Write IAM binding rules based on GCP app config.
+// Write IAM binding rules based on GCP app config.
 func (gcp *Gcp) writeIamBindingsFile(src string, dest string) error {
 	buf, err := ioutil.ReadFile(src)
 	if err != nil {
@@ -1600,7 +1602,7 @@ func (gcp *Gcp) createBasicAuthSecret(client *clientset.Clientset) error {
 }
 
 func (gcp *Gcp) getIstioNamespace() string {
-	if ingressNamespace, ok := gcp.kfDef.GetApplicationParameter("iap-ingress", "namespace"); ok {
+	if ingressNamespace, ok := gcp.kfDef.GetApplicationParameter(IAP_INGRESS, "namespace"); ok {
 		return ingressNamespace
 	}
 	if ingressNamespace, ok := gcp.kfDef.GetApplicationParameter("basic-auth-ingress", "namespace"); ok {
@@ -1631,7 +1633,8 @@ func (gcp *Gcp) createSecrets() error {
 		if err := gcp.createBasicAuthSecret(k8sClient); err != nil {
 			return kfapis.NewKfErrorWithMessage(err, "cannot create basic auth login secret")
 		}
-	} else {
+	}
+	if gcp.hasIapIngress() {
 		log.Infof("Creating GCP secrets for IAP...")
 		if err := gcp.createIapSecret(ctx, k8sClient); err != nil {
 			return kfapis.NewKfErrorWithMessage(err, "cannot create IAP auth secret")
@@ -1919,6 +1922,16 @@ func (gcp *Gcp) ConfigPodDefault() error {
 	return result.Error()
 }
 
+// hasIapIngress returns whether the gcp kfdef include iap setup
+func (gcp *Gcp) hasIapIngress() bool {
+	for _, app := range gcp.kfDef.Spec.Applications {
+		if app.Name == IAP_INGRESS {
+			return true
+		}
+	}
+	return false
+}
+
 // setGcpPluginDefaults sets the GcpPlugin defaults.
 func (gcp *Gcp) setGcpPluginDefaults() error {
 	// Set the defaults that will be used if not explicitly set.
@@ -1974,7 +1987,8 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 					},
 				},
 			})
-		} else {
+		}
+		if gcp.hasIapIngress() {
 			pluginSpec.Auth.IAP = &gcpplugin.IAP{}
 
 			pluginSpec.Auth.IAP.OAuthClientId = os.Getenv(CLIENT_ID)
@@ -2161,11 +2175,12 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 		if err := gcp.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "OFF"); err != nil {
 			return errors.WithStack(err)
 		}
-	} else {
-		if err := gcp.kfDef.SetApplicationParameter("iap-ingress", "ipName", gcp.kfDef.Spec.IpName); err != nil {
+	}
+	if gcp.hasIapIngress() {
+		if err := gcp.kfDef.SetApplicationParameter(IAP_INGRESS, "ipName", gcp.kfDef.Spec.IpName); err != nil {
 			return errors.WithStack(err)
 		}
-		if err := gcp.kfDef.SetApplicationParameter("iap-ingress", "hostname", gcp.kfDef.Spec.Hostname); err != nil {
+		if err := gcp.kfDef.SetApplicationParameter(IAP_INGRESS, "hostname", gcp.kfDef.Spec.Hostname); err != nil {
 			return errors.WithStack(err)
 		}
 	}
