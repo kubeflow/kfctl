@@ -1993,9 +1993,11 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 
 			pluginSpec.Auth.IAP.OAuthClientId = os.Getenv(CLIENT_ID)
 
-			if pluginSpec.Auth.IAP.OAuthClientId == "" {
-				log.Errorf("Could not configure IAP auth; environment variable %s not set", CLIENT_ID)
-				return errors.WithStack(fmt.Errorf("Could not configure IAP auth; environment variable %s not set", CLIENT_ID))
+			if pluginSpec.Auth.IAP.OAuthClientId == "" || os.Getenv(CLIENT_SECRET) == ""{
+				log.Errorf("Could not configure IAP auth; environment variable %s or %s not set", CLIENT_ID,
+					CLIENT_SECRET)
+				return errors.WithStack(fmt.Errorf("Could not configure IAP auth; environment variable %s or %s not set",
+					CLIENT_ID, CLIENT_SECRET))
 			}
 
 			pluginSpec.Auth.IAP.OAuthClientSecret = &kfconfig.SecretRef{

@@ -2,7 +2,6 @@ package gcp
 
 import (
 	"encoding/json"
-
 	"github.com/gogo/protobuf/proto"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
@@ -12,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -157,6 +156,11 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "no-plugin-iap",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
+					Applications: []kfconfig.Application {
+						{
+							Name: IAP_INGRESS,
+						},
+					},
 					UseBasicAuth: false,
 				},
 			},
@@ -186,6 +190,11 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "set-email",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
+					Applications: []kfconfig.Application {
+						{
+							Name: IAP_INGRESS,
+						},
+					},
 					UseBasicAuth: false,
 				},
 			},
@@ -231,6 +240,11 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "trim-email",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
+					Applications: []kfconfig.Application {
+						{
+							Name: IAP_INGRESS,
+						},
+					},
 					UseBasicAuth: false,
 				},
 			},
