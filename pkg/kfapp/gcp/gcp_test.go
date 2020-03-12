@@ -156,7 +156,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "no-plugin-iap",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
-					Applications: []kfconfig.Application {
+					Applications: []kfconfig.Application{
 						{
 							Name: IAP_INGRESS,
 						},
@@ -190,7 +190,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "set-email",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
-					Applications: []kfconfig.Application {
+					Applications: []kfconfig.Application{
 						{
 							Name: IAP_INGRESS,
 						},
@@ -240,7 +240,7 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "trim-email",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
-					Applications: []kfconfig.Application {
+					Applications: []kfconfig.Application{
 						{
 							Name: IAP_INGRESS,
 						},
@@ -281,6 +281,11 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 			Name: "no-override",
 			Input: &kfconfig.KfConfig{
 				Spec: kfconfig.KfConfigSpec{
+					Applications: []kfconfig.Application{
+						{
+							Name: IAP_INGRESS,
+						},
+					},
 					UseBasicAuth: false,
 				},
 			},
