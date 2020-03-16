@@ -237,7 +237,6 @@ class Builder(object):
             "workflow": self.name,
             "workflow_template": TEMPLATE_LABEL,
           }, argo_build_util.get_prow_labels()]),
-        "annotations": { "sidecar.istio.io/inject": "false" }
       },
       "spec": {
         "entrypoint": E2E_DAG_NAME,
@@ -306,7 +305,6 @@ class Builder(object):
        {'mountPath': '/secret/gcp-credentials', 'name': 'gcp-credentials'}]},
      'metadata': {
        'labels': {'workflow_template': TEMPLATE_LABEL},
-       'annotations': { 'sidecar.istio.io/inject': 'false' }},
      'outputs': {}}
 
     # Define common environment variables to be added to all steps
