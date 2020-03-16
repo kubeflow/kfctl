@@ -304,7 +304,7 @@ class Builder(object):
         'name': 'kubeflow-test-volume'},
        {'mountPath': '/secret/gcp-credentials', 'name': 'gcp-credentials'}]},
      'metadata': {'labels': {
-       'workflow_template': TEMPLATE_LABEL},
+       'workflow_template': TEMPLATE_LABEL}},
      'outputs': {}}
 
     # Define common environment variables to be added to all steps
