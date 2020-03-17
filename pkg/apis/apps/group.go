@@ -97,8 +97,6 @@ const (
 	APPNAME               CliOption = "appname"
 	DATA                  CliOption = "Data"
 	ZONE                  CliOption = "zone"
-	USE_BASIC_AUTH        CliOption = "use-basic-auth"
-	USE_ISTIO             CliOption = "use-istio"
 	DELETE_STORAGE        CliOption = "delete-storage"
 	DISABLE_USAGE_REPORT  CliOption = "disable-usage-report"
 	PACKAGE_MANAGER       CliOption = "package-manager"
