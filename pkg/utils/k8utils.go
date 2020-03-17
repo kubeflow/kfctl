@@ -61,6 +61,7 @@ const (
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
 	KfDefAnnotation            = "kfctl.kubeflow.io"
 	ForceDelete                = "force-delete"
+	SetOwnerReference          = "set-ownerreference"
 )
 
 func generateRandStr(length int) string {

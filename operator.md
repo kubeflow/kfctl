@@ -92,12 +92,15 @@ kubectl get deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
 ```
 
 ## Delete KubeFlow
-Delete KubeFlow deployment
+
+* Delete KubeFlow deployment
 ```shell
 kubectl delete kfdef -n ${KUBEFLOW_NAMESPACE} --all
 ```
 
-Delete KubeFlow Operator
+> Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either.
+
+* Delete KubeFlow Operator
 ```shell
 kubectl delete -f deploy/operator.yaml -n ${OPERATOR_NAMESPACE}
 kubectl delete clusterrolebinding kubeflow-operator
