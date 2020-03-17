@@ -5,6 +5,8 @@ import (
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts"
 	versionChecker "github.com/hashicorp/go-version"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	"github.com/pkg/errors"
@@ -47,12 +49,26 @@ func (aws *Aws) getEksCluster(clusterName string) (*Cluster, error) {
 
 // IsEksCluster checks if an AWS cluster is EKS cluster.
 func (aws *Aws) IsEksCluster(clusterName string) (bool, error) {
+	session := session.Must(session.NewSession())
+
+	svc := sts.New(session)
+	stsinput := &sts.GetCallerIdentityInput{}
+	result, err := svc.GetCallerIdentity(stsinput)
+
+	if err != nil {
+		log.Infoln("AWS Credentials seems not correct %v", err.Error())
+	} else {
+		log.Infoln("Caller ARN Info: %s", result)
+	}
+
+	eksClient := eks.New(session)
+
 	input := &eks.DescribeClusterInput{
 		Name: awssdk.String(clusterName),
 	}
 
 	exist := true
-	if _, err := aws.eksClient.DescribeCluster(input); err != nil {
+	if _, err := eksClient.DescribeCluster(input); err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() != eks.ErrCodeResourceNotFoundException {
 				return false, err
