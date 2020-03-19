@@ -22,9 +22,13 @@ import (
 	"github.com/prometheus/common/log"
 	"io"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"testing"
 )
 
@@ -431,6 +435,208 @@ func TestKfConfig_SetSecret(t *testing.T) {
 			pGot, _ := Pformat(i)
 			pWant, _ := Pformat(c.Expected)
 			t.Errorf("Error setting secret %v; got;\n%v\nwant;\n%v", c.Secret.Name, pGot, pWant)
+		}
+	}
+}
+
+func TestKfConfig_addPatchStratgicMerge(t *testing.T) {
+	type testCase struct {
+		Input     *types.Kustomization
+		PatchName string
+		Expected  *types.Kustomization
+	}
+
+	cases := []testCase{
+		// New parameter
+		{
+			Input:     &types.Kustomization{},
+			PatchName: "new-config.yaml",
+			Expected: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("new-config.yaml"),
+				},
+			},
+		},
+		// Existing parameter
+		{
+			Input: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("config1.yaml"),
+					types.PatchStrategicMerge("exists-config.yaml"),
+					types.PatchStrategicMerge("config2.yaml"),
+				},
+			},
+			PatchName: "exists-config.yaml",
+			Expected: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("config1.yaml"),
+					types.PatchStrategicMerge("exists-config.yaml"),
+					types.PatchStrategicMerge("config2.yaml"),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		addPatchStratgicMerge(c.Input, c.PatchName)
+		if !reflect.DeepEqual(c.Input, c.Expected) {
+			pGot, _ := Pformat(c.Input)
+			pWant, _ := Pformat(c.Expected)
+			t.Errorf("Error adding patch %v; got;\n%v\nwant;\n%v", c.PatchName, pGot, pWant)
+		}
+	}
+}
+
+func Test_setApplicationParameterInConfigMap(t *testing.T) {
+	type testCase struct {
+		Name                  string
+		InputKustomization    *types.Kustomization
+		InputPatch            *v1.ConfigMap
+		AppName               string
+		ParameterName         string
+		Value                 string
+		ExpectedKustomization *types.Kustomization
+		ExpectedPatch         *v1.ConfigMap
+	}
+
+	cases := []testCase{
+		// New parameter
+		{
+			Name:               "No-patch",
+			InputKustomization: &types.Kustomization{},
+			InputPatch:         nil,
+			AppName:            "app",
+			ParameterName:      "param",
+			Value:              "value",
+			ExpectedKustomization: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("app-config.yaml"),
+				},
+			},
+			ExpectedPatch: &v1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "app-config",
+				},
+				Data: map[string]string{
+					"param": "value",
+				},
+			},
+		},
+		// Modify existing parameter
+		{
+			Name:               "existing-parameter",
+			InputKustomization: &types.Kustomization{},
+			InputPatch: &v1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "app-config",
+				},
+				Data: map[string]string{
+					"a":     "b",
+					"param": "oldvalue",
+					"d":     "e",
+				},
+			},
+			AppName:       "app",
+			ParameterName: "param",
+			Value:         "newvalue",
+			ExpectedKustomization: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("app-config.yaml"),
+				},
+			},
+			ExpectedPatch: &v1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "app-config",
+				},
+				Data: map[string]string{
+					"a":     "b",
+					"param": "newvalue",
+					"d":     "e",
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		// Create a kustomization app based on the inputs.
+		testDir, err := ioutil.TempDir("", "testSetApplicationParameter-"+c.Name)
+
+		log.Infof("Test case: %v; directory: %v", c.Name, testDir)
+		if err != nil {
+			t.Fatalf("Could not creat temporary directory: %v", err)
+		}
+
+		type pair struct {
+			o    interface{}
+			path string
+		}
+
+		pairs := []pair{
+			{
+				o:    c.InputKustomization,
+				path: filepath.Join(testDir, "kustomization.yaml"),
+			},
+		}
+
+		if c.InputPatch != nil {
+			pairs = append(pairs, pair{
+				o:    c.InputPatch,
+				path: filepath.Join(testDir, c.AppName+"-config.yaml"),
+			})
+		}
+
+		for _, p := range pairs {
+			kBytes, err := yaml.Marshal(p.o)
+
+			if err != nil {
+				t.Fatalf("Could not marshal yaml error: %v", err)
+			}
+			if err := ioutil.WriteFile(p.path, kBytes, os.ModePerm); err != nil {
+				t.Fatalf("Could not write file: %v; error %v", p.path, err)
+			}
+		}
+		setApplicationParameterInConfigMap(testDir, c.AppName, c.ParameterName, c.Value)
+
+		parse := func(path string, o interface{}) {
+			b, err := ioutil.ReadFile(path)
+
+			if err != nil {
+				t.Fatalf("Could not read file: %v; error %v", path, err)
+			}
+
+			if err := yaml.Unmarshal(b, o); err != nil {
+				t.Fatalf("Could not read unmarshal yaml; error: %v", err)
+			}
+		}
+
+		actualKustomization := &types.Kustomization{}
+		actualPatch := &v1.ConfigMap{}
+
+		parse(filepath.Join(testDir, "kustomization.yaml"), actualKustomization)
+		parse(filepath.Join(testDir, c.AppName+"-config.yaml"), actualPatch)
+
+		if !reflect.DeepEqual(actualKustomization, c.ExpectedKustomization) {
+			pGot, _ := Pformat(actualKustomization)
+			pWant, _ := Pformat(c.ExpectedKustomization)
+			t.Errorf("Case %v: kustomization.yaml: got;\n%v\nwant;\n%v", c.Name, pGot, pWant)
+		}
+
+		if !reflect.DeepEqual(actualPatch, c.ExpectedPatch) {
+			pGot, _ := Pformat(actualPatch)
+			pWant, _ := Pformat(c.ExpectedPatch)
+			t.Errorf("Case %v: kustomization.yaml: got;\n%v\nwant;\n%v", c.Name, pGot, pWant)
 		}
 	}
 }

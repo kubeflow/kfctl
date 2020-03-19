@@ -2,8 +2,13 @@ package kustomize
 
 import (
 	"bytes"
+	"github.com/ghodss/yaml"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
@@ -100,6 +105,97 @@ func TestGenerateYamlWithOwnerReferences(t *testing.T) {
 		}
 		if bytes.Compare(actual, expected) != 0 {
 			t.Fatalf("Set owner reference is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", string(actual), string(expected))
+		}
+	}
+}
+
+func TestCreateStackAppKustomization(t *testing.T) {
+	type testCase struct {
+		Name     string
+		Input    *types.Kustomization
+		BasePath string
+		Expected *types.Kustomization
+	}
+
+	testCases := []testCase{
+		{
+			Name:     "no-kustomization",
+			Input:    nil,
+			BasePath: "../../.cache/stacks/gcp",
+			Expected: &types.Kustomization{
+				TypeMeta: types.TypeMeta{
+					APIVersion: "kustomize.config.k8s.io/v1beta1",
+					Kind:       "Kustomization",
+				},
+				Namespace: "kubeflow",
+				Resources: []string{
+					"../../.cache/stacks/gcp",
+				},
+			},
+		},
+		{
+			Name: "merge-kustomization",
+			Input: &types.Kustomization{
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("some-patch.yaml"),
+				},
+			},
+			BasePath: "../../.cache/stacks/gcp",
+			Expected: &types.Kustomization{
+				TypeMeta: types.TypeMeta{
+					APIVersion: "kustomize.config.k8s.io/v1beta1",
+					Kind:       "Kustomization",
+				},
+				Namespace: "kubeflow",
+				Resources: []string{
+					"../../.cache/stacks/gcp",
+				},
+				PatchesStrategicMerge: []types.PatchStrategicMerge{
+					types.PatchStrategicMerge("some-patch.yaml"),
+				},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		testDir, err := ioutil.TempDir("", "testCreateStackAppKustomization-"+c.Name+"-")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		t.Logf("testdir: %v", testDir)
+
+		if c.Input != nil {
+			contents, err := yaml.Marshal(c.Input)
+			if err != nil {
+				t.Fatalf("Error marshalling input kustomization: error; %v", err)
+			}
+
+			if err := ioutil.WriteFile(filepath.Join(testDir, "kustomization.yaml"), contents, os.ModePerm); err != nil {
+				t.Fatalf("Error writing kustomization: error; %v", err)
+			}
+		}
+
+		kustomizationFile, err := createStackAppKustomization(testDir, c.BasePath)
+
+		if err != nil {
+			t.Fatalf("Failed to create kustomization.yaml for Kubeflow apps stack: %v", err)
+		}
+
+		data, err := ioutil.ReadFile(kustomizationFile)
+		if err != nil {
+			t.Fatalf("Case %v: Failed to read %v: %v", c.Name, kustomizationFile, err)
+		}
+
+		expected, err := yaml.Marshal(c.Expected)
+		if err != nil {
+			t.Fatalf("Failed to marshal expected value: %v", err)
+		}
+
+		expectedStr := strings.TrimSpace(string(expected))
+		dataStr := strings.TrimSpace(string(data))
+
+		if dataStr != expectedStr {
+			t.Fatalf("kustomization.yaml is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", dataStr, expectedStr)
 		}
 	}
 }
