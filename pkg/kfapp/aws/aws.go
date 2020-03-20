@@ -134,7 +134,10 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 		},
 	}
 
-	session := session.Must(session.NewSession())
+	// set aws.sess with shared config file information, such as region
+	session := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
 
 	k8sClient, err := getK8sclient()
 	if err != nil {
