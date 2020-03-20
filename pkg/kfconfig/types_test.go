@@ -25,12 +25,14 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"github.com/pkg/errors"
 )
 
 func TestSyncCache(t *testing.T) {
 	type testCase struct {
-		input    *KfConfig
-		expected []Cache
+		input    			*KfConfig
+		expected 			[]Cache
+		expectedErr		error
 	}
 
 	// Verify that we can sync some files.
@@ -80,6 +82,21 @@ func TestSyncCache(t *testing.T) {
 					LocalPath: path.Join(testDir, "app1", ".cache", repoName),
 				},
 			},
+			expectedErr: nil,
+		},
+		{
+			input: &KfConfig{
+				Spec: KfConfigSpec{
+					AppDir: path.Join(srcDir, "app1"),
+					Repos: []Repo{{
+						Name: repoName,
+						URI:  srcDir,
+					},
+					},
+				},
+			},
+			expected: nil,
+			expectedErr: errors.New("SyncCache: could not sync cache when the cache path " + path.Join(srcDir, "app1", ".cache", repoName) + " is sub directory of manifests " + srcDir),
 		},
 		{
 			input: &KfConfig{
@@ -98,6 +115,7 @@ func TestSyncCache(t *testing.T) {
 					LocalPath: path.Join(testDir, "app2", ".cache", repoName, "kubeflow-manifests-c0e81be"),
 				},
 			},
+			expectedErr: nil,
 		},
 		// The following test cases pull from GitHub. The may be worth commenting
 		// out in the unittests and only running manually
@@ -141,13 +159,17 @@ func TestSyncCache(t *testing.T) {
 		err = c.input.SyncCache()
 
 		if err != nil {
-			t.Fatalf("Could not sync cache; %v", err)
+			if err.Error() != c.expectedErr.Error() {
+				t.Fatalf("Could not sync cache; %v", err)
+			}
 		}
 
-		actual := c.input.Status.Caches[0].LocalPath
-		expected := c.expected[0].LocalPath
-		if actual != expected {
-			t.Fatalf("LocalPath; got %v; want %v", actual, expected)
+		if c.expected != nil {
+			actual := c.input.Status.Caches[0].LocalPath
+			expected := c.expected[0].LocalPath
+			if actual != expected {
+				t.Fatalf("LocalPath; got %v; want %v", actual, expected)
+			}
 		}
 	}
 
