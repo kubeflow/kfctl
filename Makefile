@@ -170,19 +170,19 @@ push-to-github-release: build-kfctl-tgz
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_linux.tar.gz" \
-	    --file bin/kfctl_$(TAG)_linux.tar.gz
+	    --file bin/linux/kfctl_$(TAG)_linux.tar.gz
 	github-release upload \
 	    --user kubeflow \
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_darwin.tar.gz" \
-	    --file bin/kfctl_$(TAG)_darwin.tar.gz
+	    --file bin/darwin/kfctl_$(TAG)_darwin.tar.gz
 	github-release upload \
             --user kubeflow \
             --repo kubeflow \
             --tag $(TAG) \
             --name "kfctl_$(TAG)_ppc64le.tar.gz" \
-            --file bin/kfctl_$(TAG)_ppc64le.tar.gz
+            --file bin/ppc64le/kfctl_$(TAG)_ppc64le.tar.gz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
