@@ -32,7 +32,7 @@ import (
 
 // Kubeflow operator version
 var (
-	Version         string = "1.0.1"
+	Version         string = "1.0.0"
 )
 
 // Change below variables to serve metrics on different host or port.
