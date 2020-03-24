@@ -2,12 +2,14 @@ package kustomize
 
 import (
 	"bytes"
-	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
-	"github.com/otiai10/copy"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path"
 	"testing"
+
+	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+	"github.com/otiai10/copy"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // This test tests that GenerateKustomizationFile will produce correct kustomization.yaml
@@ -61,6 +63,43 @@ func TestGenerateKustomizationFile(t *testing.T) {
 		}
 		if bytes.Compare(data, expected) != 0 {
 			t.Fatalf("kustomization.yaml is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", string(data), string(expected))
+		}
+	}
+}
+
+// TestGenerateYamlWithOwnerReferences
+func TestGenerateYamlWithOwnerReferences(t *testing.T) {
+	type testCase struct {
+		appDir		string
+		expected 	string
+	}
+	testCases := []testCase {
+		{
+			appDir: "testdata/operator",
+			expected: "testdata/operator/expected/service.yaml",
+		},
+	}
+	instance := &unstructured.Unstructured{}
+	instance.SetAPIVersion("kfdef.apps.kubeflow.org/v1")
+	instance.SetKind("KfDef")
+	instance.SetName("operator")
+	instance.SetUID("7d7fd317-5bf6-45c1-a543-bff27b7b5807")
+
+	for _, c := range testCases {
+		resMap, err := EvaluateKustomizeManifest(c.appDir)
+		if err != nil {
+			t.Fatalf("Failed to evaluate manifest. Error: %v.", err)
+		}
+		actual, err := GenerateYamlWithOwnerReferences(resMap, instance)
+		if err != nil {
+			t.Fatalf("Failed to add owner reference. Error: %v.", err)
+		}
+		expected, err := ioutil.ReadFile(c.expected)
+		if err != nil {
+			t.Fatalf("Failed to read expected file. Error: %v", err)
+		}
+		if bytes.Compare(actual, expected) != 0 {
+			t.Fatalf("Set owner reference is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", string(actual), string(expected))
 		}
 	}
 }
