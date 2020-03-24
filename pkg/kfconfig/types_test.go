@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	"io"
 	"io/ioutil"
@@ -25,14 +26,13 @@ import (
 	"path"
 	"reflect"
 	"testing"
-	"github.com/pkg/errors"
 )
 
 func TestSyncCache(t *testing.T) {
 	type testCase struct {
-		input    			*KfConfig
-		expected 			[]Cache
-		expectedErr		error
+		input       *KfConfig
+		expected    []Cache
+		expectedErr error
 	}
 
 	// Verify that we can sync some files.
@@ -95,7 +95,7 @@ func TestSyncCache(t *testing.T) {
 					},
 				},
 			},
-			expected: nil,
+			expected:    nil,
 			expectedErr: errors.New("SyncCache: could not sync cache when the cache path " + path.Join(srcDir, "app1", ".cache", repoName) + " is sub directory of manifests " + srcDir),
 		},
 		{
