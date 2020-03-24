@@ -32,8 +32,7 @@ import (
 
 // Kubeflow operator version
 var (
-	Version         string = "0.2.1"
-	KubeflowVersion string = "1.0.1"
+	Version         string = "1.0.1"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -47,8 +46,7 @@ func printVersion() {
 	log.Infof("Go Version: %s", runtime.Version())
 	log.Infof("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH)
 	log.Infof("Version of operator-sdk: %v", sdkVersion.Version)
-	log.Infof("Operator version: %v", Version)
-	log.Infof("Kubeflow version: %v", KubeflowVersion)
+	log.Infof("Kubeflow version: %v", Version)
 }
 
 func main() {

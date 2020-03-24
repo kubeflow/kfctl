@@ -9,9 +9,9 @@ metadata:
     support: Kubeflow
     repository: https://github.com/kubeflow/kfctl
     createdAt: '2020-03-19T00:00:00Z'
-    containerImage: aipipeline/kubeflow-operator:v0.2.0
+    containerImage: aipipeline/kubeflow-operator:v1.0.1
     certified: 'False'
-  name: kubeflow.v0.2.0
+  name: kubeflow.v1.0.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -70,7 +70,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: kubeflow-operator
-                image: aipipeline/kubeflow-operator:v0.2.0
+                image: aipipeline/kubeflow-operator:v1.0.1
                 imagePullPolicy: Always
                 name: kubeflow-operator
                 resources: {}
@@ -104,8 +104,8 @@ spec:
     - IBMCloud
     - GCP
     - OpenShift
-  version: 0.2.0
-  replaces: kubeflow.v0.1.0
+  version: 1.0.1
+  replaces: kubeflow.v1.0.0
   selector:
     matchLabels:
       component: kubeflow-operator
