@@ -127,7 +127,6 @@ build-kfctl: deepcopy generate fmt vet
 	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
 	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
 	GOOS=linux GOARCH=ppc64le ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/ppc64le/kfctl cmd/kfctl/main.go
-	#cp bin/$(ARCH)/kfctl bin/kfctl
 
 # Release tarballs suitable for upload to GitHub release pages
 build-kfctl-tgz: build-kfctl
