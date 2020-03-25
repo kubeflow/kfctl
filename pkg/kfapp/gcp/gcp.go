@@ -697,28 +697,53 @@ func (gcp *Gcp) updateDM(resources kftypesv3.ResourceEnum) error {
 			Message: fmt.Sprintf("Error creating deploymentmanagerService: %v", err),
 		}
 	}
+	// DM entries are optional, defined in kfdef config. We only make DM changes when DM config was generated during kfctl build
 	if _, storageStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, STORAGE_FILE)); !os.IsNotExist(storageStatErr) {
+		if storageStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager storage: %v", storageStatErr),
+			}
+		}
 		storageEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-storage", STORAGE_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", STORAGE_FILE))
 		}
 		dmOperationEntries = append(dmOperationEntries, storageEntry)
 	}
-	if _, mainStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, CONFIG_FILE)); mainStatErr == nil {
+	if _, mainStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, CONFIG_FILE)); !os.IsNotExist(mainStatErr) {
+		if mainStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager Service: %v", mainStatErr),
+			}
+		}
 		dmEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name, CONFIG_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", CONFIG_FILE))
 		}
 		dmOperationEntries = append(dmOperationEntries, dmEntry)
 	}
-	if _, networkStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, NETWORK_FILE)); networkStatErr == nil {
+	if _, networkStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, NETWORK_FILE)); !os.IsNotExist(networkStatErr) {
+		if networkStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager Network: %v", networkStatErr),
+			}
+		}
 		networkEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-network", NETWORK_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", NETWORK_FILE))
 		}
 		dmOperationEntries = append(dmOperationEntries, networkEntry)
 	}
-	if _, gcfsStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, GCFS_FILE)); gcfsStatErr == nil {
+	if _, gcfsStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, GCFS_FILE)); !os.IsNotExist(gcfsStatErr) {
+		if gcfsStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager gcfs: %v", gcfsStatErr),
+			}
+		}
 		gcfsEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-gcfs", GCFS_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", GCFS_FILE))
@@ -730,7 +755,14 @@ func (gcp *Gcp) updateDM(resources kftypesv3.ResourceEnum) error {
 		return kfapis.NewKfErrorWithMessage(err, "could not update deployment manager entries")
 	}
 
-	if _, iamStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, "iam_bindings.yaml")); iamStatErr == nil {
+	// IAM changes are optional, defined in kfdef config. We only make IAM changes when IAM config was generated during kfctl build
+	if _, iamStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, "iam_bindings.yaml")); !os.IsNotExist(iamStatErr) {
+		if iamStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error loading IAM template: %v", iamStatErr),
+			}
+		}
 		exp := backoff.NewExponentialBackOff()
 		exp.InitialInterval = 1 * time.Second
 		exp.MaxInterval = 3 * time.Second
