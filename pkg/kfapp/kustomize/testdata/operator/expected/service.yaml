@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: fake
+  name: fake-service
+  namespace: kubeflow
+  ownerReferences:
+  - apiVersion: kfdef.apps.kubeflow.org/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: KfDef
+    name: operator
+    uid: 7d7fd317-5bf6-45c1-a543-bff27b7b5807
+spec:
+  ports:
+  - port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app: fake
