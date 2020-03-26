@@ -697,26 +697,53 @@ func (gcp *Gcp) updateDM(resources kftypesv3.ResourceEnum) error {
 			Message: fmt.Sprintf("Error creating deploymentmanagerService: %v", err),
 		}
 	}
+	// DM entries are optional, defined in kfdef config. We only make DM changes when DM config was generated during kfctl build
 	if _, storageStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, STORAGE_FILE)); !os.IsNotExist(storageStatErr) {
+		if storageStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager storage: %v", storageStatErr),
+			}
+		}
 		storageEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-storage", STORAGE_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", STORAGE_FILE))
 		}
 		dmOperationEntries = append(dmOperationEntries, storageEntry)
 	}
-	dmEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name, CONFIG_FILE)
-	if err != nil {
-		return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", CONFIG_FILE))
+	if _, mainStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, CONFIG_FILE)); !os.IsNotExist(mainStatErr) {
+		if mainStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager Service: %v", mainStatErr),
+			}
+		}
+		dmEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name, CONFIG_FILE)
+		if err != nil {
+			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", CONFIG_FILE))
+		}
+		dmOperationEntries = append(dmOperationEntries, dmEntry)
 	}
-	dmOperationEntries = append(dmOperationEntries, dmEntry)
-	if _, networkStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, NETWORK_FILE)); networkStatErr == nil {
+	if _, networkStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, NETWORK_FILE)); !os.IsNotExist(networkStatErr) {
+		if networkStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager Network: %v", networkStatErr),
+			}
+		}
 		networkEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-network", NETWORK_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", NETWORK_FILE))
 		}
 		dmOperationEntries = append(dmOperationEntries, networkEntry)
 	}
-	if _, gcfsStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, GCFS_FILE)); gcfsStatErr == nil {
+	if _, gcfsStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, GCFS_FILE)); !os.IsNotExist(gcfsStatErr) {
+		if gcfsStatErr != nil {
+			return &kfapis.KfError{
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error creating deploymentmanager gcfs: %v", gcfsStatErr),
+			}
+		}
 		gcfsEntry, err := gcp.updateDeployment(deploymentmanagerService, gcp.kfDef.Name+"-gcfs", GCFS_FILE)
 		if err != nil {
 			return kfapis.NewKfErrorWithMessage(err, fmt.Sprintf("could not update %v", GCFS_FILE))
@@ -727,62 +754,72 @@ func (gcp *Gcp) updateDM(resources kftypesv3.ResourceEnum) error {
 	if err = blockingWait(gcp.kfDef.Spec.Project, deploymentmanagerService, dmOperationEntries); err != nil {
 		return kfapis.NewKfErrorWithMessage(err, "could not update deployment manager entries")
 	}
-	exp := backoff.NewExponentialBackOff()
-	exp.InitialInterval = 1 * time.Second
-	exp.MaxInterval = 3 * time.Second
-	exp.MaxElapsedTime = time.Minute
-	exp.Reset()
-	err = backoff.Retry(func() error {
-		// Get current policy
-		policy, policyErr := utils.GetIamPolicy(gcp.kfDef.Spec.Project, gcpClient)
-		if policyErr != nil {
-			return kfapis.NewKfErrorWithMessage(policyErr, "GetIamPolicy error")
-		}
-		utils.ClearIamPolicy(policy, gcp.kfDef.Name, gcp.kfDef.Spec.Project)
-		if err := utils.SetIamPolicy(gcp.kfDef.Spec.Project, policy, gcpClient); err != nil {
-			return kfapis.NewKfErrorWithMessage(err, "Set Cleared IamPolicy error: %v")
-		}
-		return nil
-	}, exp)
-	if err != nil {
-		return err
-	}
 
-	appDir := gcp.kfDef.Spec.AppDir
-	gcpConfigDir := path.Join(appDir, GCP_CONFIG)
-	iamPolicy, iamPolicyErr := utils.ReadIamBindingsYAML(
-		filepath.Join(gcpConfigDir, "iam_bindings.yaml"))
-	if iamPolicyErr != nil {
-		return &kfapis.KfError{
-			Code: iamPolicyErr.(*kfapis.KfError).Code,
-			Message: fmt.Sprintf("Read IAM policy YAML error: %v",
-				iamPolicyErr.(*kfapis.KfError).Message),
-		}
-	}
-
-	exp.Reset()
-	err = backoff.Retry(func() error {
-		// Need to read policy again as latest Etag changed.
-		newPolicy, policyErr := utils.GetIamPolicy(gcp.kfDef.Spec.Project, gcpClient)
-		if policyErr != nil {
+	// IAM changes are optional, defined in kfdef config. We only make IAM changes when IAM config was generated during kfctl build
+	if _, iamStatErr := os.Stat(path.Join(gcp.kfDef.Spec.AppDir, GCP_CONFIG, "iam_bindings.yaml")); !os.IsNotExist(iamStatErr) {
+		if iamStatErr != nil {
 			return &kfapis.KfError{
-				Code: policyErr.(*kfapis.KfError).Code,
-				Message: fmt.Sprintf("GetIamPolicy error: %v",
-					policyErr.(*kfapis.KfError).Message),
+				Code:    int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("Error loading IAM template: %v", iamStatErr),
 			}
 		}
-		utils.RewriteIamPolicy(newPolicy, iamPolicy)
-		if err := utils.SetIamPolicy(gcp.kfDef.Spec.Project, newPolicy, gcpClient); err != nil {
+		exp := backoff.NewExponentialBackOff()
+		exp.InitialInterval = 1 * time.Second
+		exp.MaxInterval = 3 * time.Second
+		exp.MaxElapsedTime = time.Minute
+		exp.Reset()
+		err = backoff.Retry(func() error {
+			// Get current policy
+			policy, policyErr := utils.GetIamPolicy(gcp.kfDef.Spec.Project, gcpClient)
+			if policyErr != nil {
+				return kfapis.NewKfErrorWithMessage(policyErr, "GetIamPolicy error")
+			}
+			utils.ClearIamPolicy(policy, gcp.kfDef.Name, gcp.kfDef.Spec.Project)
+			if err := utils.SetIamPolicy(gcp.kfDef.Spec.Project, policy, gcpClient); err != nil {
+				return kfapis.NewKfErrorWithMessage(err, "Set Cleared IamPolicy error: %v")
+			}
+			return nil
+		}, exp)
+		if err != nil {
+			return err
+		}
+
+		appDir := gcp.kfDef.Spec.AppDir
+		gcpConfigDir := path.Join(appDir, GCP_CONFIG)
+		iamPolicy, iamPolicyErr := utils.ReadIamBindingsYAML(
+			filepath.Join(gcpConfigDir, "iam_bindings.yaml"))
+		if iamPolicyErr != nil {
 			return &kfapis.KfError{
-				Code: err.(*kfapis.KfError).Code,
-				Message: fmt.Sprintf("Set New IamPolicy error: %v",
-					err.(*kfapis.KfError).Message),
+				Code: iamPolicyErr.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("Read IAM policy YAML error: %v",
+					iamPolicyErr.(*kfapis.KfError).Message),
 			}
 		}
-		return nil
-	}, exp)
-	if err != nil {
-		return err
+
+		exp.Reset()
+		err = backoff.Retry(func() error {
+			// Need to read policy again as latest Etag changed.
+			newPolicy, policyErr := utils.GetIamPolicy(gcp.kfDef.Spec.Project, gcpClient)
+			if policyErr != nil {
+				return &kfapis.KfError{
+					Code: policyErr.(*kfapis.KfError).Code,
+					Message: fmt.Sprintf("GetIamPolicy error: %v",
+						policyErr.(*kfapis.KfError).Message),
+				}
+			}
+			utils.RewriteIamPolicy(newPolicy, iamPolicy)
+			if err := utils.SetIamPolicy(gcp.kfDef.Spec.Project, newPolicy, gcpClient); err != nil {
+				return &kfapis.KfError{
+					Code: err.(*kfapis.KfError).Code,
+					Message: fmt.Sprintf("Set New IamPolicy error: %v",
+						err.(*kfapis.KfError).Message),
+				}
+			}
+			return nil
+		}, exp)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := gcp.ConfigK8s(); err != nil {
@@ -1325,6 +1362,10 @@ func (gcp *Gcp) generateDMConfigs() error {
 	pluginSpec, err := gcp.GetPluginSpec()
 
 	if err != nil {
+		return nil
+	}
+	// Skip DM config build if not specified in kfdef
+	if pluginSpec.DeploymentManagerConfig == nil {
 		return nil
 	}
 
@@ -1996,18 +2037,6 @@ func (gcp *Gcp) setGcpPluginDefaults() error {
 					},
 				},
 			})
-		}
-	}
-
-	// Initialize the deployment manager configs.
-	if pluginSpec.DeploymentManagerConfig == nil {
-		pluginSpec.DeploymentManagerConfig = &gcpplugin.DeploymentManagerConfig{}
-	}
-
-	if pluginSpec.DeploymentManagerConfig.RepoRef == nil {
-		pluginSpec.DeploymentManagerConfig.RepoRef = &kfconfig.RepoRef{
-			Name: kftypesv3.KubeflowRepoName,
-			Path: DEFAULT_DM_PATH,
 		}
 	}
 

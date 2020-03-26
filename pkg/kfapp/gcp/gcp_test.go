@@ -145,12 +145,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						},
 					},
 				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
-					},
-				},
 			},
 		},
 		{
@@ -174,12 +168,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						},
 					},
 				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
-					},
-				},
 			},
 		},
 		{
@@ -201,12 +189,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
-					},
-				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
 					},
 				},
 				Project: "myproject",
@@ -248,12 +230,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						},
 					},
 				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
-					},
-				},
 				Email: "myemail",
 			},
 			EmailGetter: func() (string, error) {
@@ -285,12 +261,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						OAuthClientSecret: &kfconfig.SecretRef{
 							Name: CLIENT_SECRET,
 						},
-					},
-				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
 					},
 				},
 				Email: "myemail",
@@ -331,12 +301,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						},
 					},
 				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
-					},
-				},
 			},
 		},
 		{
@@ -368,12 +332,6 @@ func TestGcp_setGcpPluginDefaults(t *testing.T) {
 						Password: &kfconfig.SecretRef{
 							Name: "original_secret",
 						},
-					},
-				},
-				DeploymentManagerConfig: &gcpplugin.DeploymentManagerConfig{
-					RepoRef: &kfconfig.RepoRef{
-						Name: "kubeflow",
-						Path: "deployment/gke/deployment_manager_configs",
 					},
 				},
 			},
