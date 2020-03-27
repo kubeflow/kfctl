@@ -811,7 +811,7 @@ func (c *KfConfig) legacySetApplicationParameter(appName string, paramName strin
 // SetApplicationParameter sets the desired application parameter.
 func (c *KfConfig) SetApplicationParameter(appName string, paramName string, value string) error {
 	if c.UsingStacks() {
-		kustomizeDir := filepath.Join(c.Spec.AppDir, KustomizeDir, KfAppsStackName)
+		kustomizeDir := filepath.Join(c.Spec.AppDir, KustomizeDir, appName)
 		return setApplicationParameterInConfigMap(kustomizeDir, appName, paramName, value)
 	}
 	return c.legacySetApplicationParameter(appName, paramName, value)

@@ -2197,6 +2197,13 @@ func (gcp *Gcp) Generate(resources kftypesv3.ResourceEnum) error {
 		if err := gcp.kfDef.SetApplicationParameter("iap-ingress", "hostname", gcp.kfDef.Spec.Hostname); err != nil {
 			return errors.WithStack(err)
 		}
+		if err := gcp.kfDef.SetApplicationParameter("iap-ingress", "project", gcp.kfDef.Spec.Project); err != nil {
+			return errors.WithStack(err)
+		}
+		// appName is used to give a unique name to the cloud endpoint.
+		if err := gcp.kfDef.SetApplicationParameter("iap-ingress", "appName", gcp.kfDef.Name); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	if *pluginSpec.CreatePipelinePersistentStorage {
 		log.Infof("Configuring pipeline, minio, and mysql applications")

@@ -556,12 +556,12 @@ func createStackAppKustomization(stackAppDir string, basePath string) (string, e
 	}
 
 	// Create the kustomization file for the stack directory.
+	// We explicitly do not set namespace because we want to use the default namespace set in each kustomize
+	// application.
 	kustomization.TypeMeta = types.TypeMeta{
 		Kind:       "Kustomization",
 		APIVersion: "kustomize.config.k8s.io/v1beta1",
 	}
-
-	kustomization.Namespace = "kubeflow"
 
 	hasBasePath := false
 	for _, r := range kustomization.Resources {

@@ -127,7 +127,6 @@ func TestCreateStackAppKustomization(t *testing.T) {
 					APIVersion: "kustomize.config.k8s.io/v1beta1",
 					Kind:       "Kustomization",
 				},
-				Namespace: "kubeflow",
 				Resources: []string{
 					"../../.cache/stacks/gcp",
 				},
@@ -146,7 +145,6 @@ func TestCreateStackAppKustomization(t *testing.T) {
 					APIVersion: "kustomize.config.k8s.io/v1beta1",
 					Kind:       "Kustomization",
 				},
-				Namespace: "kubeflow",
 				Resources: []string{
 					"../../.cache/stacks/gcp",
 				},
