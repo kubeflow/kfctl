@@ -811,7 +811,34 @@ func (c *KfConfig) legacySetApplicationParameter(appName string, paramName strin
 // SetApplicationParameter sets the desired application parameter.
 func (c *KfConfig) SetApplicationParameter(appName string, paramName string, value string) error {
 	if c.UsingStacks() {
-		kustomizeDir := filepath.Join(c.Spec.AppDir, KustomizeDir, appName)
+		// We need to map the application names to the stack they belong to.
+		// Prior to the v3 version which introduced the stack there was a 1:1 mapping between the appName
+		// and the kustomize directory for that application.
+		// With the introduction of stacks some of the applications e.g. "jupyter-web-app" are now in the
+		// the kubeflow-apps stack. So when we call SetApplicationParameter("jupyter-web-app",...)
+		// we actually want to modify the config map inside ${KFAPP}/kustomize/kubeflow-apps
+		//
+		// TODO(jlewi): Is there a better way handle this other than hardcoding the path.
+		appToStack := map[string]string{
+			"centraldashboard": KfAppsStackName,
+			"cloud-endpoints":  "cloud-endpoints",
+			"default-install":  "default-install",
+			"istio-stack":      "istio-stack",
+			"iap-ingress":      "iap-ingress",
+			"jupyter-web-app":  KfAppsStackName,
+			"metacontroller":   "metacontroller",
+			"profiles":         KfAppsStackName,
+		}
+
+		appNameDir, ok := appToStack[appName]
+
+		if !ok {
+			// Default to assuming appNameDir is the same as appName if not explicitly
+			// specified?
+			appNameDir = appName
+			log.Warnf("No stack directory specified for app %v; defaulting to %v", appName, appNameDir)
+		}
+		kustomizeDir := filepath.Join(c.Spec.AppDir, KustomizeDir, appNameDir)
 		return setApplicationParameterInConfigMap(kustomizeDir, appName, paramName, value)
 	}
 	return c.legacySetApplicationParameter(appName, paramName, value)

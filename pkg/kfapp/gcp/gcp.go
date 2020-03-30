@@ -96,6 +96,8 @@ const (
 	BasicAuthPasswordSecretName = "password"
 	// The PodDefault in default namespace
 	PodDefaultName = "add-gcp-secret"
+
+	DefaultIstioNamespace = "istio-system"
 )
 
 // Gcp implements KfApp Interface
@@ -1641,6 +1643,13 @@ func (gcp *Gcp) createBasicAuthSecret(client *clientset.Clientset) error {
 }
 
 func (gcp *Gcp) getIstioNamespace() string {
+	if gcp.kfDef.UsingStacks() {
+		// TODO(jlewi): With stacks we currently assume the iap-ingress is installed in istio-namespace.
+		// The namespace would now be set inside the kustomization.yaml file of the package. So if needed we
+		// could read the value from there.
+		log.Warnf("Assuming iap-ingress is installed in namespace: %v", DefaultIstioNamespace)
+		return DefaultIstioNamespace
+	}
 	if ingressNamespace, ok := gcp.kfDef.GetApplicationParameter("iap-ingress", "namespace"); ok {
 		return ingressNamespace
 	}
