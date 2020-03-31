@@ -1,8 +1,8 @@
 package kustomize
 
 import (
-	"bytes"
 	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
 	"io/ioutil"
 	"os"
 	"path"
@@ -66,8 +66,9 @@ func TestGenerateKustomizationFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read expected kustomization.yaml: %v", err)
 		}
-		if bytes.Compare(data, expected) != 0 {
-			t.Fatalf("kustomization.yaml is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", string(data), string(expected))
+
+		if diff := cmp.Diff(expected, data); diff != "" {
+			t.Fatalf("kustomization.yaml is different from expected. (-want, +got):\n%s", diff)
 		}
 	}
 }
@@ -103,8 +104,8 @@ func TestGenerateYamlWithOwnerReferences(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read expected file. Error: %v", err)
 		}
-		if bytes.Compare(actual, expected) != 0 {
-			t.Fatalf("Set owner reference is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", string(actual), string(expected))
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("Set owner reference is different from expected. (-want, +got):\n%s", diff)
 		}
 	}
 }
@@ -191,9 +192,9 @@ func TestCreateStackAppKustomization(t *testing.T) {
 
 		expectedStr := strings.TrimSpace(string(expected))
 		dataStr := strings.TrimSpace(string(data))
-
-		if dataStr != expectedStr {
-			t.Fatalf("kustomization.yaml is different from expected.\nactual:\n--------\n%s\nexpected:\n--------\n%s\n", dataStr, expectedStr)
+		
+		if diff := cmp.Diff(expectedStr, dataStr); diff != "" {
+			t.Fatalf("kustomization.yaml is different from expected. (-want, +got):\n%s", diff)
 		}
 	}
 }
