@@ -409,9 +409,14 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 		kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
 
 		if _, err := os.Stat(kustomizeDir); err == nil {
-			// Noop if the directory already exists.
-			log.Infof("folder %v exists, skip kustomize.Generate", kustomizeDir)
-			return nil
+			// When using the new stacks code the directory might already exist because it could have
+			// been created by calls to SetApplicationParameter. For the legacy code path (no stacks) we preserve
+			// the existing code path of not rerunning generate if the directory already exists.
+			if !kustomize.kfDef.UsingStacks() {
+				// Noop if the directory already exists.
+				log.Infof("folder %v exists, skip kustomize.Generate", kustomizeDir)
+				return nil
+			}
 		} else if !os.IsNotExist(err) {
 			log.Errorf("Stat folder %v error: %v; try deleting it...", kustomizeDir, err)
 			_ = os.RemoveAll(kustomizeDir)
@@ -440,10 +445,8 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 			return errors.WithStack(fmt.Errorf("Repo %v not listed in KfDef.Status; ", kftypesv3.ManifestsRepoName))
 		}
 
-		// if err := kustomize.initComponentMaps(); err != nil {
-		// 	log.Errorf("Could not initialize kustomize component map paths; error %v", err)
-		// 	return errors.WithStack(err)
-		// }
+		// determine whether we are using the new pattern of using kustomize to build stacks.
+		// hasStack := kustomize.kfDef.UsingStacks()
 
 		for _, app := range kustomize.kfDef.Spec.Applications {
 			log.Infof("Processing application: %v", app.Name)
@@ -470,18 +473,31 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 
 			appPath := path.Join(repoCache.LocalPath, app.KustomizeConfig.RepoRef.Path)
 
-			// Copy the component to kustomizeDir
-			if err := copy.Copy(appPath, path.Join(kustomizeDir, app.Name)); err != nil {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("couldn't copy application %s", app.Name),
+			if kustomize.kfDef.UsingStacks() {
+				// We handle generating the kustomize dir for application stacks differently.
+				stackAppDir := path.Join(kustomizeDir, app.Name)
+
+				// Path to the stack inside the cache.
+				stacksCacheDir := filepath.Join("../..", appPath)
+				if _, err := createStackAppKustomization(stackAppDir, stacksCacheDir); err != nil {
+					return errors.WithStack(fmt.Errorf("There was a problem building the kustomize app for the Kubeflow application stack; %v ", err))
 				}
-			}
-			if err := GenerateKustomizationFile(kustomize.kfDef, kustomizeDir, app.Name,
-				app.KustomizeConfig.Overlays, app.KustomizeConfig.Parameters); err != nil {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("couldn't generate kustomization file for component %s", app.Name),
+			} else {
+				// TODO(jlewi): This code path should eventually go away once we are fully migrated to the use
+				// of stacks.
+				// Copy the component to kustomizeDir
+				if err := copy.Copy(appPath, path.Join(kustomizeDir, app.Name)); err != nil {
+					return &kfapisv3.KfError{
+						Code:    int(kfapisv3.INTERNAL_ERROR),
+						Message: fmt.Sprintf("couldn't copy application %s", app.Name),
+					}
+				}
+				if err := GenerateKustomizationFile(kustomize.kfDef, kustomizeDir, app.Name,
+					app.KustomizeConfig.Overlays, app.KustomizeConfig.Parameters); err != nil {
+					return &kfapisv3.KfError{
+						Code:    int(kfapisv3.INTERNAL_ERROR),
+						Message: fmt.Sprintf("couldn't generate kustomization file for component %s", app.Name),
+					}
 				}
 			}
 		}
@@ -499,6 +515,80 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 	return nil
+}
+
+// createStackAppKustomization generates a kustomization.yaml file suitable for the kubeflow application stack.
+// stackAppDir is the directory to create for the kustomize package.
+// basePath is the path to the kustomize package to use as the base package.
+//
+// Returns the path to the kusotmizationFile.
+//
+// If the kustomization.yaml already exists then the changes are merged in.
+func createStackAppKustomization(stackAppDir string, basePath string) (string, error) {
+	kustomizationFile := filepath.Join(stackAppDir, kftypesv3.KustomizationFile)
+
+	if _, err := os.Stat(stackAppDir); err == nil {
+		// Noop if the directory already exists.
+		log.Infof("folder %v exists", stackAppDir)
+	} else if os.IsNotExist(err) {
+		log.Infof("Creating folder %v", stackAppDir)
+		if stackAppDirErr := os.MkdirAll(stackAppDir, os.ModePerm); stackAppDirErr != nil {
+			return "", &kfapisv3.KfError{
+				Code:    int(kfapisv3.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("couldn't create directory %v Error %v", stackAppDir, stackAppDirErr),
+			}
+		}
+	} else {
+		return "", errors.WithStack(errors.Wrapf(err, "Unexpected error trying to access directory: %v", stackAppDir))
+	}
+
+	kustomization := &types.Kustomization{}
+
+	contents, err := ioutil.ReadFile(kustomizationFile)
+
+	// The kustomization file may not exist yet in which case we keep going because we will just create it.
+	if err == nil {
+		if err := yaml.Unmarshal(contents, kustomization); err != nil {
+			return "", errors.WithStack(errors.Wrapf(err, "Failed to unmashal %v", kustomizationFile))
+		}
+	} else if err != nil && !os.IsNotExist(err) {
+		return "", errors.WithStack(errors.Wrapf(err, "Failed to read: %v", kustomizationFile))
+	}
+
+	// Create the kustomization file for the stack directory.
+	// We explicitly do not set namespace because we want to use the default namespace set in each kustomize
+	// application.
+	kustomization.TypeMeta = types.TypeMeta{
+		Kind:       "Kustomization",
+		APIVersion: "kustomize.config.k8s.io/v1beta1",
+	}
+
+	hasBasePath := false
+	for _, r := range kustomization.Resources {
+		if string(r) == basePath {
+			hasBasePath = true
+			break
+		}
+	}
+
+	if !hasBasePath {
+		kustomization.Resources = append(kustomization.Resources, basePath)
+	}
+	yaml, err := yaml.Marshal(kustomization)
+
+	if err != nil {
+		return "", errors.WithStack(errors.Wrapf(err, "Error trying to marshal kustomization for kubeflow apps stack:"))
+	}
+
+	kustomizationFileErr := ioutil.WriteFile(kustomizationFile, yaml, 0644)
+	if kustomizationFileErr != nil {
+		return "", &kfapisv3.KfError{
+			Code:    int(kfapisv3.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error writing to %v Error %v", kustomizationFile, kustomizationFileErr),
+		}
+	}
+
+	return kustomizationFile, nil
 }
 
 // Init is called from 'kfctl init ...' and creates a <deployment> directory with an app.yaml file that
@@ -1070,7 +1160,10 @@ func GenerateKustomizationFile(kfDef *kfconfig.KfConfig, root string,
 // EvaluateKustomizeManifest evaluates the kustomize dir compDir, and returns the resources.
 func EvaluateKustomizeManifest(compDir string) (resmap.ResMap, error) {
 	fsys := fs.MakeRealFS()
-	lrc := loader.RestrictionRootOnly
+	// We don't enforce the security check because our kustomize packages are such that kustomization.yaml
+	// files may refer to patches and resources that are not in the current directory or below them.
+	// See http://bit.ly/kf_kustomize_v3
+	lrc := loader.RestrictionNone
 	ldr, err := loader.NewLoader(lrc, validators.MakeFakeValidator(), compDir, fsys)
 	if err != nil {
 		return nil, err

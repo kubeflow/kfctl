@@ -5,27 +5,32 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/ghodss/yaml"
+	"github.com/hashicorp/go-getter/helper/url"
+	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	"github.com/otiai10/copy"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
 	"strings"
-
-	"github.com/ghodss/yaml"
-	"github.com/hashicorp/go-getter/helper/url"
-	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	"github.com/otiai10/copy"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	DefaultCacheDir = ".cache"
+	// KfAppsStackName is the name that should be assigned to the application corresponding to the kubeflow
+	// application stack.
+	KfAppsStackName = "kubeflow-apps"
+	KustomizeDir    = "kustomize"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -665,8 +670,118 @@ func (c *KfConfig) GetApplicationParameter(appName string, paramName string) (st
 	return "", false
 }
 
-// SetApplicationParameter sets the desired application parameter.
-func (c *KfConfig) SetApplicationParameter(appName string, paramName string, value string) error {
+// addPatchStratgicMerge adds the patchFile to the strategic merge if it isn't already present.
+// Returns true if it is added
+func addPatchStratgicMerge(k *types.Kustomization, patchFile string) bool {
+	for _, p := range k.PatchesStrategicMerge {
+		if string(p) == patchFile {
+			log.Infof("kustomization already defines a patch for %v", patchFile)
+			return false
+		}
+	}
+
+	k.PatchesStrategicMerge = append(k.PatchesStrategicMerge, types.PatchStrategicMerge(patchFile))
+
+	return true
+}
+
+// setApplicationParameterInConfigMap sets an application parameter by creatign or modifying a configMap
+// generator.
+// kustomizeDir: Directory of the kustomize application
+// appName: Name of the application
+// paramName: Name of the parameter
+// value: Value of the parameter
+//
+// N.B. In the YAML for the generated config map patch the creationTimeStamp is set to null. This appears to
+// be the result of how the struct is serialized. Hopefully having this field in the output doesn't cause problems
+// with kustomize and kubectl.
+func setApplicationParameterInConfigMap(kustomizeDir string, appName string, paramName string, value string) error {
+	if _, err := os.Stat(kustomizeDir); err == nil {
+		// Noop if the directory already exists.
+	} else if os.IsNotExist(err) {
+		log.Infof("Creating kustomize directory %v", kustomizeDir)
+		if err := os.MkdirAll(kustomizeDir, os.ModePerm); err != nil {
+			return errors.WithStack(errors.Wrapf(err, "Could not create directory: %v", kustomizeDir))
+		}
+	} else {
+		log.Errorf("Error checking directory %v; error %v", kustomizeDir, err)
+		return errors.WithStack(err)
+	}
+
+	kustomizationFile := filepath.Join(kustomizeDir, kftypesv3.KustomizationFile)
+
+	contents, err := ioutil.ReadFile(kustomizationFile)
+
+	k := &types.Kustomization{}
+
+	// The kustomization file may not exist yet in which case we keep going because we will just create it.
+	if err == nil {
+		if err := yaml.Unmarshal(contents, k); err != nil {
+			return errors.WithStack(errors.Wrapf(err, "Failed to unmashal kustomization.yaml: %v", kustomizationFile))
+		}
+	} else if err != nil && !os.IsNotExist(err) {
+		return errors.WithStack(errors.Wrapf(err, "Failed to read: %v", kustomizationFile))
+	}
+
+	configMapFileName := appName + "-config.yaml"
+
+	if addPatchStratgicMerge(k, configMapFileName) {
+		yaml, err := yaml.Marshal(k)
+
+		if err != nil {
+			return errors.WithStack(errors.Wrapf(err, "Error trying to marshal kustomization for kubeflow application: %v", appName))
+		}
+
+		kustomizationFileErr := ioutil.WriteFile(kustomizationFile, yaml, 0644)
+		if kustomizationFileErr != nil {
+			return errors.WithStack(errors.Wrapf(kustomizationFileErr, "Error writing file: %v", kustomizationFile))
+		}
+	}
+
+	// Patch the parameter into the configmap.
+	c := &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              appName + "-config",
+			CreationTimestamp: metav1.Time{},
+		},
+	}
+
+	configMapPath := filepath.Join(kustomizeDir, configMapFileName)
+	if contents, err := ioutil.ReadFile(configMapPath); err == nil {
+		if err := yaml.Unmarshal(contents, c); err != nil {
+			return errors.WithStack(errors.Wrapf(err, "Error reading configmap from file: %v", configMapPath))
+		}
+	} else if !os.IsNotExist(err) {
+		return errors.WithStack(errors.Wrapf(err, "Error trying to read file: %v", configMapPath))
+	}
+
+	if c.Data == nil {
+		c.Data = map[string]string{}
+	}
+	c.Data[paramName] = value
+
+	newContents, err := yaml.Marshal(c)
+
+	if err != nil {
+		return errors.WithStack(errors.Wrapf(err, "Error while marshaling patch for configMap %v", configMapPath))
+	}
+
+	if err := ioutil.WriteFile(configMapPath, newContents, os.ModePerm); err != nil {
+		return errors.WithStack(errors.Wrapf(err, "Error while writing patch file: %v", configMapPath))
+	}
+
+	return nil
+}
+
+// legacySetApplicationParameter sets the desired application parameter.
+//
+// This is the legacy version of KFDef that predates the use of kustomize stacks. In this case
+// application parameters are set by modifying the Applications in the KFDef spec.
+func (c *KfConfig) legacySetApplicationParameter(appName string, paramName string, value string) error {
 	// First we check applications for an application with the specified name.
 	if c.Spec.Applications != nil {
 		appIndex := -1
@@ -693,6 +808,55 @@ func (c *KfConfig) SetApplicationParameter(appName string, paramName string, val
 	return nil
 }
 
+// SetApplicationParameter sets the desired application parameter.
+func (c *KfConfig) SetApplicationParameter(appName string, paramName string, value string) error {
+	if c.UsingStacks() {
+		// We need to map the application names to the stack they belong to.
+		// Prior to the v3 version which introduced the stack there was a 1:1 mapping between the appName
+		// and the kustomize directory for that application.
+		// With the introduction of stacks some of the applications e.g. "jupyter-web-app" are now in the
+		// the kubeflow-apps stack. So when we call SetApplicationParameter("jupyter-web-app",...)
+		// we actually want to modify the config map inside ${KFAPP}/kustomize/kubeflow-apps
+		//
+		// TODO(jlewi): Is there a better way handle this other than hardcoding the path.
+		appToStack := map[string]string{
+			"centraldashboard": KfAppsStackName,
+			"cloud-endpoints":  "cloud-endpoints",
+			"default-install":  "default-install",
+			"istio-stack":      "istio-stack",
+			"iap-ingress":      "iap-ingress",
+			"jupyter-web-app":  KfAppsStackName,
+			"metacontroller":   "metacontroller",
+			"profiles":         KfAppsStackName,
+		}
+
+		appNameDir, ok := appToStack[appName]
+
+		if !ok {
+			// Default to assuming appNameDir is the same as appName if not explicitly
+			// specified?
+			appNameDir = appName
+			log.Warnf("No stack directory specified for app %v; defaulting to %v", appName, appNameDir)
+		}
+		kustomizeDir := filepath.Join(c.Spec.AppDir, KustomizeDir, appNameDir)
+		return setApplicationParameterInConfigMap(kustomizeDir, appName, paramName, value)
+	}
+	return c.legacySetApplicationParameter(appName, paramName, value)
+}
+
+// UsingStacks returns true if the KfDef is using kustomize to collect all of the Kubeflow applications
+func (c *KfConfig) UsingStacks() bool {
+	if c.Spec.Applications == nil {
+		return false
+	}
+
+	for _, a := range c.Spec.Applications {
+		if a.Name == KfAppsStackName {
+			return true
+		}
+	}
+	return false
+}
 func (c *KfConfig) DeleteApplication(appName string) error {
 	// First we check applications for an application with the specified name.
 	if c.Spec.Applications != nil {
