@@ -297,8 +297,7 @@ func (upgrader *KfUpgrader) Apply() error {
 func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	applicationsv1beta1.AddToScheme(scheme.Scheme)
 
-	ver := upgrader.OldKfCfg.Spec.Version
-	log.Infof("Deleting resources in in namespace %v version %v", ns, ver)
+	log.Infof("Deleting resources in in namespace %v", ns)
 
 	objs := []runtime.Object{
 		&applicationsv1beta1.Application{},
@@ -309,7 +308,7 @@ func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	}
 
 	for _, obj := range objs {
-		err := upgrader.DeleteResources(ns, ver, obj)
+		err := upgrader.DeleteResources(ns, obj)
 		if err != nil {
 			return err
 		}
@@ -318,18 +317,17 @@ func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	return nil
 }
 
-func (upgrader *KfUpgrader) DeleteResources(ns string, ver string, obj runtime.Object) error {
+func (upgrader *KfUpgrader) DeleteResources(ns string, obj runtime.Object) error {
 	config := kftypesv3.GetConfig()
 	kubeClient, err := client.New(config, client.Options{})
 	objKind := reflect.TypeOf(obj)
 
-	log.Infof("Deleting resources type %v in in namespace %v version %v", objKind, ns, ver)
+	log.Infof("Deleting resources type %v in in namespace %v", objKind, ns)
 	err = kubeClient.DeleteAllOf(context.Background(),
 		obj,
 		client.InNamespace(ns),
 		client.MatchingLabels{
 			"app.kubernetes.io/part-of": "kubeflow",
-			kftypesv3.DefaultAppVersion: ver,
 		},
 		client.PropagationPolicy(metav1.DeletePropagationBackground))
 
