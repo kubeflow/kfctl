@@ -517,6 +517,22 @@ func (kustomize *kustomize) Generate(resources kftypesv3.ResourceEnum) error {
 			appPath := path.Join(repoCache.LocalPath, app.KustomizeConfig.RepoRef.Path)
 
 			if kustomize.kfDef.UsingStacks() {
+
+				if filepath.IsAbs(appPath) {
+					// The appPath needs to be a relative path because we use it as a resource location in the kustomize
+					// file
+					appDir, err := filepath.Abs(kustomize.kfDef.Spec.AppDir)
+
+					if err != nil {
+						errors.WithStack(fmt.Errorf("There was a problem computing absolute path of %v; error; %v ", kustomize.kfDef.Spec.AppDir, err))
+					}
+					relPath, err := filepath.Rel(appDir, appPath)
+					if err != nil {
+						errors.WithStack(fmt.Errorf("There was a problem computing filePath.Rel(%v, %v); error; %v ", appDir, appPath, err))
+					}
+
+					appPath = relPath
+				}
 				// We handle generating the kustomize dir for application stacks differently.
 				stackAppDir := path.Join(kustomizeDir, app.Name)
 

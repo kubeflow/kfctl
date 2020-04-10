@@ -822,12 +822,14 @@ func (c *KfConfig) SetApplicationParameter(appName string, paramName string, val
 		appToStack := map[string]string{
 			"centraldashboard": KfAppsStackName,
 			"cloud-endpoints":  "cloud-endpoints",
-			"default-install":  "default-install",
+			"default-install":  KfAppsStackName,
 			"istio-stack":      "istio-stack",
 			"iap-ingress":      "iap-ingress",
 			"jupyter-web-app":  KfAppsStackName,
 			"metacontroller":   "metacontroller",
 			"profiles":         KfAppsStackName,
+			// Spartakus is its own application because we want kfctl to be able to remove it.
+			"spartakus": "spartakus",
 		}
 
 		appNameDir, ok := appToStack[appName]
