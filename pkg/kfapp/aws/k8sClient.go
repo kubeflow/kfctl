@@ -14,8 +14,13 @@ import (
 
 // getK8sclient creates a Kubernetes client set
 func getK8sclient() (*clientset.Clientset, error) {
-	home := homeDir()
-	kubeconfig := filepath.Join(home, ".kube", "config")
+	kubeconfig := os.Getenv("KUBECONFIG")
+
+	if kubeconfig == "" {
+		if home := homeDir(); home != "" {
+			kubeconfig = filepath.Join(home, ".kube", "config")
+		}
+	}
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
