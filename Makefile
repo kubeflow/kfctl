@@ -70,7 +70,7 @@ generate:
 	@${GO} generate ./config ./pkg/apis/apps/kfdef/... ./pkg/utils/... ./pkg/kfapp/minikube ./pkg/kfapp/gcp/... ./cmd/kfctl/...
 
 ${GOPATH}/bin/deepcopy-gen:
-	GO111MODULE=off ${GO} get k8s.io/code-generator/cmd/deepcopy-gen
+	GO111MODULE=on ${GO} get k8s.io/code-generator/cmd/deepcopy-gen
 
 config/zz_generated.deepcopy.go: config/types.go
 	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy \
