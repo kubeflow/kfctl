@@ -76,12 +76,12 @@ func TestGenerateKustomizationFile(t *testing.T) {
 // TestGenerateYamlWithOwnerReferences
 func TestGenerateYamlWithOwnerReferences(t *testing.T) {
 	type testCase struct {
-		appDir		string
-		expected 	string
+		appDir   string
+		expected string
 	}
-	testCases := []testCase {
+	testCases := []testCase{
 		{
-			appDir: "testdata/operator",
+			appDir:   "testdata/operator",
 			expected: "testdata/operator/expected/service.yaml",
 		},
 	}
@@ -192,7 +192,7 @@ func TestCreateStackAppKustomization(t *testing.T) {
 
 		expectedStr := strings.TrimSpace(string(expected))
 		dataStr := strings.TrimSpace(string(data))
-		
+
 		if diff := cmp.Diff(expectedStr, dataStr); diff != "" {
 			t.Fatalf("kustomization.yaml is different from expected. (-want, +got):\n%s", diff)
 		}

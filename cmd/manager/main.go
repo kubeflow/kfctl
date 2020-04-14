@@ -21,18 +21,18 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 // Kubeflow operator version
 var (
-	Version         string = "1.0.0"
+	Version string = "1.0.0"
 )
 
 // Change below variables to serve metrics on different host or port.
