@@ -53,6 +53,7 @@ require (
 	k8s.io/apimachinery v0.17.1
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/code-generator v0.18.1 // indirect
 	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.4.0

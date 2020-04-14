@@ -25,7 +25,7 @@ local srcRootDir = testDir + "/src";
 // The directory containing the kubeflow/kfctl repo
 local srcDir = srcRootDir + "/kubeflow/kfctl";
 
-local image = "gcr.io/kubeflow-ci/test-worker:latest";
+local image = "gcr.io/kubeflow-ci/test-worker-py3:f91eaf1-dirty";
 local testing_image = "gcr.io/kubeflow-ci/kubeflow-testing";
 
 // The name of the NFS volume claim to use for test files.
@@ -119,7 +119,7 @@ local dagTemplates = [
        ) + {
       someRandomField: "jeremy",
       container+:{
-        image: "gcr.io/kubeflow-ci/kfctl/builder:v20190418-v0-30-g5e3bd23d-dirty-73d1fe",
+        image: "gcr.io/kubeflow-ci/test-worker-py3:f91eaf1-dirty",
       },
     },  // go-kfctl-unit-tests
     dependencies: ["checkout"],

@@ -71,42 +71,42 @@ generate:
 	@${GO} generate ./config ./pkg/apis/apps/kfdef/... ./pkg/utils/... ./pkg/kfapp/minikube ./pkg/kfapp/gcp/... ./cmd/kfctl/...
 
 ${GOPATH}/bin/deepcopy-gen:
-	GO111MODULE=off ${GO} get k8s.io/code-generator/cmd/deepcopy-gen
+	GO111MODULE=on ${GO} get k8s.io/code-generator/cmd/deepcopy-gen
 
 config/zz_generated.deepcopy.go: config/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/config -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/config/zz_generated.deepcopy.go config/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1alpha1/application_types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1alpha1/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1beta1/application_types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1beta1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1beta1/ && rm -rf v3
 
 pkg/apis/apps/kfdef/v1/zz_generated.deepcopy.go: pkg/apis/apps/kfdef/v1/application_types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1/zz_generated.deepcopy.go pkg/apis/apps/kfdef/v1/ && rm -rf v3
 
 pkg/apis/apps/plugins/gcp/v1alpha1/zz_generated.deepcopy.go: pkg/apis/apps/plugins/gcp/v1alpha1/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/gcp/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/plugins/gcp/v1alpha1/ && rm -rf v3
 
 pkg/apis/apps/plugins/aws/v1alpha1/zz_generated.deepcopy.go: pkg/apis/apps/plugins/aws/v1alpha1/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/aws/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/aws/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/apis/apps/plugins/aws/v1alpha1/zz_generated.deepcopy.go pkg/apis/apps/plugins/aws/v1alpha1/ && rm -rf v3
 
 pkg/kfconfig/zz_generated.deepcopy.go: pkg/kfconfig/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/zz_generated.deepcopy.go pkg/kfconfig/ && rm -rf v3
 
 pkg/kfconfig/awsplugin/zz_generated.deepcopy.go: pkg/kfconfig/awsplugin/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/awsplugin/zz_generated.deepcopy.go pkg/kfconfig/awsplugin/ && rm -rf v3
 
 pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go: pkg/kfconfig/gcpplugin/types.go
-	${GOPATH}/bin/deepcopy-gen -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin/... -O zz_generated.deepcopy && \
+	${GOPATH}/bin/deepcopy-gen -h hack/boilerplate.go.txt -i github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin/... -O zz_generated.deepcopy && \
 	mv ${GOPATH}/src/github.com/kubeflow/kfctl/v3/pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go pkg/kfconfig/gcpplugin/ && rm -rf v3
 
 deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go \
