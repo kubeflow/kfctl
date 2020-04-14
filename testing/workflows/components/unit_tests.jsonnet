@@ -119,7 +119,7 @@ local dagTemplates = [
        ) + {
       someRandomField: "jeremy",
       container+:{
-        image: "gcr.io/kubeflow-ci/kfctl/builder:v20190418-v0-30-g5e3bd23d-dirty-73d1fe",
+        image: "gcr.io/kubeflow-ci/test-worker-py3:e9afed1-dirty",
       },
     },  // go-kfctl-unit-tests
     dependencies: ["checkout"],
