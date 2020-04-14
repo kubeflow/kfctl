@@ -24,7 +24,6 @@ require (
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/hashicorp/go-version v1.2.0
 	github.com/imdario/mergo v0.3.8
-	github.com/kubernetes-sigs/application v0.8.0
 	github.com/onrik/logrus v0.2.1
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/otiai10/copy v1.0.2

@@ -511,6 +511,7 @@ github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kshvakov/clickhouse v1.3.5/go.mod h1:DMzX7FxRymoNkVgizH0DWAL8Cur7wHLgx3MUnGwJqpE=
 github.com/kubernetes-sigs/application v0.8.0 h1:NNp+kJrX4P7LkQhN/WZ4mGSTiRs5BBsDkReU1Fz/Kck=
 github.com/kubernetes-sigs/application v0.8.0/go.mod h1:KqAScqo78PXUrmoFOH8z6P4xQDBdzyJH1FMqrhgJJLE=
+github.com/kubernetes-sigs/application v0.8.2 h1:+GBDT9SjxeQJV6XxOn+jxe1NThALRI7AAAWm6P7S/F4=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
