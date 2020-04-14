@@ -40,7 +40,7 @@ workflows:
       # test_endpoint flag is actually deprecated; we use pytest annotations to skip on
       # presubmit.
       test_endpoint: true
-      config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_iap.yaml
+      config_path: https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_gcp_iap.v1.0.2.yaml
   # Run basic auth test as part of every periodic and postsubmit run.
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-bauth
@@ -57,7 +57,7 @@ workflows:
       use_basic_auth: true
       build_and_apply: true
       test_endpoint: true
-      config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_basic_auth.yaml
+      config_path: https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_gcp_basic_auth.v1.0.2.yaml
   - py_func: kubeflow.kfctl.testing.ci.kfctl_upgrade_e2e_workflow.create_workflow
     name: kfctl-upgrade
     job_types:
