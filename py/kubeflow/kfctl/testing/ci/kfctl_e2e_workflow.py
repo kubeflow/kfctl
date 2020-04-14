@@ -295,7 +295,7 @@ class Builder(object):
         {"name": "TEST_TARGET_NAME",
          "value": self.test_target_name},
        ],
-      'image': 'gcr.io/kubeflow-ci/test-worker-py3:e9afed1-dirty',
+      'image': 'gcr.io/kubeflow-ci/test-worker:latest',
       'imagePullPolicy': 'Always',
       'name': '',
       'resources': {'limits': {'cpu': '4', 'memory': '4Gi'},
@@ -586,8 +586,8 @@ class Builder(object):
     ]
 
     dependences = [checkout["name"]]
-    build_kfctl = self._build_step(step_name, self.workflow, E2E_DAG_NAME, task_template,
-                                   command, dependences)
+    build_kfctl = self._build_step(step_name, self.workflow, E2E_DAG_NAME,
+                                   py3_template, command, dependences)
 
     #**************************************************************************
     # Wait for Kubeflow to be ready
