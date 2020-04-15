@@ -111,7 +111,7 @@ class Builder(kfctl_e2e_workflow.Builder):
 
         # Wait for Kubeflow to be ready after upgrading
         step_name = READY_AFTER_UPGRADE
-        template_name = READY_AFTER_UPGRADE
+        template_name = "kubeflow-is-ready"
         command = [
            "pytest",
            "kf_is_ready_test.py",
