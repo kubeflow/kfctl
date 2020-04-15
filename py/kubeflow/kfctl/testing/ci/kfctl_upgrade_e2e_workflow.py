@@ -40,6 +40,8 @@ import uuid
 
 UPGRADE_DAG_NAME = "upgrade-dag"
 
+READY_AFTER_UPGRADE = "ready-after-upgrade"
+
 TEMPLATE_LABEL = "kfctl_upgrade_e2e"
 
 class Builder(kfctl_e2e_workflow.Builder):
@@ -107,6 +109,25 @@ class Builder(kfctl_e2e_workflow.Builder):
         argo_build_util.add_task_only_to_dag(self.workflow, kfctl_e2e_workflow.E2E_DAG_NAME, step_name,
                                              template_name, dependencies)
 
+        # Wait for Kubeflow to be ready after upgrading
+        step_name = READY_AFTER_UPGRADE
+        template_name = "kubeflow-is-ready"
+        command = [
+           "pytest",
+           "kf_is_ready_test.py",
+           "-s",
+           "--log-cli-level=info",
+           "--junitxml=" + os.path.join(self.artifacts_dir,
+                                        "junit_ready-after-upgrade-test-" +
+                                        self.config_name + ".xml"),
+           "-o", "junit_suite_name=test_ready_after_upgrade_" + self.config_name,
+           "--app_path=" + self.app_dir,
+         ]
+
+        dependencies = [UPGRADE_DAG_NAME]
+        argo_build_util.add_task_only_to_dag(self.workflow, kfctl_e2e_workflow.E2E_DAG_NAME, step_name,
+                                             template_name, dependencies)
+   
         #****************************************************************************
         # Add tests DAG
         #****************************************************************************
@@ -114,7 +135,7 @@ class Builder(kfctl_e2e_workflow.Builder):
 
         step_name = "test-after-upgrade"
         template_name = kfctl_e2e_workflow.TESTS_DAG_NAME
-        dependencies = [UPGRADE_DAG_NAME]
+        dependencies = [READY_AFTER_UPGRADE]
         argo_build_util.add_task_only_to_dag(self.workflow, kfctl_e2e_workflow.E2E_DAG_NAME, step_name,
                                              template_name, dependencies)
 
