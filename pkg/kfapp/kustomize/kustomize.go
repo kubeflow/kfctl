@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	errutil "k8s.io/apimachinery/pkg/util/errors"
 	"math/rand"
 	"os"
 	"path"
@@ -336,18 +337,6 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		log.Warnf("running force deletion.")
 	}
 
-	if kustomize.kfDef.ClusterName == "" {
-		msg := "cannot find ClusterName within KfDef, this may cause error deletion to clusters."
-		if forceDelete {
-			log.Warnf(msg + " ;running kfctl delete because force-deletion is set.")
-		} else {
-			return &kfapisv3.KfError{
-				Code:    int(kfapisv3.INVALID_ARGUMENT),
-				Message: msg,
-			}
-		}
-	}
-
 	// Get kubeconfig for cluster and initialize clients
 	msg := ""
 	kubeconfig := kftypesv3.GetKubeConfig()
@@ -385,6 +374,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 
 	// Delete in reverse application order
 	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
+	errList := []error{}
 	for idx := range kustomize.kfDef.Spec.Applications {
 		app := &kustomize.kfDef.Spec.Applications[len(kustomize.kfDef.Spec.Applications)-1-idx]
 		log.Infof("Deleting application %v", app.Name)
@@ -411,13 +401,21 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			}
 		}
 		for _, r := range resources {
+
 			err := utils.DeleteResource(r, kubeclient, 5*time.Minute)
 			if err != nil {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("error deleting kustomize manifests for app %v Error %v", app.Name, err),
-				}
+				msg := fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+				errList = append(errList, errors.New(msg))
+				log.Warn(msg)
 			}
+		}
+	}
+
+	aggrError := errutil.NewAggregate(errList)
+	if aggrError != nil {
+		return &kfapisv3.KfError{
+			Code:    int(kfapisv3.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error deleting kustomize manifests... Error %v", aggrError),
 		}
 	}
 
