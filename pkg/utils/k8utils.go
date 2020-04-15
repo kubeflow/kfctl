@@ -20,15 +20,18 @@ import (
 	"fmt"
 	"github.com/cenkalti/backoff"
 	"github.com/ghodss/yaml"
+	goyaml "github.com/go-yaml/yaml"
 	gogetter "github.com/hashicorp/go-getter"
 	configtypes "github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8stypes "k8s.io/apimachinery/pkg/types"
@@ -519,4 +522,82 @@ func (a *Apply) deleteFlags(usage string) *kubectldelete.DeleteFlags {
 		Wait:           &wait,
 		Output:         &output,
 	}
+}
+
+func DeleteResource(resourceBytes []byte, kubeclient client.Client, timeout time.Duration) error {
+
+	// Convert to unstructured in order to access object metadata
+	resourceMap := map[string]interface{}{}
+	err := yaml.Unmarshal(resourceBytes, &resourceMap)
+	if err != nil {
+		return err
+	}
+	unstructuredObject := &unstructured.Unstructured{
+		Object: resourceMap,
+	}
+	name, namespace := unstructuredObject.GetName(), unstructuredObject.GetNamespace()
+
+	log.Infof("Deleting Kind '%s' in APIVersion '%s' with name '%s' in namespace '%s'",
+		unstructuredObject.GetKind(), unstructuredObject.GetAPIVersion(), name, namespace)
+
+	// Check if resource exists
+	err = kubeclient.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, unstructuredObject)
+	if k8serrors.IsNotFound(err) {
+		log.Warnf("Resource %s/%s not found", namespace, name)
+		return nil
+	}
+	if _, ok := err.(*meta.NoKindMatchError); ok {
+		log.Warnf("No matches for Kind %s in Group %s", unstructuredObject.GetKind(), unstructuredObject.GetAPIVersion())
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Resource exists, try to delete
+	if unstructuredObject.GetDeletionTimestamp().IsZero() {
+		err = kubeclient.Delete(context.TODO(), unstructuredObject)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to delete resource %s/%s", namespace, name)
+		}
+	}
+
+	// Delete succeeded, poll until the delete is completed
+	interval := 5 * time.Second
+	b := backoff.WithMaxRetries(backoff.NewConstantBackOff(interval), uint64(timeout/interval+1))
+	err = backoff.Retry(func() error {
+		err := kubeclient.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, unstructuredObject.DeepCopy())
+		if !k8serrors.IsNotFound(err) {
+			return errors.New("deleted resource is not cleaned up yet")
+		}
+		return nil
+	}, b)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Timed out waiting for resource %s/%s to be deleted. Error %v", namespace, name, err))
+	}
+
+	return nil
+}
+
+func SplitYAML(resources []byte) ([][]byte, error) {
+
+	dec := goyaml.NewDecoder(bytes.NewReader(resources))
+
+	var res [][]byte
+	for {
+		var value interface{}
+		err := dec.Decode(&value)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		valueBytes, err := goyaml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, valueBytes)
+	}
+	return res, nil
 }

@@ -22,10 +22,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	errutil "k8s.io/apimachinery/pkg/util/errors"
 	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"time"
@@ -324,12 +326,6 @@ func (kustomize *kustomize) deleteGlobalResources() error {
 
 // Delete is called from 'kfctl delete ...'. Will delete all resources deployed from the Apply method
 func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
-	if err := kustomize.initK8sClients(); err != nil {
-		return &kfapisv3.KfError{
-			Code:    int(kfapisv3.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Error: kustomize plugin couldn't initialize a K8s client %v", err),
-		}
-	}
 	annotations := kustomize.kfDef.GetAnnotations()
 	forceDelete := false
 	if forceDel, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.ForceDelete}, "/")]; ok {
@@ -340,46 +336,92 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 	if forceDelete {
 		log.Warnf("running force deletion.")
 	}
-	if kustomize.kfDef.ClusterName == "" {
-		msg := "cannot find ClusterName within KfDef, this may cause error deletion to clusters."
+
+	// Get kubeconfig for cluster and initialize clients
+	msg := ""
+	kubeconfig := kftypesv3.GetKubeConfig()
+	if kubeconfig == nil {
+		msg = "unable to load .kubeconfig."
+	} else {
+		currentCtx := kubeconfig.CurrentContext
+		if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
+			msg = "cannot find current-context in kubeconfig."
+		} else {
+			if kustomize.kfDef.ClusterName != ctx.Cluster {
+				msg = fmt.Sprintf("cluster name doesn't match: KfDef(%v) v.s. current-context(%v)",
+					kustomize.kfDef.ClusterName, ctx.Cluster)
+			}
+		}
+	}
+	if msg != "" {
 		if forceDelete {
-			log.Warnf(msg + " ;running kfctl delete because force-deletion is set.")
+			log.Warnf(msg)
 		} else {
 			return &kfapisv3.KfError{
 				Code:    int(kfapisv3.INVALID_ARGUMENT),
 				Message: msg,
 			}
 		}
-	} else {
-		msg := ""
-		kubeconfig := kftypesv3.GetKubeConfig()
-		if kubeconfig == nil {
-			msg = "unable to load .kubeconfig."
-		} else {
-			currentCtx := kubeconfig.CurrentContext
-			if ctx, ok := kubeconfig.Contexts[currentCtx]; !ok || ctx == nil {
-				msg = "cannot find current-context in kubeconfig."
-			} else {
-				if kustomize.kfDef.ClusterName != ctx.Cluster {
-					msg = fmt.Sprintf("cluster name doesn't match: KfDef(%v) v.s. current-context(%v)",
-						kustomize.kfDef.ClusterName, ctx.Cluster)
-				}
+	}
+	kustomize.initK8sClients()
+	kubeclient, err := client.New(kustomize.restConfig, client.Options{})
+	if err != nil {
+		return &kfapisv3.KfError{
+			Code:    int(kfapisv3.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error initializing k8s client Error %v", err),
+		}
+	}
+
+	// Delete in reverse application order
+	kustomizeDir := path.Join(kustomize.kfDef.Spec.AppDir, outputDir)
+	errList := []error{}
+	for idx := range kustomize.kfDef.Spec.Applications {
+		app := &kustomize.kfDef.Spec.Applications[len(kustomize.kfDef.Spec.Applications)-1-idx]
+		log.Infof("Deleting application %v", app.Name)
+		resMap, err := EvaluateKustomizeManifest(path.Join(kustomizeDir, app.Name))
+		if err != nil {
+			log.Errorf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+			return &kfapisv3.KfError{
+				Code:    int(kfapisv3.INTERNAL_ERROR),
+				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
 			}
 		}
-		if msg != "" {
-			if forceDelete {
-				log.Warnf(msg)
-			} else {
-				return &kfapisv3.KfError{
-					Code:    int(kfapisv3.INVALID_ARGUMENT),
-					Message: msg,
-				}
+		yamlBytes, err := resMap.AsYaml()
+		if err != nil {
+			return &kfapisv3.KfError{
+				Code:    int(kfapisv3.INTERNAL_ERROR),
+				Message: fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err),
+			}
+		}
+		resources, err := utils.SplitYAML(yamlBytes)
+		if err != nil {
+			return &kfapisv3.KfError{
+				Code:    int(kfapisv3.INTERNAL_ERROR),
+				Message: fmt.Sprintf("error splitting yaml: %v", err),
+			}
+		}
+		for _, r := range resources {
+
+			err := utils.DeleteResource(r, kubeclient, 5*time.Minute)
+			if err != nil {
+				msg := fmt.Sprintf("error evaluating kustomization manifest for %v Error %v", app.Name, err)
+				errList = append(errList, errors.New(msg))
+				log.Warn(msg)
 			}
 		}
 	}
-	if err := kustomize.deleteGlobalResources(); err != nil {
-		return err
+
+	aggrError := errutil.NewAggregate(errList)
+	if aggrError != nil {
+		return &kfapisv3.KfError{
+			Code:    int(kfapisv3.INTERNAL_ERROR),
+			Message: fmt.Sprintf("error deleting kustomize manifests... Error %v", aggrError),
+		}
 	}
+
+	// Finally, delete the kubeflow namespace
+	// TODO(yanniszark): Remove this once the Kubeflow namespace is created by kustomize manifests
+
 	corev1client, err := corev1.NewForConfig(kustomize.restConfig)
 	if err != nil {
 		return &kfapisv3.KfError{
@@ -399,6 +441,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			}
 		}
 	}
+
 	return nil
 }
 
