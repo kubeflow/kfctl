@@ -1,5 +1,6 @@
 
 approvers:
+  - adrian555
   - animeshsingh
   - gabrielwen
   - kkasravi
@@ -7,5 +8,4 @@ approvers:
   - jlewi
   - yanniszark
 reviewers:
-  - adrian555
   - tomcli
