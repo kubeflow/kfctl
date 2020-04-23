@@ -1,0 +1,20 @@
+namespace: kubeflow-operator
+
+bases:
+- ./crds
+- ./service_account.yaml
+- ./role.yaml
+- ./cluster_role_binding.yaml
+- ./operator.yaml
+
+vars:
+- fieldref:
+    fieldPath: metadata.namespace
+  name: namespace
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kubeflow-operator
+
+configurations:
+- ./params.yaml

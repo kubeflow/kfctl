@@ -31,6 +31,9 @@ export GO111MODULE = on
 export GO = go
 ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
 OPERATOR_IMG ?= kubeflow-operator
+IMAGE_BUILDER ?= docker
+DOCKERFILE ?= Dockerfile
+OPERATOR_BINARY_NAME ?= $(shell basename ${PWD})
 
 # Location of junit file
 JUNIT_FILE ?= /tmp/report.xml
@@ -141,6 +144,7 @@ build-kfctl-tgz: build-kfctl
 	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
 
 build-and-push-operator: build-operator push-operator
+build-push-update-operator: build-operator push-operator update-operator-image
 
 # Build operator image
 build-operator:
@@ -157,11 +161,24 @@ build-operator:
 		return err == nil\n\
 	} ' > terminal_check_unix.go && \
 	popd
-	operator-sdk build ${OPERATOR_IMG}
+ifneq ($(DOCKERFILE), Dockerfile)
+	pushd build &&\
+	cp Dockerfile Dockerfile.bckp &&\
+	cp ${DOCKERFILE} Dockerfile &&\
+	popd
+endif
+	operator-sdk build --image-builder ${IMAGE_BUILDER} --image-build-args "--build-arg binary_name=${OPERATOR_BINARY_NAME}" ${OPERATOR_IMG}
+ifneq ($(DOCKERFILE), Dockerfile)
+	pushd build &&\
+	cp Dockerfile.bckp Dockerfile &&\
+	popd
+endif
 
 # push operator image and update deployment files.
 push-operator:
-	docker push ${OPERATOR_IMG}
+	${IMAGE_BUILDER} push ${OPERATOR_IMG}
+
+update-operator-image:
 	# Use perl instead of sed to avoid OSX/Linux compatibility issue:
 	# https://stackoverflow.com/questions/34533893/sed-command-creating-unwanted-duplicates-of-file-with-e-extension
 	perl -pi -e 's@image: .*@image: '"${OPERATOR_IMG}"'@' ./deploy/operator.yaml

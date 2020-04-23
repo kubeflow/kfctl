@@ -6,7 +6,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: kubeflow-operator
-  namespace: ${OPERATOR_NAMESPACE} # Replace it with operator's namespace
+  namespace: $(namespace) # Replace it with operator's namespace
 roleRef:
   kind: ClusterRole
   name: cluster-admin
