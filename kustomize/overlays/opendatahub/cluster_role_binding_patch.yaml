@@ -1,0 +1,6 @@
+- op: replace
+  path: /subjects/0/name
+  value: "opendatahub-operator"
+- op: replace
+  path: /roleRef/name
+  value: "opendatahub-operator"

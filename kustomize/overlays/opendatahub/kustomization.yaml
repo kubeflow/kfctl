@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+
+namespace: openshift-operators
+
+patches:
+- path: name_patch.yaml
+  target:
+    kind: ServiceAccount
+    name: kubeflow-operator
+    version: v1
+- path: name_patch.yaml
+  target:
+    kind: ClusterRole
+    name: kubeflow-operator
+    version: v1
+- path: name_patch.yaml
+  target:
+    kind: ClusterRoleBinding
+    name: kubeflow-operator
+    version: v1
+- path: cluster_role_binding_patch.yaml
+  target:
+    kind: ClusterRoleBinding
+    name: kubeflow-operator
+    version: v1
+- path: deployment_patch.yaml
+  target:
+    kind: Deployment
+    name: kubeflow-operator
+    version: v1
+- path: name_patch.yaml
+  target:
+    kind: Deployment
+    name: kubeflow-operator
+    version: v1
+

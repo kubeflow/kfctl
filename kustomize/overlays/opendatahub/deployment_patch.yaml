@@ -1,0 +1,13 @@
+- op: replace
+  path: /spec/selector/matchLabels/name
+  value: "opendatahub-operator"
+- op: replace
+  path: /spec/template/metadata/labels/name
+  value: "opendatahub-operator"
+- op: replace
+  path: /spec/template/spec/containers/0/command/0
+  value: "opendatahub-operator"
+
+- op: replace
+  path: /spec/template/spec/containers/0/name
+  value: "opendatahub-operator"
