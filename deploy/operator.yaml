@@ -30,4 +30,6 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "kubeflow-operator"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name

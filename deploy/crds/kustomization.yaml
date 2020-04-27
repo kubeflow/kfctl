@@ -1,0 +1,3 @@
+resources:
+- kfdef_quota.yaml
+- kfdef.apps.kubeflow.org_kfdefs_crd.yaml

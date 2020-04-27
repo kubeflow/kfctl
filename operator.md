@@ -5,15 +5,15 @@ Kubeflow Operator helps deploy, monitor and manage the lifecycle of Kubeflow. Bu
 The Operator is currently in incubation phase and is based on this [design doc](https://docs.google.com/document/d/1vNBZOM-gDMpwTbhx0EDU6lDpyUjc7vhT3bdOWWCRjdk/edit#). It is built on top of _kfdef_ CR, and uses _kfctl_ as the nucleus for Controller. Current roadmap for this Operator is listed [here](https://github.com/kubeflow/kfctl/issues/193). The Operator is also [published on OperatorHub](https://operatorhub.io/operator/kubeflow)
 
 ## Deployment Instructions
-1. Clone this repository and deploy the CRD and controller
+1. Clone this repository and use Kustomize to build the manifests
 ```shell
 # git clone https://github.com/kubeflow/kfctl.git && cd kfctl
 OPERATOR_NAMESPACE=operators
 kubectl create ns ${OPERATOR_NAMESPACE}
-kubectl create -f deploy/crds/kfdef.apps.kubeflow.org_kfdefs_crd.yaml
-kubectl create -f deploy/service_account.yaml -n ${OPERATOR_NAMESPACE}
-kubectl create clusterrolebinding kubeflow-operator --clusterrole cluster-admin --serviceaccount=${OPERATOR_NAMESPACE}:kubeflow-operator
-kubectl create -f deploy/operator.yaml -n ${OPERATOR_NAMESPACE}
+
+cd deploy/
+kustomize edit set namespace ${OPERATOR_NAMESPACE}
+kustomize build | kubectl apply -f -
 ```
 
 2. Setup Kubeflow namespace. You can optionally apply ResourceQuota if your Kubernetes version is 1.15+, which will allow only one _kfdef_ instance or one deployment of Kubeflow on the cluster. This follows the singleton model, and is the current recommended and supported mode.
@@ -131,6 +131,7 @@ kubectl delete mutatingwebhookconfigurations mutating-webhook-configurations
 ### Prerequisites
 1. Install [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md)
 2. Install [golang](https://golang.org/dl/)
+3. Install [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
 
 
 ## Build Instructions
