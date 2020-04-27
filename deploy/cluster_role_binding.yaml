@@ -2,7 +2,6 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: kubeflow-operator
-  namespace: kubeflow
 subjects:
 - kind: ServiceAccount
   name: kubeflow-operator

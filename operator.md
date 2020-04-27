@@ -13,6 +13,7 @@ kubectl create ns ${OPERATOR_NAMESPACE}
 
 cd deploy/
 kustomize edit set namespace ${OPERATOR_NAMESPACE}
+#kustomize edit add resource kustomize/include/quota # only deploy this if the k8s cluster is 1.15+ and has resource quota support
 kustomize build | kubectl apply -f -
 ```
 
@@ -21,7 +22,6 @@ we use ResourceQuota to provide constraints that only one instance of kfdef is a
 ```shell
 KUBEFLOW_NAMESPACE=kubeflow
 kubectl create ns ${KUBEFLOW_NAMESPACE}
-# kubectl create -f deploy/crds/kfdef_quota.yaml -n ${KUBEFLOW_NAMESPACE} # only deploy this if the k8s cluster is 1.15+ and has resource quota support
 ```
 
 3. Deploy KfDef. _kfdef_ can point to a remote URL or to a local kfdef file. To use the set of default kfdefs from Kubeflow, follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
