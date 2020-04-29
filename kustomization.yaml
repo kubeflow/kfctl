@@ -1,2 +1,8 @@
-bases:
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
 - kustomize/base
+# only enable this if the k8s cluster is 1.15+ and has resource quota support
+#- kustomize/include/quota
+
+namespace: kubeflow-operator
