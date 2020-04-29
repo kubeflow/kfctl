@@ -123,7 +123,7 @@ func CreateResourceFromFile(config *rest.Config, filename string, elems ...confi
 
 		err := c.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, u.DeepCopy())
 		if err == nil {
-			log.Info("object already exists...")
+			log.Info("Object already exists...")
 			continue
 		}
 		if !k8serrors.IsNotFound(err) {
@@ -235,7 +235,7 @@ func DeleteResourceFromFile(config *rest.Config, filename string) error {
 
 		err := c.Get(context.TODO(), k8stypes.NamespacedName{Name: name, Namespace: namespace}, u.DeepCopy())
 		if k8serrors.IsNotFound(err) {
-			log.Info("object already deleted...")
+			log.Info("Object already deleted...")
 			continue
 		}
 		if err != nil {
@@ -278,7 +278,7 @@ func NewApply(namespace string, restConfig *rest.Config) (*Apply, error) {
 	if err != nil {
 		return nil, &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not get clientset Error %v", err),
+			Message: fmt.Sprintf("could not get clientset: %v", err),
 		}
 	}
 	apply.clientset = clientset
@@ -315,7 +315,7 @@ func (a *Apply) Apply(data []byte) error {
 	if initializeErr != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("could not initialize  Error %v", initializeErr),
+			Message: fmt.Sprintf("could not initialize : %v", initializeErr),
 		}
 	}
 	var err error
@@ -338,7 +338,7 @@ func (a *Apply) run() error {
 	if resourcesErr != nil {
 		return &kfapis.KfError{
 			Code:    int(kfapis.INTERNAL_ERROR),
-			Message: fmt.Sprintf("Apply.Run  Error %v", resourcesErr),
+			Message: fmt.Sprintf("Apply.Run : %v", resourcesErr),
 		}
 	}
 	return nil

@@ -345,7 +345,7 @@ func LoadKFDefFromURI(configFile string) (*KfDef, error) {
 	log.Infof("Downloading %v to %v", configFile, appFile)
 	configFileUri, err := netUrl.Parse(configFile)
 	if err != nil {
-		log.Errorf("could not parse configFile url")
+		log.Errorf("Could not parse configFile url")
 	}
 	if isValidUrl(configFile) {
 		errGet := gogetter.GetFile(appFile, configFile)
@@ -436,7 +436,7 @@ func (d *KfDef) SyncCache() error {
 		log.Infof("Creating directory %v", baseCacheDir)
 		appdirErr := os.MkdirAll(baseCacheDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v Error %v", baseCacheDir, appdirErr)
+			log.Errorf("Couldn't create directory %v: %v", baseCacheDir, appdirErr)
 			return appdirErr
 		}
 	}
@@ -478,7 +478,7 @@ func (d *KfDef) SyncCache() error {
 		if tarballUrlErr != nil {
 			return &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't download URI %v Error %v", r.Uri, tarballUrlErr),
+				Message: fmt.Sprintf("couldn't download URI %v: %v", r.Uri, tarballUrlErr),
 			}
 		}
 

@@ -91,7 +91,7 @@ func createNewKfApp(baseConfig string, version string, oldKfCfg *kfconfig.KfConf
 		log.Infof("Creating directory %v", newAppDir)
 		err = os.MkdirAll(newAppDir, os.ModePerm)
 		if err != nil {
-			log.Errorf("couldn't create directory %v Error %v", newAppDir, err)
+			log.Errorf("Couldn't create directory %v: %v", newAppDir, err)
 			return nil, "", err
 		}
 	} else {

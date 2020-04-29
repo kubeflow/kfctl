@@ -85,14 +85,14 @@ func watchKubeflowResources(c controller.Controller) error {
 		})
 		err := c.Watch(&source.Kind{Type: u}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				log.Infof("watch a change for kfdef resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
+				log.Infof("Watch a change for kfdef resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
 				return []reconcile.Request{
 					{NamespacedName: kfdefSingletonNN},
 				}
 			}),
 		}, ownedResourcePredicates)
 		if err != nil {
-			log.Errorf("cannot create watch for resources %v %v/%v. Error: %v.", t.Kind, t.Group, t.Version, err)
+			log.Errorf("Cannot create watch for resources %v %v/%v: %v.", t.Kind, t.Group, t.Version, err)
 		}
 	}
 	return nil
@@ -109,7 +109,7 @@ var ownedResourcePredicates = predicate.Funcs{
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		object, err := meta.Accessor(e.Object)
-		log.Infof("got delete event for %v.%v.", object.GetName(), object.GetNamespace())
+		log.Infof("Got delete event for %v.%v.", object.GetName(), object.GetNamespace())
 		if err != nil {
 			return false
 		}
@@ -161,7 +161,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	finalizers := sets.NewString(instance.GetFinalizers()...)
 	if deleted {
 		if !finalizers.Has(finalizer) {
-			log.Infof("kfdef deleted.")
+			log.Info("Kfdef deleted.")
 			return reconcile.Result{}, nil
 		}
 		log.Infof("Deleting kfdef.")
@@ -173,7 +173,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		for retryCount := 0; errors.IsConflict(finalizerError) && retryCount < finalizerMaxRetries; retryCount++ {
 			// Based on Istio operator at https://github.com/istio/istio/blob/master/operator/pkg/controller/istiocontrolplane/istiocontrolplane_controller.go
 			// for finalizer removal errors workaround.
-			log.Infof("conflict during finalizer removal, retrying.")
+			log.Info("Conflict during finalizer removal, retrying.")
 			_ = r.client.Get(context.TODO(), request.NamespacedName, instance)
 			finalizers = sets.NewString(instance.GetFinalizers()...)
 			finalizers.Delete(finalizer)
@@ -181,7 +181,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			finalizerError = r.client.Update(context.TODO(), instance)
 		}
 		if finalizerError != nil {
-			log.Errorf("error removing finalizer. Error: %v.", finalizerError)
+			log.Errorf("Error removing finalizer: %v.", finalizerError)
 			return reconcile.Result{}, finalizerError
 		}
 		return reconcile.Result{}, err

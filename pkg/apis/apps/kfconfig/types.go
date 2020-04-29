@@ -352,7 +352,7 @@ func (c *KfConfig) IsPluginFinished(pluginKind PluginKindType) bool {
 		if IsConditionNotFound(err) {
 			return false
 		}
-		log.Warnf("error when getting condition info: %v", err)
+		log.Warnf("Error when getting condition info: %v", err)
 		return false
 	}
 	return cond.Status == v1.ConditionTrue
@@ -376,7 +376,7 @@ func (c *KfConfig) IsPluginFailed(pluginKind PluginKindType) bool {
 		if IsConditionNotFound(err) {
 			return false
 		}
-		log.Warnf("error when getting condition info: %v", err)
+		log.Warnf("Error when getting condition info: %v", err)
 		return false
 	}
 	return cond.Status == v1.ConditionTrue
@@ -439,7 +439,7 @@ func (c *KfConfig) SyncCache() error {
 		log.Infof("Creating directory %v", baseCacheDir)
 		appdirErr := os.MkdirAll(baseCacheDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v Error %v", baseCacheDir, appdirErr)
+			log.Errorf("Couldn't create directory %v: %v", baseCacheDir, appdirErr)
 			return appdirErr
 		}
 	}
@@ -489,7 +489,7 @@ func (c *KfConfig) SyncCache() error {
 		if tarballUrlErr != nil {
 			return &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("couldn't download URI %v Error %v", r.URI, tarballUrlErr),
+				Message: fmt.Sprintf("couldn't download URI %v: %v", r.URI, tarballUrlErr),
 			}
 		}
 

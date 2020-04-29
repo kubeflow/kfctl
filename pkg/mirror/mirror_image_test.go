@@ -18,7 +18,7 @@ type testCase struct {
 
 func init() {
 	if err := os.Chdir("testdata"); err != nil {
-		log.Errorf("failed to change dir %v", err)
+		log.Errorf("Failed to change dir %v", err)
 	}
 }
 

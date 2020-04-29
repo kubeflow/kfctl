@@ -75,7 +75,7 @@ func (coord *coordinator) getPackageManagers(kfdef *kfconfig.KfConfig) *map[stri
 	var packagemanagers = make(map[string]kftypesv3.KfApp)
 	_packagemanager, _packagemanagerErr := getPackageManager(kfdef)
 	if _packagemanagerErr != nil {
-		log.Fatalf("could not get packagemanager %v Error %v **", kftypesv3.KUSTOMIZE, _packagemanagerErr)
+		log.Fatalf("Could not get packagemanager %v: %v **", kftypesv3.KUSTOMIZE, _packagemanagerErr)
 	}
 	if _packagemanager != nil {
 		packagemanagers[kftypesv3.KUSTOMIZE] = _packagemanager
@@ -213,7 +213,7 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 	if platform != "" {
 		_platform, _platformErr := getPlatform(c.KfDef)
 		if _platformErr != nil {
-			log.Fatalf("could not get platform %v Error %v **", platform, _platformErr)
+			log.Fatalf("Could not get platform %v: %v **", platform, _platformErr)
 			return nil, _platformErr
 		}
 		if _platform != nil {
@@ -222,7 +222,7 @@ func NewLoadKfAppFromURI(configFile string) (kftypesv3.KfApp, error) {
 	}
 	pkg, pkgErr := getPackageManager(c.KfDef)
 	if pkgErr != nil {
-		log.Fatalf("could not get package manager %v Error %v **", kftypesv3.KUSTOMIZE, pkgErr)
+		log.Fatalf("Could not get package manager %v: %v **", kftypesv3.KUSTOMIZE, pkgErr)
 		return nil, pkgErr
 	}
 	if pkg != nil {
@@ -263,7 +263,7 @@ func CreateKfAppCfgFile(d *kfconfig.KfConfig) (string, error) {
 		log.Infof("Creating directory %v", d.Spec.AppDir)
 		appdirErr := os.MkdirAll(d.Spec.AppDir, os.ModePerm)
 		if appdirErr != nil {
-			log.Errorf("couldn't create directory %v Error %v", d.Spec.AppDir, appdirErr)
+			log.Errorf("Couldn't create directory %v: %v", d.Spec.AppDir, appdirErr)
 			return "", appdirErr
 		}
 	} else {
@@ -273,7 +273,7 @@ func CreateKfAppCfgFile(d *kfconfig.KfConfig) (string, error) {
 	log.Infof("Writing KfDef to %v", d.Spec.ConfigFileName)
 	cfgFilePathErr := kfconfigloaders.WriteConfigToFile(*d)
 	if cfgFilePathErr != nil {
-		log.Errorf("failed to write config: %v", cfgFilePathErr)
+		log.Errorf("Failed to write config: %v", cfgFilePathErr)
 	}
 	return filepath.Join(d.Spec.AppDir, d.Spec.ConfigFileName), cfgFilePathErr
 }

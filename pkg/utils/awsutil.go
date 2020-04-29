@@ -18,9 +18,10 @@ package utils
 
 import (
 	"fmt"
-	awssdk "github.com/aws/aws-sdk-go/aws"
 	"os/exec"
 	"regexp"
+
+	awssdk "github.com/aws/aws-sdk-go/aws"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -76,6 +77,7 @@ func GetEksctlVersion() (string, error) {
 		return "", err
 	}
 
+	log.Infof("Output: %s", output)
 	// [ℹ]  version.Info{BuiltAt:"", GitCommit:"", GitTag:"0.1.32"}
 	r := regexp.MustCompile("[0-9]+.[0-9]+.[0-9]+")
 	matchGroups := r.FindStringSubmatch(string(output))

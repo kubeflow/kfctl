@@ -20,7 +20,7 @@ func init() {
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := replicateOverwriteCfg.BindPFlag(string(kftypes.VERBOSE), replicateOverwriteCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
-		log.Errorf("couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return
 	}
 
