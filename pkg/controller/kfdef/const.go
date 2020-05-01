@@ -34,5 +34,5 @@ var (
 		{Group: "apiextensions.k8s.io", Version: "v1beta1", Kind: "CustomResourceDefinition"},
 	}
 
-	kfdefSingletonNN = types.NamespacedName{}
+	kfdefSingletonNN = types.NamespacedName{Namespace: "", Name: ""}
 )
