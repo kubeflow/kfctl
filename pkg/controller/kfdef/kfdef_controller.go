@@ -3,9 +3,9 @@ package kfdef
 import (
 	"context"
 	"io/ioutil"
-	"strings"
-	"path"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
@@ -16,11 +16,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -89,9 +89,16 @@ func watchKubeflowResources(c controller.Controller) error {
 		err := c.Watch(&source.Kind{Type: u}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
 				log.Infof("Watch a change for kfdef resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
-				return []reconcile.Request{
-					{NamespacedName: types.NamespacedName { Name: a.Meta.GetName(), Namespace: a.Meta.GetNamespace()}},
+
+				// retrieve owner KfDef
+				for _, owner := range a.Meta.GetOwnerReferences() {
+					if owner.Kind == "KfDef" {
+						if _, ok := kfdefUIDMap[owner.UID]; ok {
+							return []reconcile.Request{{NamespacedName: kfdefUIDMap[owner.UID]}}
+						}
+					}
 				}
+				return nil
 			}),
 		}, ownedResourcePredicates)
 		if err != nil {
@@ -113,10 +120,7 @@ var ownedResourcePredicates = predicate.Funcs{
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		object, err := meta.Accessor(e.Object)
 		log.Infof("Got delete event for %v.%v.", object.GetName(), object.GetNamespace())
-		if err != nil {
-			return false
-		}
-		if object.GetLabels()[KubeflowLabel] == "kfctl" {
+		if err == nil && OwnerIsKfDef(object) {
 			return true
 		}
 		return false
@@ -138,21 +142,28 @@ type ReconcileKfDef struct {
 	scheme *runtime.Scheme
 }
 
+// OwnerIsKfDef filters out only resources are children of a kfdef instance
+func OwnerIsKfDef(o v1.Object) bool {
+	for _, owner := range o.GetOwnerReferences() {
+		if owner.Kind == "KfDef" {
+			if _, ok := kfdefUIDMap[owner.UID]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Reconcile reads that state of the cluster for a KfDef object and makes changes based on the state read
 // and what is in the KfDef.Spec
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	if kfdefSingletonNN.Name == "" {
-		kfdefSingletonNN = request.NamespacedName
-	}
+	log.Infof("Reconciling KfDef resources. Request.Namespace: %v, Request.Name: %v.", request.Namespace, request.Name)
 
-	log.Infof("Reconciling KfDef. Request.Namespace: %v, Request.Name: %v.", request.Namespace, request.Name)
-
-	// Fetch the KfDef instance
 	instance := &kfdefv1.KfDef{}
-	err := r.client.Get(context.TODO(), kfdefSingletonNN, instance)
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -162,6 +173,11 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	// add to kfdefUIDMap if not exists
+	if _, ok := kfdefUIDMap[instance.UID]; !ok {
+		kfdefUIDMap[instance.GetUID()] = request.NamespacedName
 	}
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -181,9 +197,8 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		log.Infof("kfAppDir deleted.")
 
-		// Reset kfdefSingletonNN
-		kfdefSingletonNN.Namespace = ""
-		kfdefSingletonNN.Name = ""
+		// Remove this KfDef instance
+		delete(kfdefUIDMap, instance.GetUID())
 
 		// Remove finalizer once kfDelete is completed.
 		finalizers.Delete(finalizer)
@@ -208,7 +223,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Infof("Adding finalizer %v: %v.", finalizer, request)
 		finalizers.Insert(finalizer)
 		instance.SetFinalizers(finalizers.List())
-		err := r.client.Update(context.TODO(), instance)
+		err = r.client.Update(context.TODO(), instance)
 		if err != nil {
 			log.Errorf("Failed to update kfdef with finalizer. Error: %v.", err)
 			return reconcile.Result{}, err
@@ -216,13 +231,14 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	// If this is a kfdef change, for now, remove the kfapp config path
-	if request.Name == kfdefSingletonNN.Name && request.Namespace == kfdefSingletonNN.Namespace {
+	if request.Name == instance.GetName() && request.Namespace == instance.GetNamespace() {
 		kfAppDir := path.Join("/tmp", instance.GetNamespace(), instance.GetName())
-		if err := os.RemoveAll(kfAppDir); err != nil {
+		if err = os.RemoveAll(kfAppDir); err != nil {
 			log.Errorf("Failed to delete the app directory. Error: %v.", err)
 			return reconcile.Result{}, err
 		}
 	}
+
 	err = kfApply(instance)
 
 	// Make the current kfdef as default if kfApply is successed.
