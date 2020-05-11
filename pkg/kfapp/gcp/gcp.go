@@ -66,6 +66,7 @@ import (
 	restv2 "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 )
 
 // TODO: golint complains that we should not use all capital var name.
@@ -1712,8 +1713,8 @@ func (gcp *Gcp) allowAdmineditUserSA(gcpAdminSa string, gcpUserSa string) error 
 		fmt.Sprintf("serviceAccount:%v", gcpAdminSa),
 	}
 	policy.Bindings = append(policy.Bindings, &newBinding)
-	log.Infof("New policy: %v", *policy)
-
+	pPolicy := kfutils.PrettyPrint(*policy)
+	log.Infof("New policy: %v", pPolicy)
 	err = utils.SetServiceAccountIamPolicy(iamService, policy, gcp.kfDef.Spec.Project, gcpUserSa)
 	if err != nil {
 		return err
@@ -1752,7 +1753,8 @@ func (gcp *Gcp) setupWorkloadIdentity(namespace string, k8sSa2gcpSa map[string]s
 		if err != nil {
 			return err
 		}
-		log.Infof("New policy: %v", *policy)
+		pPolicy := kfutils.PrettyPrint(*policy)
+		log.Infof("New policy: %v", pPolicy)
 		err = utils.SetServiceAccountIamPolicy(iamService, policy, gcp.kfDef.Spec.Project, gcpSa)
 		if err != nil {
 			return err

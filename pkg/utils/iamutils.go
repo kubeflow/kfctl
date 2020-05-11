@@ -27,6 +27,7 @@ import (
 	"google.golang.org/api/iam/v1"
 	"io/ioutil"
 	"net/http"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 )
 
 func transformSliceToInterface(slice []string) []interface{} {
@@ -209,7 +210,8 @@ func UpdateWorkloadIdentityBindingsPolicy(currentPolicy *iam.Policy, project str
 		fmt.Sprintf("serviceAccount:%v.svc.id.goog[%v/%v]", project, namespace, ksa),
 	}
 	currentPolicy.Bindings = append(currentPolicy.Bindings, &newBinding)
-	log.Infof("New policy: %v", *currentPolicy)
+	pCurrentPolicy:=kfutils.PrettyPrint(*currentPolicy)
+	log.Infof("New policy: %v", pCurrentPolicy)
 	return nil
 }
 

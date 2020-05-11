@@ -48,6 +48,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
 )
 
 const (
@@ -652,17 +653,20 @@ func (aws *Aws) setAwsPluginDefaults() error {
 
 	if awsPluginSpec.ManagedCluster == nil {
 		awsPluginSpec.ManagedCluster = proto.Bool(awsPluginSpec.GetManagedCluster())
-		log.Infof("ManagedCluster set defaulting to %v", *awsPluginSpec.ManagedCluster)
+		pAwsPluginSpecManagedCluster:= kfutils.PrettyPrint(*awsPluginSpec.ManagedCluster)
+		log.Infof("ManagedCluster set defaulting to %v", pAwsPluginSpecManagedCluster)
 	}
 
 	if awsPluginSpec.EnablePodIamPolicy == nil {
 		awsPluginSpec.EnablePodIamPolicy = proto.Bool(awsPluginSpec.GetEnablePodIamPolicy())
-		log.Infof("EnablePodIamPolicy set defaulting to %v", *awsPluginSpec.EnablePodIamPolicy)
+		pAwsPluginSpecEnablePodIamPolicy:= kfutils.PrettyPrint(*awsPluginSpec.EnablePodIamPolicy)
+		log.Infof("EnablePodIamPolicy set defaulting to %v", pAwsPluginSpecEnablePodIamPolicy)
 	}
 
 	if awsPluginSpec.EnableNodeGroupLog == nil {
 		awsPluginSpec.EnableNodeGroupLog = proto.Bool(awsPluginSpec.GetEnableNodeGroupLog())
-		log.Infof("EnableNodeGroupLog set defaulting to %v", *awsPluginSpec.EnableNodeGroupLog)
+		pAwsPluginSpecEnableNodeGroupLog:= kfutils.PrettyPrint(*awsPluginSpec.EnableNodeGroupLog)
+		log.Infof("EnableNodeGroupLog set defaulting to %v", pAwsPluginSpecEnableNodeGroupLog)
 	}
 
 	if awsPluginSpec.Auth == nil {
