@@ -1713,8 +1713,7 @@ func (gcp *Gcp) allowAdmineditUserSA(gcpAdminSa string, gcpUserSa string) error 
 		fmt.Sprintf("serviceAccount:%v", gcpAdminSa),
 	}
 	policy.Bindings = append(policy.Bindings, &newBinding)
-	pPolicy := kfutils.PrettyPrint(*policy)
-	log.Infof("New policy: %v", pPolicy)
+	log.Infof("New policy: %v", kfutils.PrettyPrint(*policy))
 	err = utils.SetServiceAccountIamPolicy(iamService, policy, gcp.kfDef.Spec.Project, gcpUserSa)
 	if err != nil {
 		return err
@@ -1753,8 +1752,7 @@ func (gcp *Gcp) setupWorkloadIdentity(namespace string, k8sSa2gcpSa map[string]s
 		if err != nil {
 			return err
 		}
-		pPolicy := kfutils.PrettyPrint(*policy)
-		log.Infof("New policy: %v", pPolicy)
+		log.Infof("New policy: %v", kfutils.PrettyPrint(*policy))
 		err = utils.SetServiceAccountIamPolicy(iamService, policy, gcp.kfDef.Spec.Project, gcpSa)
 		if err != nil {
 			return err

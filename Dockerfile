@@ -1,6 +1,3 @@
-#**********************************************************************
-# Builder
-# Create a go runtime suitable for building and testing kfctl
 ARG GOLANG_VERSION=1.12.7
 FROM golang:$GOLANG_VERSION as builder
 
@@ -25,7 +22,8 @@ ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 # use go modules
 ENV GO111MODULE=on
 ENV GOPATH=/go
-ENV GOROOT=/usr/local/go # Workaround for https://github.com/kubernetes/gengo/issues/146
+# Workaround for https://github.com/kubernetes/gengo/issues/146
+ENV GOROOT=/usr/local/go
 
 # Create kfctl folder
 RUN mkdir -p ${GOPATH}/src/github.com/kubeflow/kfctl

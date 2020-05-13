@@ -653,20 +653,17 @@ func (aws *Aws) setAwsPluginDefaults() error {
 
 	if awsPluginSpec.ManagedCluster == nil {
 		awsPluginSpec.ManagedCluster = proto.Bool(awsPluginSpec.GetManagedCluster())
-		pAwsPluginSpecManagedCluster:= kfutils.PrettyPrint(*awsPluginSpec.ManagedCluster)
-		log.Infof("ManagedCluster set defaulting to %v", pAwsPluginSpecManagedCluster)
+		log.Infof("ManagedCluster set defaulting to %v", kfutils.PrettyPrint(*awsPluginSpec.ManagedCluster))
 	}
 
 	if awsPluginSpec.EnablePodIamPolicy == nil {
 		awsPluginSpec.EnablePodIamPolicy = proto.Bool(awsPluginSpec.GetEnablePodIamPolicy())
-		pAwsPluginSpecEnablePodIamPolicy:= kfutils.PrettyPrint(*awsPluginSpec.EnablePodIamPolicy)
-		log.Infof("EnablePodIamPolicy set defaulting to %v", pAwsPluginSpecEnablePodIamPolicy)
+		log.Infof("EnablePodIamPolicy set defaulting to %v", kfutils.PrettyPrint(*awsPluginSpec.EnablePodIamPolicy))
 	}
 
 	if awsPluginSpec.EnableNodeGroupLog == nil {
 		awsPluginSpec.EnableNodeGroupLog = proto.Bool(awsPluginSpec.GetEnableNodeGroupLog())
-		pAwsPluginSpecEnableNodeGroupLog:= kfutils.PrettyPrint(*awsPluginSpec.EnableNodeGroupLog)
-		log.Infof("EnableNodeGroupLog set defaulting to %v", pAwsPluginSpecEnableNodeGroupLog)
+		log.Infof("EnableNodeGroupLog set defaulting to %v", kfutils.PrettyPrint(*awsPluginSpec.EnableNodeGroupLog))
 	}
 
 	if awsPluginSpec.Auth == nil {

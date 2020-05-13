@@ -210,8 +210,7 @@ func UpdateWorkloadIdentityBindingsPolicy(currentPolicy *iam.Policy, project str
 		fmt.Sprintf("serviceAccount:%v.svc.id.goog[%v/%v]", project, namespace, ksa),
 	}
 	currentPolicy.Bindings = append(currentPolicy.Bindings, &newBinding)
-	pCurrentPolicy:=kfutils.PrettyPrint(*currentPolicy)
-	log.Infof("New policy: %v", pCurrentPolicy)
+	log.Infof("New policy: %v", kfutils.PrettyPrint(*currentPolicy))
 	return nil
 }
 
