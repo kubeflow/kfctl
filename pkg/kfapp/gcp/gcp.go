@@ -59,7 +59,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/discovery/cached/memory"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -1123,6 +1123,10 @@ func (gcp *Gcp) Delete(resources kftypesv3.ResourceEnum) error {
 		return err
 	}
 
+	return nil
+}
+
+func (gcp *Gcp) Dump(resources kftypesv3.ResourceEnum) error {
 	return nil
 }
 
