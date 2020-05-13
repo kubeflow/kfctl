@@ -18,15 +18,20 @@ package minikube
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
+
 	//"github.com/kubeflow/kfctl/v3/config"
 	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
+
 	//kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"io/ioutil"
+
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
 	//"os/user"
 	"path/filepath"
 	//"strconv"
@@ -57,6 +62,10 @@ func (minikube *Minikube) Apply(resources kftypes.ResourceEnum) error {
 }
 
 func (minikube *Minikube) Delete(resources kftypes.ResourceEnum) error {
+	return nil
+}
+
+func (minikube *Minikube) Dump(resources kftypes.ResourceEnum) error {
 	return nil
 }
 

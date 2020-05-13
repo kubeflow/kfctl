@@ -18,6 +18,10 @@ func (g *FakeGcp) Delete(resources kftypes.ResourceEnum) error {
 	return nil
 }
 
+func (g *FakeGcp) Dump(resources kftypes.ResourceEnum) error {
+	return nil
+}
+
 func (g *FakeGcp) Generate(resources kftypes.ResourceEnum) error {
 	return nil
 }

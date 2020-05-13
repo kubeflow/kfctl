@@ -2,11 +2,12 @@
 package fake
 
 import (
+	"path"
+
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	gcpFake "github.com/kubeflow/kfctl/v3/pkg/kfapp/gcp/fake"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
-	"path"
 )
 
 type FakeCoordinator struct {
@@ -19,6 +20,10 @@ func (f *FakeCoordinator) Apply(resources kftypes.ResourceEnum) error {
 }
 
 func (f *FakeCoordinator) Delete(resources kftypes.ResourceEnum) error {
+	return nil
+}
+
+func (f *FakeCoordinator) Dump(resources kftypes.ResourceEnum) error {
 	return nil
 }
 

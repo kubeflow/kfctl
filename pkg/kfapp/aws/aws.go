@@ -832,6 +832,10 @@ func (aws *Aws) Delete(resources kftypes.ResourceEnum) error {
 	return nil
 }
 
+func (aws *Aws) Dump(resources kftypes.ResourceEnum) error {
+	return nil
+}
+
 // uninstallK8sDependencies delete istio-ingress, istio and cert-manager dependencies.
 func (aws *Aws) uninstallK8sDependencies() error {
 	rev := func(manifests []manifest) []manifest {
