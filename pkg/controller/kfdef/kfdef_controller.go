@@ -3,6 +3,8 @@ package kfdef
 import (
 	"context"
 	"io/ioutil"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -14,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -86,9 +89,16 @@ func watchKubeflowResources(c controller.Controller) error {
 		err := c.Watch(&source.Kind{Type: u}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
 				log.Infof("Watch a change for kfdef resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
-				return []reconcile.Request{
-					{NamespacedName: kfdefSingletonNN},
+
+				// retrieve owner KfDef
+				for _, owner := range a.Meta.GetOwnerReferences() {
+					if owner.Kind == "KfDef" {
+						if _, ok := kfdefUIDMap[owner.UID]; ok {
+							return []reconcile.Request{{NamespacedName: kfdefUIDMap[owner.UID]}}
+						}
+					}
 				}
+				return nil
 			}),
 		}, ownedResourcePredicates)
 		if err != nil {
@@ -110,10 +120,7 @@ var ownedResourcePredicates = predicate.Funcs{
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		object, err := meta.Accessor(e.Object)
 		log.Infof("Got delete event for %v.%v.", object.GetName(), object.GetNamespace())
-		if err != nil {
-			return false
-		}
-		if object.GetLabels()[KubeflowLabel] == "kfctl" {
+		if err == nil && OwnerIsKfDef(object) {
 			return true
 		}
 		return false
@@ -135,15 +142,26 @@ type ReconcileKfDef struct {
 	scheme *runtime.Scheme
 }
 
+// OwnerIsKfDef filters out only resources are children of a kfdef instance
+func OwnerIsKfDef(o v1.Object) bool {
+	for _, owner := range o.GetOwnerReferences() {
+		if owner.Kind == "KfDef" {
+			if _, ok := kfdefUIDMap[owner.UID]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Reconcile reads that state of the cluster for a KfDef object and makes changes based on the state read
 // and what is in the KfDef.Spec
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log.Infof("Reconciling KfDef. Request.Namespace: %v, Request.Name: %v.", request.Namespace, request.Name)
+	log.Infof("Reconciling KfDef resources. Request.Namespace: %v, Request.Name: %v.", request.Namespace, request.Name)
 
-	// Fetch the KfDef instance
 	instance := &kfdefv1.KfDef{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
@@ -157,6 +175,11 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
+	// add to kfdefUIDMap if not exists
+	if _, ok := kfdefUIDMap[instance.UID]; !ok {
+		kfdefUIDMap[instance.GetUID()] = request.NamespacedName
+	}
+
 	deleted := instance.GetDeletionTimestamp() != nil
 	finalizers := sets.NewString(instance.GetFinalizers()...)
 	if deleted {
@@ -165,6 +188,17 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			return reconcile.Result{}, nil
 		}
 		log.Infof("Deleting kfdef.")
+
+		// Delete the kfapp directory
+		kfAppDir := path.Join("/tmp", instance.GetNamespace(), instance.GetName())
+		if err := os.RemoveAll(kfAppDir); err != nil {
+			log.Errorf("Failed to delete the app directory. Error: %v.", err)
+			return reconcile.Result{}, err
+		}
+		log.Infof("kfAppDir deleted.")
+
+		// Remove this KfDef instance
+		delete(kfdefUIDMap, instance.GetUID())
 
 		// Remove finalizer once kfDelete is completed.
 		finalizers.Delete(finalizer)
@@ -189,17 +223,26 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Infof("Adding finalizer %v: %v.", finalizer, request)
 		finalizers.Insert(finalizer)
 		instance.SetFinalizers(finalizers.List())
-		err := r.client.Update(context.TODO(), instance)
+		err = r.client.Update(context.TODO(), instance)
 		if err != nil {
 			log.Errorf("Failed to update kfdef with finalizer. Error: %v.", err)
 			return reconcile.Result{}, err
 		}
 	}
+
+	// If this is a kfdef change, for now, remove the kfapp config path
+	if request.Name == instance.GetName() && request.Namespace == instance.GetNamespace() {
+		kfAppDir := path.Join("/tmp", instance.GetNamespace(), instance.GetName())
+		if err = os.RemoveAll(kfAppDir); err != nil {
+			log.Errorf("Failed to delete the app directory. Error: %v.", err)
+			return reconcile.Result{}, err
+		}
+	}
+
 	err = kfApply(instance)
 
 	// Make the current kfdef as default if kfApply is successed.
 	if err == nil {
-		kfdefSingletonNN = request.NamespacedName
 		log.Infof("KubeFlow Deployment Completed.")
 	}
 	// If deployment created successfully - don't requeue
@@ -222,7 +265,15 @@ func kfApply(instance *kfdefv1.KfDef) error {
 func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, error) {
 	// Define kfApp
 	kfdefBytes, _ := yaml.Marshal(instance)
-	configFilePath := "/tmp/config.yaml"
+
+	// Make the kfApp directory
+	kfAppDir := path.Join("/tmp", instance.GetNamespace(), instance.GetName())
+	if err := os.MkdirAll(kfAppDir, 0755); err != nil {
+		log.Errorf("Failed to create the app directory. Error: %v.", err)
+		return nil, err
+	}
+
+	configFilePath := path.Join(kfAppDir, "config.yaml")
 	err := ioutil.WriteFile(configFilePath, kfdefBytes, 0644)
 	if err != nil {
 		log.Errorf("Failed to write config.yaml. Error: %v.", err)

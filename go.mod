@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.27.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -36,7 +36,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tektoncd/pipeline v0.10.1
 	github.com/tidwall/gjson v1.4.0
 	github.com/tidwall/pretty v1.0.1 // indirect
@@ -49,7 +49,7 @@ require (
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	gotest.tools v2.2.0+incompatible
+	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.17.0
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.17.1
@@ -59,7 +59,7 @@ require (
 	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/kustomize v2.0.3+incompatible
+	sigs.k8s.io/kustomize v2.0.3+incompatible // indirect
 	sigs.k8s.io/kustomize/v3 v3.2.0
 	sigs.k8s.io/yaml v1.1.0
 )

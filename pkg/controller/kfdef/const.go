@@ -34,5 +34,6 @@ var (
 		{Group: "apiextensions.k8s.io", Version: "v1beta1", Kind: "CustomResourceDefinition"},
 	}
 
-	kfdefSingletonNN = types.NamespacedName{}
+	// kfdefUIDMap maps the UID to KfDef Name
+	kfdefUIDMap = map[types.UID]types.NamespacedName{}
 )
