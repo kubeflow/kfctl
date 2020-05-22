@@ -516,7 +516,7 @@ func (c *KfConfig) SyncCache() error {
 				return errors.WithStack(err)
 			}
 		} else {
-			t := &http.Transport{}
+			t := &http.Transport{Proxy: http.ProxyFromEnvironment}
 			t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
 			t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
 			hclient := &http.Client{Transport: t}
