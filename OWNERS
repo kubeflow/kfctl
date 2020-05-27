@@ -2,10 +2,13 @@
 approvers:
   - adrian555
   - animeshsingh
+  - crobby
   - gabrielwen
   - kkasravi
   - kunmingg
   - jlewi
+  - vpavlin
   - yanniszark
 reviewers:
+  - pdmack
   - tomcli
