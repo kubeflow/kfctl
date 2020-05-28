@@ -74,7 +74,7 @@ kubectl create -f ${KFDEF} -n ${KUBEFLOW_NAMESPACE}
 
 ## Testing Watcher and Reconciler
 
-One of the major benefits of using kfctl as an Operator is to leverage the functionalities around being able to watch and reconcile your Kubeflow deployments. The Operator is watching on any cluster events to the _KfDef_ instance, as well as the _Delete_ event to all the resources whose owner is the _KfDef_ instance. Each of such events is enqueued as a request for the _reconciler_ to apply changes to the _KfDef_ instance. For example, if one of the Kubeflow resources is deleted, the _reconciler_ will be triggered to re-apply the _KfDef_ instance, and re-create the deleted resource on the cluster. Therefore, the Kubeflow deployment with this _KfDef_ instance recovers automatically from the unexpected delete event.
+One of the major benefits of using kfctl as an Operator is to leverage the functionalities around being able to watch and reconcile your Kubeflow deployments. The Operator is watching on any cluster events for the _KfDef_ instance, as well as the _Delete_ event for all the resources whose owner is the _KfDef_ instance. Each of such events is queued as a request for the _reconciler_ to apply changes to the _KfDef_ instance. For example, if one of the Kubeflow resources is deleted, the _reconciler_ will be triggered to re-apply the _KfDef_ instance, and re-create the deleted resource on the cluster. Therefore, the Kubeflow deployment with this _KfDef_ instance will recover automatically from the unexpected delete event.
 
 Try following to see the operator watcher and reconciler in action:
 
