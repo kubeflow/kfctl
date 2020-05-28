@@ -184,7 +184,7 @@ make push-operator
 
 ## Current Tested Operators and Pre-built Images
 
-Kubeflow Operator controller logic is based on the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg), so for each release of `kfctl`, an operator image is built and tested with that version of [`manifests`](github.com/kubeflow/manifests) to deploy a _KfDef_ instance. Following table shows what have been tested.
+Kubeflow Operator controller logic is based on the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg), so for each major release of `kfctl`, an operator image is built and tested with that version of [`manifests`](github.com/kubeflow/manifests) to deploy a _KfDef_ instance. Following table shows what releases have been tested.
 
 |branch tag|operator image|manifests version|kfdef example|note|
 |---|---|---|---|---|
