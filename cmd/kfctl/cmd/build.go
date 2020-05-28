@@ -44,13 +44,14 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("Cannot determine the object kind: %v", err)
 		}
-
-		if kind == string(kftypes.KFDEF) {
+		switch kind {
+		case string(kftypes.KFDEF):
 			_, err = coordinator.NewLoadKfAppFromURI(configFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
 			}
-		} else if kind == string(kftypes.KFUPGRADE) {
+			return nil
+		case string(kftypes.KFUPGRADE):
 			kfUpgrade, kfUpgradeErr := kfupgrade.NewKfUpgrade(configFilePath)
 			if kfUpgradeErr != nil {
 				return fmt.Errorf("couldn't load KfUpgrade: %v", kfUpgradeErr)
@@ -61,7 +62,7 @@ var buildCmd = &cobra.Command{
 				return fmt.Errorf("couldn't generate KfApp: %v", generateErr)
 			}
 			return nil
-		} else {
+		default:
 			return fmt.Errorf("Unsupported object kind: %v", kind)
 		}
 
