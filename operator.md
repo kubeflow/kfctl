@@ -107,7 +107,7 @@ The Kubeflow operator also support multiple _KfDef_ instances deployment. It wat
 
 The operator responds to following events:
 
-* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy the Kubeflow. The Kubeflow resources specified with the manifests will be owned by the _KfDef_ instance with their `ownerReferences` set.
+* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be owned by the _KfDef_ instance with their `ownerReferences` set.
 
 * When a _KfDef_ instance is deleted, since the owner is deleted, all its owning secondary resources will be deleted through the [garbage colleciton](https://kubernetes.io/docs/concepts/cluster-administration/kubelet-garbage-collection/). At the mean time, the _reconciler_ will be notified of the event and remove the finalizers.
 
