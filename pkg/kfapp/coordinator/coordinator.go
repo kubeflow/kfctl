@@ -350,6 +350,20 @@ func (kfapp *coordinator) GetPlugin(name string) (kftypesv3.KfApp, bool) {
 	return r, ok
 }
 
+func (kfapp *coordinator) Dump(resources kftypesv3.ResourceEnum) error {
+	for packageManagerName, packageManager := range kfapp.PackageManagers {
+		err := packageManager.Dump(kftypesv3.K8S)
+		if err != nil {
+			return &kfapis.KfError{
+				Code: int(kfapis.INTERNAL_ERROR),
+				Message: fmt.Sprintf("kfApp Apply failed for %v: %v",
+					packageManagerName, err),
+			}
+		}
+	}
+	return nil
+}
+
 func (kfapp *coordinator) Apply(resources kftypesv3.ResourceEnum) error {
 	platform := func() error {
 		if kfapp.KfDef.Spec.Platform != "" {

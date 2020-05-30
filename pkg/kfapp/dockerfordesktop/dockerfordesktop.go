@@ -18,16 +18,17 @@ package dockerfordesktop
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
-	"github.com/kubeflow/kfctl/v3/config"
-	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
-	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 	"io/ioutil"
 	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/ghodss/yaml"
+	"github.com/kubeflow/kfctl/v3/config"
+	kfapis "github.com/kubeflow/kfctl/v3/pkg/apis"
+	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	kfdefs "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1alpha1"
 )
 
 // DockerForDesktop implements KfApp Interface
@@ -50,6 +51,10 @@ func (dockerfordesktop *DockerForDesktop) Apply(resources kftypes.ResourceEnum) 
 }
 
 func (dockerfordesktop *DockerForDesktop) Delete(resources kftypes.ResourceEnum) error {
+	return nil
+}
+
+func (dockerfordesktop *DockerForDesktop) Dump(resources kftypes.ResourceEnum) error {
 	return nil
 }
 

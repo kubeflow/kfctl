@@ -54,8 +54,6 @@ require (
 	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/kustomize v2.0.3+incompatible
-	sigs.k8s.io/kustomize/kyaml v0.1.11 // indirect
 	sigs.k8s.io/kustomize/v3 v3.2.0
 	sigs.k8s.io/yaml v1.1.0
 )
