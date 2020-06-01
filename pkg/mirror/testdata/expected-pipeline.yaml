@@ -112,7 +112,17 @@ spec:
         value: $(params.context)
       taskRef:
         name: mirror-image
-    - name: 10-grafana-grafana-6-0-2
+    - name: 10-docker-io-somerepo-image1-v0-16
+      params:
+      - name: inputImage
+        value: docker.io/somerepo/image1:v0.16
+      - name: outputImage
+        value: gcr.io/kubeflow-dev/docker.io/somerepo/image1:v0.16
+      - name: context
+        value: $(params.context)
+      taskRef:
+        name: mirror-image
+    - name: 11-grafana-grafana-6-0-2
       params:
       - name: inputImage
         value: grafana/grafana:6.0.2
