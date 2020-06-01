@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cert-manager
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cert-manager
+    mplate:
+    metadata:
+      labels:
+        app: cert-manager
+  template:
+    spec:
+      containers:
+        - image: gcr.io/myproject/cert-manager-controller:v0.11.0
+          name: cert-manager
+        - image: gcr.io/project2/kf:v0.11.0
+          name: myimage2
+        - image: non/matching/image:1.0
+          name: other
+
