@@ -54,6 +54,7 @@ require (
 	k8s.io/code-generator v0.18.1 // indirect
 	k8s.io/kubernetes v1.16.2
 	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/kustomize/kyaml v0.1.10
 	sigs.k8s.io/kustomize/v3 v3.2.0
 	sigs.k8s.io/yaml v1.1.0
 )

@@ -59,7 +59,7 @@ func Execute(version string) {
 	VERSION = version
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Printf("kfctl exited with error: %+v", err)
 		os.Exit(1)
 	}
 }

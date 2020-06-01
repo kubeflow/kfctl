@@ -15,12 +15,16 @@ import (
 )
 
 var outputFileName string
+var directory string
 var gcb bool
 
 func init() {
 	replicateBuildCmd.Flags().StringVarP(&outputFileName, "output", "o", "",
 		`Name of the output pipeline file
 		kfctl alpha mirror build -o <name>`)
+	replicateBuildCmd.Flags().StringVarP(&directory, "directory", "d", "kustomize",
+		`The directory to search for kustomization files listing images to mirror
+		kfctl alpha mirror build -d <directory>`)
 	replicateBuildCmd.Flags().BoolVar(&gcb, "gcb", false, `Generate cloud build config`)
 	// verbose output
 	replicateBuildCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
@@ -57,6 +61,10 @@ Image replication rules are defined in config file.
 		if isRemoteFile {
 			return fmt.Errorf("config file path should be non-empty local file.")
 		}
+
+		if outputFileName == "" {
+			return fmt.Errorf("You must specify an output file with -o")
+		}
 		if _, err := os.Stat(configFile); err != nil {
 			return err
 		}
@@ -75,6 +83,7 @@ Image replication rules are defined in config file.
 			}
 
 		}
-		return mirror.GenerateMirroringPipeline(replication.Spec, outputFileName, gcb)
+
+		return mirror.GenerateMirroringPipeline(directory, replication.Spec, outputFileName, gcb)
 	},
 }

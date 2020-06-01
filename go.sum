@@ -1393,6 +1393,8 @@ sigs.k8s.io/controller-runtime v0.2.0/go.mod h1:ZHqrRDZi3f6BzONcvlUxkqCKgwasGk5F
 sigs.k8s.io/controller-tools v0.2.2/go.mod h1:8SNGuj163x/sMwydREj7ld5mIMJu1cDanIfnx6xsU70=
 sigs.k8s.io/kustomize v2.0.3+incompatible h1:JUufWFNlI44MdtnjUqVnvh29rR37PQFzPbLXqhyOyX0=
 sigs.k8s.io/kustomize v2.0.3+incompatible/go.mod h1:MkjgH3RdOWrievjo6c9T245dYlB5QeXV4WCbnt/PEpU=
+sigs.k8s.io/kustomize/kyaml v0.1.10 h1:ZZfBnA/kYa9ZxUFIgI9oq3pWKzzA1gGOKgU0Hv/NhVg=
+sigs.k8s.io/kustomize/kyaml v0.1.10/go.mod h1:mPmeBSRy0LTMv6fSrYSoi2yIFNZVouGKDsTekE5kdhs=
 sigs.k8s.io/kustomize/kyaml v0.1.11 h1:/VvWxVIgH5gG1K4A7trgbyLgO3tRBiAWNhLFVU1HEmo=
 sigs.k8s.io/kustomize/kyaml v0.1.11/go.mod h1:72/rLkSi+L/pHM1oCjwrf3ClU+tH5kZQvvdLSqIHwWU=
 sigs.k8s.io/kustomize/v3 v3.2.0 h1:EKcEubO29vCbigcMoNynfyZH+ANWkML2UHWibt1Do7o=
