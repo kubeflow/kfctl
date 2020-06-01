@@ -66,6 +66,9 @@ WORKDIR /opt/kubeflow
 #
 FROM barebones_base as kfctl
 
+# Install shared lib for kfctl
+RUN apk add --no-cache libc6-compat
+
 COPY --from=kfctl_base /go/src/github.com/kubeflow/kfctl/bin/kfctl /usr/local/bin
 COPY --from=kfctl_base /go/src/github.com/kubeflow/kfctl/third_party /third_party
 COPY --from=kfctl_base /go/pkg/mod /third_party/vendor
