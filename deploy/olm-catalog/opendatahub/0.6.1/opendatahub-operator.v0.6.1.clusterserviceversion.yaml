@@ -358,7 +358,7 @@ spec:
     - Open Data Hub
     - opendatahub
   version: 0.6.1
-  replaces: 0.6.0
+  replaces: opendatahub-operator.v0.6.0
   selector:
     matchLabels:
       component: opendatahub-operator
