@@ -155,6 +155,7 @@ func (rt *ReplicateTasks) orderedKeys() []string {
 
 // processKustomizeDir processes the specified kustomize directory
 func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, include string, exclude string) error {
+	log.Infof("Processing %v", absPath)
 	kustomizationFilePath := filepath.Join(absPath, "kustomization.yaml")
 	if _, err := os.Stat(kustomizationFilePath); err != nil {
 		log.Infof("Skipping %v; no kustomization.yaml found", absPath)
@@ -206,6 +207,15 @@ func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, i
 			continue
 		}
 
+		p := path.Join(absPath, r)
+
+		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
+			log.Errorf("Error occurred while processing %v; error %v", p, err)
+		}
+	}
+
+	// Bases is deprecated but our manifests still use it.
+	for _, r := range kustomization.Bases {
 		p := path.Join(absPath, r)
 
 		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
