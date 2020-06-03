@@ -14,12 +14,11 @@ RUN apt-get install -y git unzip jq vim
 RUN go get -u github.com/jstemmer/go-junit-report
 
 # We need gcloud to get gke credentials.
-RUN if [ "$(uname -m)" = "x86_64" ]; then \
-        cd /tmp && \
-        wget -nv https://dl.google.com/dl/cloudsdk/release/install_google_cloud_sdk.bash && \
-        chmod +x install_google_cloud_sdk.bash && \
-        ./install_google_cloud_sdk.bash --disable-prompts --install-dir=/opt/; \
-    fi
+RUN \
+    cd /tmp && \
+    wget -nv https://dl.google.com/dl/cloudsdk/release/install_google_cloud_sdk.bash && \
+    chmod +x install_google_cloud_sdk.bash && \
+    ./install_google_cloud_sdk.bash --disable-prompts --install-dir=/opt/
 
 ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 
@@ -50,8 +49,7 @@ COPY . .
 #
 FROM builder as kfctl_base
 
-RUN make build && \
-    cp bin/kfctl-$(go env GOOS)-$(go env GOARCH) bin/kfctl
+RUN make build-kfctl
 
 #**********************************************************************
 #

@@ -15,8 +15,6 @@
 GCLOUD_PROJECT ?= kubeflow-images-public
 GOLANG_VERSION ?= 1.12.7
 GOPATH ?= $(HOME)/go
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
 # To build without the cache set the environment variable
 # export DOCKER_BUILD_OPTS=--no-cache
 KFCTL_IMG ?= gcr.io/$(GCLOUD_PROJECT)/kfctl
@@ -31,6 +29,7 @@ VERBOSE ?=
 PLUGINS_ENVIRONMENT ?= $(GOPATH)/src/github.com/kubeflow/kfctl/bin
 export GO111MODULE = on
 export GO = go
+ARCH ?= $(shell ${GO} env|grep GOOS|cut -d'=' -f2|tr -d '"')
 OPERATOR_IMG ?= kubeflow-operator
 IMAGE_BUILDER ?= docker
 DOCKERFILE ?= Dockerfile
@@ -123,31 +122,26 @@ deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go \
 	pkg/kfconfig/awsplugin/zz_generated.deepcopy.go \
 	pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go
 
-build: bin/kfctl-linux-amd64 bin/kfctl-darwin-amd64 bin/kfctl-linux-arm64
+build: build-kfctl
 
-bin/kfctl-linux-amd64: GOARGS = GOOS=linux GOARCH=amd64
-bin/kfctl-darwin-amd64: GOARGS = GOOS=darwin GOARCH=amd64
-#bin/kfctl-windows-amd64: GOARGS = GOOS=windows GOARCH=amd64
-bin/kfctl-linux-arm64: GOARGS = GOOS=linux GOARCH=arm64
-
-bin/kfctl-%: deepcopy generate fmt vet
+build-kfctl: deepcopy generate fmt vet
 	# TODO(swiftdiaries): figure out import conflict errors for windows
 	#GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
-	CGO_ENABLED=0 ${GOARGS} ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o $@ cmd/kfctl/main.go
+	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
+	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
+	cp bin/$(ARCH)/kfctl bin/kfctl
 
 # Fast rebuilds useful for development.
-# Does not regenerate code; assumes you already ran build once.
+# Does not regenerate code; assumes you already ran build-kfctl once.
 build-kfctl-fast: fmt vet
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/kfctl-linux-amd64 cmd/kfctl/main.go
+	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go	
 
 # Release tarballs suitable for upload to GitHub release pages
-build-kfctl-tgz: build
-	chmod a+rx ./bin/kfctl*
+build-kfctl-tgz: build-kfctl
+	chmod a+rx ./bin/kfctl
 	rm -f bin/*.tgz
-	cd bin && tar -cvzf kfctl_$(TAG)_linux_amd64.tar.gz ./kfctl-linux-amd64
-	cd bin && tar -cvzf kfctl_${TAG}_darwin_amd64.tar.gz ./kfctl-darwin-amd64
-	cd bin && tar -cvzf kfctl_$(TAG)_linux_arm64.tar.gz ./kfctl-linux-arm64
-
+	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
+	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
 
 build-and-push-operator: build-operator push-operator
 build-push-update-operator: build-operator push-operator update-operator-image
@@ -195,20 +189,14 @@ push-to-github-release: build-kfctl-tgz
 	    --user kubeflow \
 	    --repo kubeflow \
 	    --tag $(TAG) \
-	    --name "kfctl_$(TAG)_linux_amd64.tar.gz" \
-	    --file bin/kfctl_$(TAG)_linux_amd64.tar.gz
+	    --name "kfctl_$(TAG)_linux.tar.gz" \
+	    --file bin/kfctl_$(TAG)_linux.tar.gz
 	github-release upload \
 	    --user kubeflow \
 	    --repo kubeflow \
 	    --tag $(TAG) \
-	    --name "kfctl_$(TAG)_darwin_amd64.tar.gz" \
-	    --file bin/kfctl_$(TAG)_darwin_amd64.tar.gz
-	github-release upload \
-            --user kubeflow \
-            --repo kubeflow \
-            --tag $(TAG) \
-            --name "kfctl_$(TAG)_linux_arm64.tar.gz" \
-            --file bin/kfctl_$(TAG)_linux_arm64.tar.gz
+	    --name "kfctl_$(TAG)_darwin.tar.gz" \
+	    --file bin/kfctl_$(TAG)_darwin.tar.gz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
@@ -254,9 +242,9 @@ push-kfctl-container-latest: push-kfctl-container
 	gcloud container images add-tag --quiet $(KFCTL_IMG):$(TAG) $(KFCTL_IMG):latest --verbosity=info
 	@echo created $(KFCTL_IMG):latest
 
-install: build dockerfordesktop.so
-	@echo copying bin/kfctl-${GOOS}-${GOARCH} to /usr/local/bin/kfctl
-	@cp bin/kfctl-${GOOS}-${GOARCH} /usr/local/bin/kfctl
+install: build-kfctl dockerfordesktop.so
+	@echo copying bin/kfctl to /usr/local/bin
+	@cp bin/kfctl /usr/local/bin
 
 run-kfctl-container: build-kfctl-container
 	docker run $(MOUNT_KUBE) $(MOUNT_GCP) --entrypoint /bin/sh -it $(KFCTL_IMG):$(TAG)
@@ -297,12 +285,12 @@ check-licenses:
 	./third_party/check-license.sh
 # rules to run unittests
 #
-test: build check-licenses
+test: build-kfctl check-licenses
 	go test ./... -v
 
 
 # Run the unittests and output a junit report for use with prow
-test-junit: build
+test-junit: build-kfctl
 	echo Running tests ... junit_file=$(JUNIT_FILE)
 	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
