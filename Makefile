@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 GCLOUD_PROJECT ?= kubeflow-images-public
-GOLANG_VERSION ?= 1.12.7
+GOLANG_VERSION ?= 1.13.7
 GOPATH ?= $(HOME)/go
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -58,7 +58,7 @@ JUNIT_FILE ?= /tmp/report.xml
 
 %.md:
 
-all: build
+all: build-kfctl
 
 auth:
 	gcloud auth configure-docker
@@ -123,7 +123,7 @@ deepcopy: ${GOPATH}/bin/deepcopy-gen config/zz_generated.deepcopy.go \
 	pkg/kfconfig/awsplugin/zz_generated.deepcopy.go \
 	pkg/kfconfig/gcpplugin/zz_generated.deepcopy.go
 
-build: bin/kfctl-linux-amd64 bin/kfctl-darwin-amd64 bin/kfctl-linux-arm64
+build-kfctl: bin/kfctl-linux-amd64 bin/kfctl-darwin-amd64 bin/kfctl-linux-arm64
 
 bin/kfctl-linux-amd64: GOARGS = GOOS=linux GOARCH=amd64
 bin/kfctl-darwin-amd64: GOARGS = GOOS=darwin GOARCH=amd64
@@ -141,7 +141,7 @@ build-kfctl-fast: fmt vet
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/kfctl-linux-amd64 cmd/kfctl/main.go
 
 # Release tarballs suitable for upload to GitHub release pages
-build-kfctl-tgz: build
+build-kfctl-tgz: build-kfctl
 	chmod a+rx ./bin/kfctl*
 	rm -f bin/*.tgz
 	cd bin && tar -cvzf kfctl_$(TAG)_linux_amd64.tar.gz ./kfctl-linux-amd64
@@ -238,7 +238,7 @@ build-gcb:
 
 # Build but don't attach the latest tag. This allows manual testing/inspection of the image
 # first.
-push: build
+push: build-kfctl
 	docker push $(BOOTSTRAPPER_IMG):$(TAG)
 	@echo Pushed $(BOOTSTRAPPER_IMG):$(TAG)
 
@@ -254,7 +254,7 @@ push-kfctl-container-latest: push-kfctl-container
 	gcloud container images add-tag --quiet $(KFCTL_IMG):$(TAG) $(KFCTL_IMG):latest --verbosity=info
 	@echo created $(KFCTL_IMG):latest
 
-install: build dockerfordesktop.so
+install: build-kfctl dockerfordesktop.so
 	@echo copying bin/kfctl-${GOOS}-${GOARCH} to /usr/local/bin/kfctl
 	@cp bin/kfctl-${GOOS}-${GOARCH} /usr/local/bin/kfctl
 
@@ -297,12 +297,12 @@ check-licenses:
 	./third_party/check-license.sh
 # rules to run unittests
 #
-test: build check-licenses
+test: build-kfctl check-licenses
 	go test ./... -v
 
 
 # Run the unittests and output a junit report for use with prow
-test-junit: build
+test-junit: build-kfctl
 	echo Running tests ... junit_file=$(JUNIT_FILE)
 	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
