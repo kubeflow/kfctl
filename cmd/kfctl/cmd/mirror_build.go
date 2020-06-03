@@ -61,6 +61,10 @@ Image replication rules are defined in config file.
 		if isRemoteFile {
 			return fmt.Errorf("config file path should be non-empty local file.")
 		}
+
+		if outputFileName == "" {
+			return fmt.Errorf("You must specify an output file with -o")
+		}
 		if _, err := os.Stat(configFile); err != nil {
 			return err
 		}
@@ -79,6 +83,7 @@ Image replication rules are defined in config file.
 			}
 
 		}
+
 		return mirror.GenerateMirroringPipeline(directory, replication.Spec, outputFileName, gcb)
 	},
 }

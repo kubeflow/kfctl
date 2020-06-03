@@ -5,6 +5,7 @@ import (
 	"github.com/ghodss/yaml"
 	mirrorv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	cloudbuild "google.golang.org/api/cloudbuild/v1"
@@ -109,7 +110,7 @@ func GenerateMirroringPipeline(directory string, spec mirrorv1alpha1.Replication
 	}
 	writeErr := ioutil.WriteFile(outputFileName, buf, 0644)
 	if writeErr != nil {
-		return writeErr
+		return errors.WithStack(writeErr)
 	}
 	if gcb {
 		return generateCloudBuild(replicateTasks)
@@ -170,7 +171,7 @@ func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, i
 			continue
 		}
 		// check exclude first
-		if strings.HasPrefix(curName, exclude) {
+		if exclude != "" && strings.HasPrefix(curName, exclude) {
 			log.Infof("Image %v matches exclude prefix %v, skipping\n", curName, exclude)
 			continue
 		}
@@ -199,7 +200,7 @@ func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, i
 		//kustomization.Images[i].NewName = newName
 	}
 
-	// Process any kusotmize packages we depend on.
+	// Process any kustomize packages we depend on.
 	for _, r := range kustomization.Resources {
 		if ext := strings.ToLower(filepath.Ext(r)); ext == ".yaml" || ext == ".yml" {
 			continue
@@ -232,7 +233,7 @@ func (rt *ReplicateTasks) fillTasks(directory string, registry string, buildCont
 func verifyCurrDir() error {
 	infos, err := ioutil.ReadDir(".")
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	foundKus := false
 	for _, info := range infos {
@@ -253,7 +254,7 @@ func UpdateKustomize(inputFile string) error {
 	}
 	buf, err := ioutil.ReadFile(inputFile)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	pipelineRun := pipeline.PipelineRun{}
 	if err := yaml.Unmarshal(buf, &pipelineRun); err != nil {
@@ -320,7 +321,7 @@ func UpdateKustomize(inputFile string) error {
 
 					writeErr := ioutil.WriteFile(kustomizationFilePath, data, 0644)
 					if writeErr != nil {
-						return writeErr
+						return errors.WithStack(writeErr)
 					}
 				}
 			}
