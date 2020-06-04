@@ -12,7 +12,7 @@ The [kpt docs](https://googlecontainertools.github.io/kpt/reference/fn/run/#exam
 many ways to invoke kpt functions. For production the most common use will be the 
 [declarative method](https://googlecontainertools.github.io/kpt/reference/fn/run/#declaratively-run-one-or-more-functions).
 
-1. In the directory you want to apply the transform either define a config specifying the transform
+1. In the directory you want to apply the transform define a config specifying the transform
 
    * Depending on the transform this will either be a [ConfigMap](https://googlecontainertools.github.io/kpt/reference/fn/run/#declaratively-run-one-or-more-functions)
      or a custom resource
@@ -45,9 +45,12 @@ many ways to invoke kpt functions. For production the most common use will be th
    kpt fn ${DIR}
    ```  
 
+   * ${DIR} will be the directory containing the YAML files to process and should include
+     the YAMLs configuring the functions
+
 ## Development
 
-During development it can useful to run your transforms without building a docker image or
+During development it can be useful to run your transforms without building a docker image or
 run them in a debugger.
 
 To support this our main binary `kustomize-fns` includes a `debug` subcommand which
@@ -61,3 +64,15 @@ the resources and functions to apply. You can produce that file using kpt; e.g.
  * *DIR* should be the directory containing the YAML files defining the resources to process
  * *FN_CFG* should be a path to a YAML file specifying one or more functions to apply
  
+
+You can use skaffold to build the docker image
+
+```
+skaffold build --kube-context=${KUBE_CONTEXT}
+```
+
+You can build the binary by doing
+
+```
+go build .
+```
