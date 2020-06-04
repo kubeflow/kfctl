@@ -129,7 +129,7 @@ build-kfctl: deepcopy generate fmt vet
 	#GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
 	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
 	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
-	cp bin/$(ARCH)/kfctl bin/kfctl
+	GOOS=linux GOARCH=ppc64le ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/ppc64le/kfctl cmd/kfctl/main.go
 
 # Fast rebuilds useful for development.
 # Does not regenerate code; assumes you already ran build-kfctl once.
@@ -138,10 +138,11 @@ build-kfctl-fast: fmt vet
 
 # Release tarballs suitable for upload to GitHub release pages
 build-kfctl-tgz: build-kfctl
-	chmod a+rx ./bin/kfctl
+	chmod a+rx ./bin/$(ARCH)/kfctl
 	rm -f bin/*.tgz
 	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
 	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
+	cd bin/ppc64le && tar -cvzf kfctl_${TAG}_ppc64le.tar.gz ./kfctl
 
 build-and-push-operator: build-operator push-operator
 build-push-update-operator: build-operator push-operator update-operator-image
@@ -190,13 +191,19 @@ push-to-github-release: build-kfctl-tgz
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_linux.tar.gz" \
-	    --file bin/kfctl_$(TAG)_linux.tar.gz
+	    --file bin/linux/kfctl_$(TAG)_linux.tar.gz
 	github-release upload \
 	    --user kubeflow \
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_darwin.tar.gz" \
-	    --file bin/kfctl_$(TAG)_darwin.tar.gz
+	    --file bin/darwin/kfctl_$(TAG)_darwin.tar.gz
+	github-release upload \
+            --user kubeflow \
+            --repo kubeflow \
+            --tag $(TAG) \
+            --name "kfctl_$(TAG)_ppc64le.tar.gz" \
+            --file bin/ppc64le/kfctl_$(TAG)_ppc64le.tar.gz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
