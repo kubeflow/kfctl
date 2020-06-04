@@ -1,0 +1,3 @@
+# Prevent people from checking in the result of go build ./
+kustomize-fns
+remove-namespace/remove-namespace
