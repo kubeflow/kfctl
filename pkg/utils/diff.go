@@ -6,6 +6,9 @@ import (
 )
 
 // PrintDiff pretty prints file differences.
+//
+// TODO(jlewi): We use this functionality across a lot of go packages; not just in kubeflow/kfctl but in other
+// repos like kubeflow/testing. We should think about moving it into its own go module so it can be easily reused.
 func PrintDiff(actual string, expected string) {
 	sE, maxLen := convertToArray(expected)
 	sA, _ := convertToArray(actual)
