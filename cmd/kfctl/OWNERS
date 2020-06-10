@@ -1,7 +1,3 @@
 approvers:
-  - jlewi
-  - kunmingg
-  - ashahba
-  - kkasravi
-  - yanniszark
-reviewers:
+- jlewi
+- yanniszark
