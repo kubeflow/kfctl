@@ -1,6 +1,3 @@
 approvers:
-  - ashahba
-  - jlewi  
-  - kkasravi
-  - yanniszark
-reviewers:
+- jlewi
+- yanniszark
