@@ -5,6 +5,7 @@ import (
 	"github.com/ghodss/yaml"
 	mirrorv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
@@ -209,6 +210,14 @@ func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, i
 
 		p := path.Join(absPath, r)
 
+		if b, err :=utils.IsRemoteFile(p); b || err != nil {
+			if err != nil {
+				log.Infof("Skipping path %v; there was an error determining if it was a local file; error: %v", p, err)
+				continue
+			}
+			log.Infof("Skipping remote file %v", p)
+			continue
+		}
 		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
 			log.Errorf("Error occurred while processing %v; error %v", p, err)
 		}
@@ -217,6 +226,15 @@ func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, i
 	// Bases is deprecated but our manifests still use it.
 	for _, r := range kustomization.Bases {
 		p := path.Join(absPath, r)
+
+		if b, err :=utils.IsRemoteFile(p); b || err != nil {
+			if err != nil {
+				log.Infof("Skipping path %v; there was an error determining if it was a local file; error: %v", p, err)
+				continue
+			}
+			log.Infof("Skipping remote file %v", p)
+			continue
+		}
 
 		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
 			log.Errorf("Error occurred while processing %v; error %v", p, err)
