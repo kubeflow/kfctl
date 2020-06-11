@@ -1,7 +1,6 @@
 package awsplugin
 
 import (
-	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,6 +33,8 @@ type AwsPluginSpec struct {
 
 	ManagedObjectStorage *ObjectStorageConfig `json:"managedObjectStorage,omitempty"`
 
+	EnableBasicAuth *bool `json:"enableBasicAuth,omitempty"`
+
 	// TODO: Addon is used to host some optional aws specific components
 	// EFS, FSX CSI Plugin, Device Plugin, etc
 	//AddOns []string `json:"addons,omitempty"`
@@ -61,8 +62,9 @@ type Auth struct {
 }
 
 type BasicAuth struct {
-	Username string              `json:"username,omitempty"`
-	Password *kfconfig.SecretRef `json:"password,omitempty"`
+	Username string `json:"username,omitempty"`
+	//Password *kfconfig.SecretRef `json:"password,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type OIDC struct {
@@ -94,7 +96,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 			msg += "BasicAuth requires username. "
 		}
 
-		if plugin.Auth.BasicAuth.Password == nil {
+		if plugin.Auth.BasicAuth.Password == "" {
 			isValid = false
 			msg += "BasicAuth requires password. "
 		}
@@ -245,5 +247,15 @@ func (p *AwsPluginSpec) GetManagedCluster() bool {
 	}
 
 	v := p.ManagedCluster
+	return *v
+}
+
+// GetEnableBasicAuth return true is user want to enable basic auth
+func (p *AwsPluginSpec) GetEnableBasicAuth() bool {
+	if p.EnableBasicAuth == nil {
+		return false
+	}
+
+	v := p.EnableBasicAuth
 	return *v
 }

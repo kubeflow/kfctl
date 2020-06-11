@@ -17,7 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,8 +30,6 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
-	"golang.org/x/crypto/bcrypt"
-
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -45,7 +42,6 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
@@ -55,7 +51,6 @@ const (
 	KUBEFLOW_MANIFEST_DIR  = "kustomize"
 	CLUSTER_CONFIG_FILE    = "cluster_config.yaml"
 	PATH                   = "path"
-	BASIC_AUTH_SECRET      = "kubeflow-login"
 	// Path in manifests repo to where the additional configs are located
 	CONFIG_LOCAL_PATH = "aws/infra_configs"
 
@@ -110,6 +105,7 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 			path: path.Join(KUBEFLOW_MANIFEST_DIR, "istio-install", "base", "istio-noauth.yaml"),
 		},
 	}
+
 	ingressManifests := []manifest{
 		{
 			name: "ALB Ingress",
@@ -344,64 +340,6 @@ func (aws *Aws) generateInfraConfigs() error {
 	return nil
 }
 
-// Use username and password provided by user and create secret for basic auth.
-func (aws *Aws) createBasicAuthSecret(client *clientset.Clientset) error {
-	awsPluginSpec, err := aws.GetPluginSpec()
-	if err != nil {
-		return err
-	}
-
-	if awsPluginSpec.Auth == nil || awsPluginSpec.Auth.BasicAuth == nil || awsPluginSpec.Auth.BasicAuth.Password.Name == "" {
-		err := errors.WithStack(fmt.Errorf("BasicAuth.Password.Name must be set"))
-		return err
-	}
-
-	password, err := aws.kfDef.GetSecret(awsPluginSpec.Auth.BasicAuth.Password.Name)
-	if err != nil {
-		log.Errorf("There was a problem getting the password for basic auth; error %v", err)
-		return err
-	}
-
-	encodedPassword, err := base64EncryptPassword(password)
-	if err != nil {
-		log.Errorf("There was a problem encrypting the password; %v", err)
-		return err
-	}
-
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      BASIC_AUTH_SECRET,
-			Namespace: aws.kfDef.Namespace,
-		},
-		Data: map[string][]byte{
-			"username":     []byte(awsPluginSpec.Auth.BasicAuth.Username),
-			"passwordhash": []byte(encodedPassword),
-		},
-	}
-	_, err = client.CoreV1().Secrets(aws.kfDef.Namespace).Update(secret)
-	if err != nil {
-		log.Warnf("Updating basic auth login failed, trying to create one: %v", err)
-		return createSecret(client, BASIC_AUTH_SECRET, aws.kfDef.Namespace, map[string][]byte{
-			"username":     []byte(awsPluginSpec.Auth.BasicAuth.Username),
-			"passwordhash": []byte(encodedPassword),
-		})
-	}
-	return nil
-}
-
-func base64EncryptPassword(password string) (string, error) {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-	if err != nil {
-		return "", &kfapis.KfError{
-			Code:    int(kfapis.INVALID_ARGUMENT),
-			Message: fmt.Sprintf("Error when hashing password: %v", err),
-		}
-	}
-	encodedPassword := base64.StdEncoding.EncodeToString(passwordHash)
-
-	return encodedPassword, nil
-}
-
 // Init initializes aws kfapp - platform
 func (aws *Aws) Init(resources kftypes.ResourceEnum) error {
 	// 1. Use AWS SDK to check if credentials from (~/.aws/credentials or ENV) and session verify
@@ -483,13 +421,19 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		return errors.WithStack(err)
 	}
 
-	// TODO: AWS doesn't enable BasicAuth yet.
-	if aws.kfDef.Spec.UseBasicAuth {
+	if pluginSpec.GetEnableBasicAuth() {
 		if err := aws.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "OFF"); err != nil {
 			return errors.WithStack(err)
 		}
+		if pluginSpec.Auth.BasicAuth != nil {
+			if err := aws.kfDef.SetApplicationParameter("dex", "static_email", pluginSpec.Auth.BasicAuth.Username); err != nil {
+				return errors.WithStack(err)
+			}
 
-		if pluginSpec.Auth.BasicAuth == nil {
+			if err := aws.kfDef.SetApplicationParameter("dex", "static_password_hash", pluginSpec.Auth.BasicAuth.Password); err != nil {
+				return errors.WithStack(err)
+			}
+		} else {
 			return errors.WithStack(fmt.Errorf("AwsPluginSpec has no BasicAuth but UseBasicAuth set to true"))
 		}
 	} else {
@@ -663,6 +607,11 @@ func (aws *Aws) setAwsPluginDefaults() error {
 	if awsPluginSpec.EnableNodeGroupLog == nil {
 		awsPluginSpec.EnableNodeGroupLog = proto.Bool(awsPluginSpec.GetEnableNodeGroupLog())
 		log.Infof("EnableNodeGroupLog set defaulting to %v", *awsPluginSpec.EnableNodeGroupLog)
+	}
+
+	if awsPluginSpec.EnableBasicAuth == nil {
+		awsPluginSpec.EnableBasicAuth = proto.Bool(awsPluginSpec.GetEnableBasicAuth())
+		log.Infof("EnableBasicAuth set defaulting to %v", *awsPluginSpec.EnableBasicAuth)
 	}
 
 	if awsPluginSpec.Auth == nil {
