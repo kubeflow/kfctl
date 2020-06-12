@@ -37,3 +37,4 @@ kind: Kustomization
 namespace: kubeflow
 resources:
 - istio-noauth.yaml
+- ../base-pkg
