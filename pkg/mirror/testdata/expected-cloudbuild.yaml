@@ -9,6 +9,7 @@ images:
 - gcr.io/kubeflow-dev/docker.io/jaegertracing/all-in-one:1.9
 - gcr.io/kubeflow-dev/docker.io/kiali/kiali:v0.16
 - gcr.io/kubeflow-dev/docker.io/prom/prometheus:v2.3.1
+- gcr.io/kubeflow-dev/docker.io/somerepo/image1:v0.16
 - gcr.io/kubeflow-dev/grafana/grafana:6.0.2
 steps:
 - args:
@@ -97,6 +98,15 @@ steps:
   - -t
   - gcr.io/kubeflow-dev/docker.io/prom/prometheus:v2.3.1
   - --build-arg=INPUT_IMAGE=docker.io/prom/prometheus:v2.3.1
+  - .
+  name: gcr.io/cloud-builders/docker
+  waitFor:
+  - '-'
+- args:
+  - build
+  - -t
+  - gcr.io/kubeflow-dev/docker.io/somerepo/image1:v0.16
+  - --build-arg=INPUT_IMAGE=docker.io/somerepo/image1:v0.16
   - .
   name: gcr.io/cloud-builders/docker
   waitFor:

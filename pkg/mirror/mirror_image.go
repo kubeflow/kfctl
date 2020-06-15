@@ -5,12 +5,15 @@ import (
 	"github.com/ghodss/yaml"
 	mirrorv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/kustomize"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	cloudbuild "google.golang.org/api/cloudbuild/v1"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -28,14 +31,11 @@ const CLOUD_BUILD_FILE = "cloudbuild.yaml"
 type ReplicateTasks map[string]string
 
 // buildContext: gs://<GCS bucket>/<path to .tar.gz>
-func GenerateMirroringPipeline(spec mirrorv1alpha1.ReplicationSpec, outputFileName string, gcb bool) error {
+func GenerateMirroringPipeline(directory string, spec mirrorv1alpha1.ReplicationSpec, outputFileName string, gcb bool) error {
 	replicateTasks := make(ReplicateTasks)
-	if err := verifyCurrDir(); err != nil {
-		return err
-	}
 
 	for _, pattern := range spec.Patterns {
-		if err := replicateTasks.fillTasks(pattern.Dest, spec.Context, pattern.Src.Include, pattern.Src.Exclude); err != nil {
+		if err := replicateTasks.fillTasks(directory, pattern.Dest, spec.Context, pattern.Src.Include, pattern.Src.Exclude); err != nil {
 			return err
 		}
 	}
@@ -111,7 +111,7 @@ func GenerateMirroringPipeline(spec mirrorv1alpha1.ReplicationSpec, outputFileNa
 	}
 	writeErr := ioutil.WriteFile(outputFileName, buf, 0644)
 	if writeErr != nil {
-		return writeErr
+		return errors.WithStack(writeErr)
 	}
 	if gcb {
 		return generateCloudBuild(replicateTasks)
@@ -154,57 +154,104 @@ func (rt *ReplicateTasks) orderedKeys() []string {
 	return keys
 }
 
-func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, include string, exclude string) error {
-	return filepath.Walk(KUSTOMIZE_FOLDER, func(path string, info os.FileInfo, err error) error {
+// processKustomizeDir processes the specified kustomize directory
+func (rt *ReplicateTasks) processKustomizeDir(absPath string, registry string, include string, exclude string) error {
+	log.Infof("Processing %v", absPath)
+	kustomizationFilePath := filepath.Join(absPath, "kustomization.yaml")
+	if _, err := os.Stat(kustomizationFilePath); err != nil {
+		log.Infof("Skipping %v; no kustomization.yaml found", absPath)
+		return nil
+	}
+	kustomization := kustomize.GetKustomization(absPath)
+	for _, image := range kustomization.Images {
+		curName := image.Name
+		if image.NewName != "" {
+			curName = image.NewName
+		}
+		if strings.Contains(curName, "$") {
+			log.Infof("Image name %v contains kutomize parameter, skipping\n", curName)
+			continue
+		}
+		// check exclude first
+		if exclude != "" && strings.HasPrefix(curName, exclude) {
+			log.Infof("Image %v matches exclude prefix %v, skipping\n", curName, exclude)
+			continue
+		}
+		// then check include
+		if include != "" && (!strings.HasPrefix(curName, include)) {
+			log.Infof("Image %v doesn't match include prefix %v, skipping\n", curName, include)
+			continue
+		}
+		newName := strings.Join([]string{registry, image.Name}, "/")
+
+		if (image.NewTag == "") == (image.Digest == "") {
+			log.Warnf("One and only one of NewTag or Digest can exist for image %s, skipping\n",
+				image.Name)
+			continue
+		}
+
+		if image.NewTag != "" {
+			(*rt)[strings.Join([]string{newName, image.NewTag}, ":")] =
+				strings.Join([]string{curName, image.NewTag}, ":")
+		}
+		if image.Digest != "" {
+			(*rt)[strings.Join([]string{newName, image.Digest}, "@")] =
+				strings.Join([]string{curName, image.Digest}, "@")
+		}
+		log.Infof("Replacing image name from %s to %s", image.Name, newName)
+		//kustomization.Images[i].NewName = newName
+	}
+
+	// Process any kustomize packages we depend on.
+	for _, r := range kustomization.Resources {
+		if ext := strings.ToLower(filepath.Ext(r)); ext == ".yaml" || ext == ".yml" {
+			continue
+		}
+
+		p := path.Join(absPath, r)
+
+		if b, err := utils.IsRemoteFile(p); b || err != nil {
+			if err != nil {
+				log.Infof("Skipping path %v; there was an error determining if it was a local file; error: %v", p, err)
+				continue
+			}
+			log.Infof("Skipping remote file %v", p)
+			continue
+		}
+		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
+			log.Errorf("Error occurred while processing %v; error %v", p, err)
+		}
+	}
+
+	// Bases is deprecated but our manifests still use it.
+	for _, r := range kustomization.Bases {
+		p := path.Join(absPath, r)
+
+		if b, err := utils.IsRemoteFile(p); b || err != nil {
+			if err != nil {
+				log.Infof("Skipping path %v; there was an error determining if it was a local file; error: %v", p, err)
+				continue
+			}
+			log.Infof("Skipping remote file %v", p)
+			continue
+		}
+
+		if err := rt.processKustomizeDir(p, registry, include, exclude); err != nil {
+			log.Errorf("Error occurred while processing %v; error %v", p, err)
+		}
+	}
+	return nil
+}
+
+func (rt *ReplicateTasks) fillTasks(directory string, registry string, buildContext string, include string, exclude string) error {
+	return filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
 				return err
 			}
 
-			kustomizationFilePath := filepath.Join(absPath, "kustomization.yaml")
-			if _, err := os.Stat(kustomizationFilePath); err == nil {
-				kustomization := kustomize.GetKustomization(absPath)
-				for _, image := range kustomization.Images {
-					curName := image.Name
-					if image.NewName != "" {
-						curName = image.NewName
-					}
-					if strings.Contains(curName, "$") {
-						log.Infof("Image name %v contains kutomize parameter, skipping\n", curName)
-						continue
-					}
-					// check exclude first
-					if strings.HasPrefix(curName, exclude) {
-						log.Infof("Image %v matches exclude prefix %v, skipping\n", curName, exclude)
-						continue
-					}
-					// then check include
-					if include != "" && (!strings.HasPrefix(curName, include)) {
-						log.Infof("Image %v doesn't match include prefix %v, skipping\n", curName, include)
-						continue
-					}
-					newName := strings.Join([]string{registry, image.Name}, "/")
-
-					if (image.NewTag == "") == (image.Digest == "") {
-						log.Warnf("One and only one of NewTag or Digest can exist for image %s, skipping\n",
-							image.Name)
-						continue
-					}
-
-					if image.NewTag != "" {
-						(*rt)[strings.Join([]string{newName, image.NewTag}, ":")] =
-							strings.Join([]string{curName, image.NewTag}, ":")
-					}
-					if image.Digest != "" {
-						(*rt)[strings.Join([]string{newName, image.Digest}, "@")] =
-							strings.Join([]string{curName, image.Digest}, "@")
-					}
-					log.Infof("Replacing image name from %s to %s", image.Name, newName)
-					//kustomization.Images[i].NewName = newName
-				}
-			}
-			return nil
+			return rt.processKustomizeDir(absPath, registry, include, exclude)
 		}
 
 		return nil
@@ -214,7 +261,7 @@ func (rt *ReplicateTasks) fillTasks(registry string, buildContext string, includ
 func verifyCurrDir() error {
 	infos, err := ioutil.ReadDir(".")
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	foundKus := false
 	for _, info := range infos {
@@ -235,7 +282,7 @@ func UpdateKustomize(inputFile string) error {
 	}
 	buf, err := ioutil.ReadFile(inputFile)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	pipelineRun := pipeline.PipelineRun{}
 	if err := yaml.Unmarshal(buf, &pipelineRun); err != nil {
@@ -302,7 +349,7 @@ func UpdateKustomize(inputFile string) error {
 
 					writeErr := ioutil.WriteFile(kustomizationFilePath, data, 0644)
 					if writeErr != nil {
-						return writeErr
+						return errors.WithStack(writeErr)
 					}
 				}
 			}

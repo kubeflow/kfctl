@@ -53,6 +53,7 @@ var buildCmd = &cobra.Command{
 				return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
 			}
 		case string(kftypes.KFUPGRADE):
+			log.Warnf("Support for kind %s is deprecated and will be removed in subsequent versions", kftypes.KFUPGRADE)
 			kfApp, err := kfupgrade.NewKfUpgrade(configFilePath)
 			if err != nil {
 				return fmt.Errorf("couldn't load KfUpgrade: %v", err)

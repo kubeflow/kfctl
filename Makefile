@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 GCLOUD_PROJECT ?= kubeflow-images-public
-GOLANG_VERSION ?= 1.12.7
+GOLANG_VERSION ?= 1.13.7
 GOPATH ?= $(HOME)/go
 # To build without the cache set the environment variable
 # export DOCKER_BUILD_OPTS=--no-cache
@@ -126,15 +126,16 @@ build: build-kfctl
 
 build-kfctl: deepcopy generate fmt vet
 	# TODO(swiftdiaries): figure out import conflict errors for windows
-	#GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
-	GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
-	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
+	#CGO_ENABLED=0 GOOS=windows GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/windows/kfctl.exe cmd/kfctl/main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=${TAG}" -o bin/darwin/kfctl cmd/kfctl/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/arm64/kfctl cmd/kfctl/main.go
 	cp bin/$(ARCH)/kfctl bin/kfctl
 
 # Fast rebuilds useful for development.
 # Does not regenerate code; assumes you already ran build-kfctl once.
 build-kfctl-fast: fmt vet
-	GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go	
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build -gcflags '-N -l' -ldflags "-X main.VERSION=$(TAG)" -o bin/linux/kfctl cmd/kfctl/main.go
 
 # Release tarballs suitable for upload to GitHub release pages
 build-kfctl-tgz: build-kfctl
@@ -142,6 +143,7 @@ build-kfctl-tgz: build-kfctl
 	rm -f bin/*.tgz
 	cd bin/linux && tar -cvzf kfctl_$(TAG)_linux.tar.gz ./kfctl
 	cd bin/darwin && tar -cvzf kfctl_${TAG}_darwin.tar.gz ./kfctl
+	cd bin/arm64 && tar -cvzf kfctl_${TAG}_arm64.tar.gz ./kfctl
 
 build-and-push-operator: build-operator push-operator
 build-push-update-operator: build-operator push-operator update-operator-image
@@ -190,13 +192,19 @@ push-to-github-release: build-kfctl-tgz
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_linux.tar.gz" \
-	    --file bin/kfctl_$(TAG)_linux.tar.gz
+	    --file bin/linux/kfctl_$(TAG)_linux.tar.gz
 	github-release upload \
 	    --user kubeflow \
 	    --repo kubeflow \
 	    --tag $(TAG) \
 	    --name "kfctl_$(TAG)_darwin.tar.gz" \
-	    --file bin/kfctl_$(TAG)_darwin.tar.gz
+	    --file bin/darwin/kfctl_$(TAG)_darwin.tar.gz
+	github-release upload \
+            --user kubeflow \
+            --repo kubeflow \
+            --tag $(TAG) \
+            --name "kfctl_$(TAG)_arm64.tar.gz" \
+            --file bin/arm64/kfctl_$(TAG)_arm64.tar.gz
 
 build-kfctl-container:
 	DOCKER_BUILDKIT=1 docker build \
