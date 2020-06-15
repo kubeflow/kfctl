@@ -504,12 +504,23 @@ func (c *KfConfig) SyncCache() error {
 		// Manifests are local dir
 		if fi, err := os.Stat(r.URI); err == nil && fi.Mode().IsDir() {
 			// check whether the cache directory is a sub directory of manifests
-			if relDir, err := filepath.Rel(r.URI, cacheDir); err != nil {
+			absCacheDir, err := filepath.Abs(cacheDir)
+			if err != nil {
 				return errors.WithStack(err)
-			} else {
-				if !strings.HasPrefix(relDir, ".."+string(filepath.Separator)) {
-					return errors.WithStack(errors.New("SyncCache: could not sync cache when the cache path " + cacheDir + " is sub directory of manifests " + r.URI))
-				}
+			}
+
+			absURI, err := filepath.Abs(r.URI)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			relDir, err := filepath.Rel(absURI, absCacheDir)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			if !strings.HasPrefix(relDir, ".."+string(filepath.Separator)) {
+				return errors.WithStack(errors.New("SyncCache: could not sync cache when the cache path " + cacheDir + " is sub directory of manifests " + r.URI))
 			}
 
 			if err := copy.Copy(r.URI, cacheDir); err != nil {

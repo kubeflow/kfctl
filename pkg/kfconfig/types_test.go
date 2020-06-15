@@ -105,6 +105,25 @@ func TestSyncCache(t *testing.T) {
 		{
 			input: &KfConfig{
 				Spec: KfConfigSpec{
+					AppDir: ".",
+					Repos: []Repo{{
+						Name: repoName,
+						URI:  srcDir,
+					},
+					},
+				},
+			},
+			expected: []Cache{
+				{
+					Name:      repoName,
+					LocalPath: path.Join(".cache", repoName),
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			input: &KfConfig{
+				Spec: KfConfigSpec{
 					AppDir: path.Join(testDir, "app2"),
 					Repos: []Repo{{
 						Name: repoName,
@@ -162,8 +181,13 @@ func TestSyncCache(t *testing.T) {
 	for _, c := range testCases {
 		err = c.input.SyncCache()
 
+		// remove the local path for the test case whose AppDir is "."
+		if c.input.Spec.AppDir == "." {
+			os.RemoveAll(path.Join(".cache", repoName))
+		}
+
 		if err != nil {
-			if err.Error() != c.expectedErr.Error() {
+			if c.expectedErr == nil || err.Error() != c.expectedErr.Error() {
 				t.Fatalf("Could not sync cache; %v", err)
 			}
 		}
