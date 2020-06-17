@@ -23,7 +23,15 @@ def set_logging():
                       )
   logging.getLogger().setLevel(logging.INFO)
 
+# TODO(jlewi): We should probably deprecate this and find a better way
+# to separate platform specific logic. With GCP and blueprints we won't
+# have a KFDef. And when running periodically against auto-deployments
+# we also won't have access to the kfapp.
 def get_platform_app_name(app_path):
+  if not app_path:
+    logging.info("--app_path not set; won't use KFDef to set platform")
+    return "", ""
+
   with open(os.path.join(app_path, "tmp.yaml")) as f:
     kfdef = yaml.safe_load(f)
   app_name = kfdef["metadata"]["name"]
@@ -270,4 +278,6 @@ if __name__ == "__main__":
                       datefmt='%Y-%m-%dT%H:%M:%S',
                       )
   logging.getLogger().setLevel(logging.INFO)
+  # DO NOT SUBMIT
+  #test_notebook_is_ready("jupyter", "kubeflow")
   pytest.main()
