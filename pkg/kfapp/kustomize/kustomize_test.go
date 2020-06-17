@@ -42,6 +42,21 @@ func TestGenerateKustomizationFile(t *testing.T) {
 			packageDir:   "testdata/kustomizeExample/pytorch-operator",
 			expectedFile: "testdata/kustomizeExample/pytorch-operator/expected/kustomization.yaml",
 		},
+		{
+			kfDef: &kfconfig.KfConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kubeflow",
+				},
+				Spec: kfconfig.KfConfigSpec{},
+			},
+			overlays: []string{
+				"istio",
+				"application",
+				"db",
+			},
+			packageDir:   "testdata/kustomizeExample/metadata",
+			expectedFile: "testdata/kustomizeExample/metadata/expected/kustomization.yaml",
+		},
 	}
 	packageName := "dummy"
 	for _, c := range testCases {
