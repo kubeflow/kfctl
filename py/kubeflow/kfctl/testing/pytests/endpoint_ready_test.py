@@ -1,16 +1,10 @@
-import datetime
 import json
 import logging
 import os
-import subprocess
-import tempfile
-import uuid
-from retrying import retry
 
 import pytest
 
 from kubeflow.testing import util
-from kubeflow.kfctl.testing.util import deploy_utils
 from kubeflow.kfctl.testing.util import gcp_util
 
 # There's really no good reason to run test_endpoint during presubmits.
