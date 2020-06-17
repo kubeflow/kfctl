@@ -843,6 +843,13 @@ func MergeKustomization(compDir string, targetDir string, kfDef *kfconfig.KfConf
 	}
 
 	updateGeneratorArgs := func(parentGeneratorArgs *types.GeneratorArgs, childGeneratorArgs types.GeneratorArgs) {
+		if childGeneratorArgs.EnvSources != nil && len(childGeneratorArgs.EnvSources) > 0 {
+			parentGeneratorArgs.EnvSources = make([]string, 0)
+			for _, envSource := range childGeneratorArgs.EnvSources {
+				envAbsolutePathSource := path.Join(targetDir, envSource)
+				parentGeneratorArgs.EnvSources = append(parentGeneratorArgs.EnvSources, extractSuffix(compDir, envAbsolutePathSource))
+			}
+		}
 		if childGeneratorArgs.EnvSource != "" {
 			envAbsolutePathSource := path.Join(targetDir, childGeneratorArgs.EnvSource)
 			envSource := extractSuffix(compDir, envAbsolutePathSource)
