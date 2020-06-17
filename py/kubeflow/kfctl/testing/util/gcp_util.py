@@ -13,6 +13,8 @@ from multiprocessing import Process
 from time import sleep
 from google.auth.transport.requests import Request
 from googleapiclient import discovery
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
 from oauth2client.client import GoogleCredentials
 
 import requests
@@ -78,6 +80,48 @@ def may_get_env_var(name):
   else:
     raise Exception("%s not set" % name)
 
+# Code copied from:
+# https://cloud.google.com/iap/docs/authentication-howto#iap_make_request-python
+def make_iap_request(url, client_id, method='GET', **kwargs):
+    """Makes a request to an application protected by Identity-Aware Proxy.
+
+    Args:
+      url: The Identity-Aware Proxy-protected URL to fetch.
+      client_id: The client ID used by Identity-Aware Proxy.
+      method: The request method to use
+              ('GET', 'OPTIONS', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE')
+      **kwargs: Any of the parameters defined for the request function:
+                https://github.com/requests/requests/blob/master/requests/api.py
+                If no timeout is provided, it is set to 90 by default.
+
+    Returns:
+      The page body, or raises an exception if the page couldn't be retrieved.
+    """
+    # Set the default timeout, if missing
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = 90
+
+    # Obtain an OpenID Connect (OIDC) token from metadata server or using service
+    # account.
+    google_open_id_connect_token = id_token.fetch_id_token(Request(), client_id)
+
+    # Fetch the Identity-Aware Proxy-protected URL, including an
+    # Authorization header containing "Bearer " followed by a
+    # Google-issued OpenID Connect token for the service account.
+    resp = requests.request(
+        method, url,
+        headers={'Authorization': 'Bearer {}'.format(
+            google_open_id_connect_token)}, **kwargs)
+    if resp.status_code == 403:
+        raise Exception('Service account does not have permission to '
+                        'access the IAP-protected application.')
+    elif resp.status_code != 200:
+        raise Exception(
+            'Bad response from application: {!r} / {!r} / {!r}'.format(
+                resp.status_code, resp.headers, resp.text))
+    else:
+        return resp.text
+
 def iap_is_ready(url, wait_min=15):
   """
   Checks if the kubeflow endpoint is ready.
@@ -89,9 +133,11 @@ def iap_is_ready(url, wait_min=15):
   """
   google_open_id_connect_token = None
 
-  service_account_credentials = get_service_account_credentials("CLIENT_ID")
-  google_open_id_connect_token = get_google_open_id_connect_token(
-      service_account_credentials)
+  #service_account_credentials = get_service_account_credentials("CLIENT_ID")
+  #google_open_id_connect_token = get_google_open_id_connect_token(
+      #service_account_credentials)
+
+  client_id = may_get_env_var("CLIENT_ID")
   # Wait up to 30 minutes for IAP access test.
   num_req = 0
   end_time = datetime.datetime.now() + datetime.timedelta(
@@ -101,14 +147,15 @@ def iap_is_ready(url, wait_min=15):
     logging.info("Trying url: %s", url)
     try:
       resp = None
-      resp = requests.request(
-          "GET",
-          url,
-          headers={
-              "Authorization":
-              "Bearer {}".format(google_open_id_connect_token)
-          },
-          verify=False)
+      #resp = requests.request(
+          #"GET",
+          #url,
+          #headers={
+              #"Authorization":
+              #"Bearer {}".format(google_open_id_connect_token)
+          #},
+          #verify=False)
+      resp = make_iap_request(url, client_id, method="GET", verify=False)
       logging.info(resp.text)
       if resp.status_code == 200:
         logging.info("Endpoint is ready for %s!", url)
