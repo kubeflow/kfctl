@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 
+	ep "github.com/jlewi/cloud-endpoints-controller/pkg"
 	kftypes "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	"github.com/kubeflow/kfctl/v3/pkg/kfupgrade"
@@ -29,6 +30,8 @@ import (
 var applyCfg = viper.New()
 var kfApp kftypes.KfApp
 var err error
+
+var kubeContext = ""
 
 // KFDef example configs to be printed out from apply --help
 const (
@@ -72,6 +75,7 @@ var applyCmd = &cobra.Command{
 			log.Info("Applied the configuration Successfully!")
 			return nil
 		case string(kftypes.KFUPGRADE):
+			log.Warnf("Support for kind %s is deprecated and will be removed in subsequent versions", kftypes.KFUPGRADE)
 			kfUpgrade, err := kfupgrade.NewKfUpgrade(configFilePath)
 			if err != nil {
 				return fmt.Errorf("couldn't load KfUpgrade: %v", err)
@@ -82,6 +86,8 @@ var applyCmd = &cobra.Command{
 				return fmt.Errorf("couldn't apply KfUpgrade: %v", err)
 			}
 			return nil
+		case ep.Kind:
+			return ep.Process(configFilePath, kubeContext)
 		default:
 			return fmt.Errorf("Unsupported object kind: %v", kind)
 		}
@@ -108,6 +114,8 @@ func init() {
 	// verbose output
 	applyCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
 		string(kftypes.VERBOSE)+" output default is false")
+
+	applyCmd.Flags().StringVar(&kubeContext, "context", "", "Optional kubernetes context to use when applying resources. Currently not used by KFDef resources.")
 	bindErr := applyCfg.BindPFlag(string(kftypes.VERBOSE), applyCmd.Flags().Lookup(string(kftypes.VERBOSE)))
 	if bindErr != nil {
 		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)

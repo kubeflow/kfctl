@@ -3,9 +3,11 @@ package mirror
 import (
 	"bytes"
 	mirrorv1alpha1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/imagemirror/v1alpha1"
+	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 )
 
@@ -35,7 +37,12 @@ func TestGenerateMirroringPipeline(t *testing.T) {
 		Context: "gs://kubeflow-examples/image-replicate/replicate-context.tar.gz",
 	}
 
-	if err := GenerateMirroringPipeline(spec, "pipeline.yaml", true); err != nil {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Could not get working directory; error %v", err)
+	}
+	directory := path.Join(wd, "kustomize")
+	if err := GenerateMirroringPipeline(directory, spec, "pipeline.yaml", true); err != nil {
 		t.Error(err)
 	}
 	defer func(t *testing.T) {
@@ -94,6 +101,7 @@ func compFile(cases []testCase, t *testing.T) {
 			t.Error(err)
 		}
 		if !bytes.Equal(expectedBytes, actualBytes) {
+			utils.PrintDiff(string(actualBytes), string(expectedBytes))
 			t.Errorf("Result not matching; got\n%v\nwant\n%v", string(actualBytes), string(expectedBytes))
 		}
 	}

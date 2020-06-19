@@ -104,6 +104,7 @@ const (
 	PACKAGE_MANAGER       CliOption = "package-manager"
 	FILE                  CliOption = "file"
 	FORCE_DELETION        CliOption = "force-deletion"
+	DUMP                  CliOption = "dump"
 )
 
 //
@@ -114,6 +115,7 @@ const (
 type KfApp interface {
 	Apply(resources ResourceEnum) error
 	Delete(resources ResourceEnum) error
+	Dump(resources ResourceEnum) error
 	Generate(resources ResourceEnum) error
 	Init(resources ResourceEnum) error
 }

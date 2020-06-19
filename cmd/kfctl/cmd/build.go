@@ -45,27 +45,31 @@ var buildCmd = &cobra.Command{
 			return fmt.Errorf("Cannot determine the object kind: %v", err)
 		}
 
-		if kind == string(kftypes.KFDEF) {
-			_, err = coordinator.NewLoadKfAppFromURI(configFilePath)
+		var kfApp kftypes.KfApp
+		switch kind {
+		case string(kftypes.KFDEF):
+			kfApp, err = coordinator.NewLoadKfAppFromURI(configFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to build kfApp from URI %s: %v", configFilePath, err)
 			}
-		} else if kind == string(kftypes.KFUPGRADE) {
-			kfUpgrade, kfUpgradeErr := kfupgrade.NewKfUpgrade(configFilePath)
-			if kfUpgradeErr != nil {
-				return fmt.Errorf("couldn't load KfUpgrade: %v", kfUpgradeErr)
+		case string(kftypes.KFUPGRADE):
+			log.Warnf("Support for kind %s is deprecated and will be removed in subsequent versions", kftypes.KFUPGRADE)
+			kfApp, err := kfupgrade.NewKfUpgrade(configFilePath)
+			if err != nil {
+				return fmt.Errorf("couldn't load KfUpgrade: %v", err)
 			}
 
-			generateErr := kfUpgrade.Generate()
-			if generateErr != nil {
-				return fmt.Errorf("couldn't generate KfApp: %v", generateErr)
+			if err := kfApp.Generate(); err != nil {
+				return fmt.Errorf("couldn't generate KfApp: %v", err)
 			}
-			return nil
-		} else {
+		default:
 			return fmt.Errorf("Unsupported object kind: %v", kind)
 		}
 
-		return err
+		if buildCfg.GetBool(string(kftypes.DUMP)) == true {
+			kfApp.Dump(kftypes.ALL)
+		}
+		return nil
 	},
 }
 
@@ -90,6 +94,15 @@ func init() {
 	buildCmd.Flags().BoolP(string(kftypes.VERBOSE), "V", false,
 		string(kftypes.VERBOSE)+" output default is false")
 	bindErr := buildCfg.BindPFlag(string(kftypes.VERBOSE), buildCmd.Flags().Lookup(string(kftypes.VERBOSE)))
+	if bindErr != nil {
+		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
+		return
+	}
+
+	// dump flag
+	buildCmd.Flags().BoolP(string(kftypes.DUMP), "d", false,
+		string(kftypes.DUMP)+" manifests to stdout, default is false")
+	bindErr = buildCfg.BindPFlag(string(kftypes.DUMP), buildCmd.Flags().Lookup(string(kftypes.DUMP)))
 	if bindErr != nil {
 		log.Errorf("Couldn't set flag --%v: %v", string(kftypes.VERBOSE), bindErr)
 		return

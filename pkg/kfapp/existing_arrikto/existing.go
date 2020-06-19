@@ -9,6 +9,16 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"html/template"
+	"math/big"
+	"math/rand"
+	"net"
+	"net/url"
+	"os"
+	"path"
+	"strings"
+	"time"
+
 	kfapisv3 "github.com/kubeflow/kfctl/v3/pkg/apis"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
@@ -16,22 +26,13 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"html/template"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"math/big"
-	"math/rand"
-	"net"
-	"net/url"
-	"os"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
 )
 
 const (
@@ -265,6 +266,10 @@ func (existing *Existing) Delete(resources kftypesv3.ResourceEnum) error {
 	if err := deleteManifests(rev(existing.istioManifests)); err != nil {
 		return internalError(errors.WithStack(err))
 	}
+	return nil
+}
+
+func (existing *Existing) Dump(resources kftypesv3.ResourceEnum) error {
 	return nil
 }
 

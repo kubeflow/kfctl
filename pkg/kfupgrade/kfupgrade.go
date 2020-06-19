@@ -294,6 +294,16 @@ func (upgrader *KfUpgrader) Apply() error {
 	return kfApp.Apply(kftypesv3.K8S)
 }
 
+func (upgrader *KfUpgrader) Dump() error {
+	kfApp, err := coordinator.NewLoadKfAppFromURI(upgrader.TargetPath)
+	if err != nil {
+		log.Errorf("Failed to build KfApp from URI: %v", err)
+		return err
+	}
+
+	return kfApp.Dump(kftypesv3.K8S)
+}
+
 func (upgrader *KfUpgrader) DeleteObsoleteResources(ns string) error {
 	applicationsv1beta1.AddToScheme(scheme.Scheme)
 

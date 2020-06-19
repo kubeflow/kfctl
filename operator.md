@@ -2,35 +2,42 @@
 
 Kubeflow Operator helps deploy, monitor and manage the lifecycle of Kubeflow. Built using the [Operator Framework](https://coreos.com/blog/introducing-operator-framework) which offers an open source toolkit to build, test, package operators and manage the lifecycle of operators.
 
-The Operator is currently in incubation phase and is based on this [design doc](https://docs.google.com/document/d/1vNBZOM-gDMpwTbhx0EDU6lDpyUjc7vhT3bdOWWCRjdk/edit#). It is built on top of _kfdef_ CR, and uses _kfctl_ as the nucleus for Controller. Current roadmap for this Operator is listed [here](https://github.com/kubeflow/kfctl/issues/193). The Operator is also [published on OperatorHub](https://operatorhub.io/operator/kubeflow)
+The Operator is currently in incubation phase and is based on this [design doc](https://docs.google.com/document/d/1vNBZOM-gDMpwTbhx0EDU6lDpyUjc7vhT3bdOWWCRjdk/edit#). It is built on top of _KfDef_ CR, and uses _kfctl_ as the nucleus for Controller. Current roadmap for this Operator is listed [here](https://github.com/kubeflow/kfctl/issues/193). The Operator is also [published on OperatorHub](https://operatorhub.io/operator/kubeflow).
+
+## Prerequisites
+
+* Install [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
 
 ## Deployment Instructions
-1. Clone this repository and use Kustomize to build the manifests
+
+1. Clone this repository, build the manifests and install the operator
+
 ```shell
-# git clone https://github.com/kubeflow/kfctl.git && cd kfctl
-OPERATOR_NAMESPACE=operators
+git clone https://github.com/kubeflow/kfctl.git && cd kfctl
+
+export OPERATOR_NAMESPACE=operators
 kubectl create ns ${OPERATOR_NAMESPACE}
 
 cd deploy/
 kustomize edit set namespace ${OPERATOR_NAMESPACE}
-#kustomize edit add resource kustomize/include/quota # only deploy this if the k8s cluster is 1.15+ and has resource quota support
+# kustomize edit add resource kustomize/include/quota # only deploy this if the k8s cluster is 1.15+ and has resource quota support, which will allow only one _kfdef_ instance or one deployment of Kubeflow on the cluster. This follows the singleton model, and is the current recommended and supported mode.
+
 kustomize build | kubectl apply -f -
 ```
 
-2. Setup Kubeflow namespace. You can optionally apply ResourceQuota if your Kubernetes version is 1.15+, which will allow only one _kfdef_ instance or one deployment of Kubeflow on the cluster. This follows the singleton model, and is the current recommended and supported mode.
-we use ResourceQuota to provide constraints that only one instance of kfdef is allowed within the Kubeflow namespace.
+2. Deploy KfDef
+   
+_KfDef_ can point to a remote URL or to a local kfdef file. To use the set of default kfdefs from Kubeflow, follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
+
 ```shell
 KUBEFLOW_NAMESPACE=kubeflow
 kubectl create ns ${KUBEFLOW_NAMESPACE}
-```
-
-3. Deploy KfDef. _kfdef_ can point to a remote URL or to a local kfdef file. To use the set of default kfdefs from Kubeflow, follow the [Deploy with default kfdefs](#deploy-with-default-kfdefs) section below.
-```shell
 kubectl create -f <kfdef> -n ${KUBEFLOW_NAMESPACE}
 ```
 
-#### Deploy with default kfdefs
-To use the set of default kfdefs from Kubeflow, you will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the Kubeflow 1.0 _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
+### Deploy with default kfdefs
+
+To use the set of default kfdefs from Kubeflow, you will have to insert the `metadata.name` field before you can apply it to Kubernetes. Below are the commands for applying the Kubeflow _kfdef_ using Operator. For e.g. for IBM Cloud, commands will be
 > If you are pointing the kfdef file on the local machine, set the `KFDEF` to the kfdef file path and skip the `curl` command.
 
 First point to your Cloud provider kfdef. For e.g. for OpenShift, point to the kfdef in OpenDataHub repo
@@ -66,10 +73,13 @@ kubectl create -f ${KFDEF} -n ${KUBEFLOW_NAMESPACE}
 ```
 
 ## Testing Watcher and Reconciler
-One of the major benefits of using kfctl as an Operator is to leverage the functionalities around being able to watch and reconcile your Kubeflow deployments. The Operator is watching all the resources with the `kfctl` label. If one of the resources is deleted, 
-the reconciler will be triggered and re-apply the kfdef to the Kubernetes Cluster.
 
-1. Check the tf-job-operator deployment is running.
+One of the major benefits of using kfctl as an Operator is to leverage the functionalities around being able to watch and reconcile your Kubeflow deployments. The Operator is watching on any cluster events for the _KfDef_ instance, as well as the _Delete_ event for all the resources whose owner is the _KfDef_ instance. Each of such events is queued as a request for the _reconciler_ to apply changes to the _KfDef_ instance. For example, if one of the Kubeflow resources is deleted, the _reconciler_ will be triggered to re-apply the _KfDef_ instance, and re-create the deleted resource on the cluster. Therefore, the Kubeflow deployment with this _KfDef_ instance will recover automatically from the unexpected delete event.
+
+Try following to see the operator watcher and reconciler in action:
+
+1. Check the tf-job-operator deployment is running
+
 ```shell
 kubectl get deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
 # NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
@@ -77,13 +87,15 @@ kubectl get deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
 ```
 
 2. Delete the tf-job-operator deployment
+
 ```shell
 kubectl delete deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
 # deployment.extensions "tf-job-operator" deleted
 ```
 
-3. Wait for 10 to 15 seconds, then check the tf-job-operator deployment again. 
-You will be able to see that the deployment is being recreated by the Operator's reconciliation logic
+3. Wait for 10 to 15 seconds, then check the tf-job-operator deployment again
+
+You will be able to see that the deployment is being recreated by the Operator's reconciliation logic.
  
 ```Shell
 kubectl get deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
@@ -91,16 +103,28 @@ kubectl get deploy -n ${KUBEFLOW_NAMESPACE} tf-job-operator
 # tf-job-operator                               0/1     0            0           10s
 ```
 
-## Delete KubeFlow
+The Kubeflow operator also support multiple _KfDef_ instances deployment. It watches over all the _KfDef_ instances and handles reconcile requests to all the _KfDef_ instances. To understand more on the operator controller behavior, refer to this [controller-runtime link](https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/doc.go).
 
-* Delete KubeFlow deployment
+The operator responds to following events:
+
+* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be owned by the _KfDef_ instance with their `ownerReferences` set.
+
+* When a _KfDef_ instance is deleted, since the owner is deleted, all the secondary resources owned by it will be deleted through the [garbage colleciton](https://kubernetes.io/docs/concepts/cluster-administration/kubelet-garbage-collection/). In the mean time, the _reconciler_ will be notified of the event and remove the finalizers.
+
+* When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy the Kubeflow. The deleted resource will be recreated with the same manifest as specified when the _KfDef_ instance is created.
+
+## Delete Kubeflow
+
+* Delete Kubeflow deployment, the _KfDef_ instance
+
 ```shell
 kubectl delete kfdef -n ${KUBEFLOW_NAMESPACE} --all
 ```
 
 > Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either.
 
-* Delete KubeFlow Operator
+* Delete Kubeflow Operator
+
 ```shell
 kubectl delete -f deploy/operator.yaml -n ${OPERATOR_NAMESPACE}
 kubectl delete clusterrolebinding kubeflow-operator
@@ -113,11 +137,10 @@ kubectl delete ns ${OPERATOR_NAMESPACE}
 
 Please follow the instructions [here](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#testing-operator-deployment-on-openshift) to register your Operator to OLM if you are using that to install and manage the Operator. If you want to leverage the OperatorHub, please use the default [Kubeflow Operator registered there](https://operatorhub.io/operator/kubeflow)
 
-## TroubleShooting
-- When deleting the KubeFlow deployment, it's using kfctl delete in the background where it only deletes the deployment namespace. 
-This will make some of KubeFlow pod deployments hanging because _mutatingwebhookconfigurations_ are cluster-wide 
-resources and some of the webhooks are watching every pod deployment. Therefore, we need to remove all the _mutatingwebhookconfigurations_ 
-so that pod deployments will not be hanging after deleting KubeFlow.
+## Trouble Shooting
+
+* When deleting the Kubeflow deployment, some _mutatingwebhookconfigurations_ resources are cluster-wide resources and may not be removed as their owner is not the _KfDef_ instance. To remove them, run following:
+
 ```shell
 kubectl delete mutatingwebhookconfigurations admission-webhook-mutating-webhook-configuration
 kubectl delete mutatingwebhookconfigurations inferenceservice.serving.kubeflow.org
@@ -126,27 +149,48 @@ kubectl delete mutatingwebhookconfigurations katib-mutating-webhook-config
 kubectl delete mutatingwebhookconfigurations mutating-webhook-configurations
 ```
 
-# Development Instructions
+## Development Instructions
 
 ### Prerequisites
+
 1. Install [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md)
+
 2. Install [golang](https://golang.org/dl/)
+
 3. Install [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
 
+### Build Instructions
 
-## Build Instructions
-These steps are based on the [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md)
-with modifications that are specific for this KubeFlow operator.
+These steps are based on the [operator-sdk](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md) with modifications that are specific for this Kubeflow operator.
 
 1. Clone this repository under your `$GOPATH`. (e.g. `~/go/src/github.com/kubeflow/`)
+
 ```shell
 git clone https://github.com/kubeflow/kfctl
 cd kfctl
 ```
 
 2. Build and push the operator
+
 ```shell
-export OPERATOR_IMG=<docker_username>/kubeflow-operator
+export OPERATOR_IMG=<docker_repo>
 make build-operator
 make push-operator
 ```
+
+> Note: replace **<docker_repo>** with the image repo name and tag, for example, `docker.io/example/kubeflow-operator:latest`.
+
+3. Follow [Deployment Instructions](#deployment-instructions) section to test the operator with the newly built image
+
+## Current Tested Operators and Pre-built Images
+
+Kubeflow Operator controller logic is based on the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg), so for each major release of `kfctl`, an operator image is built and tested with that version of [`manifests`](github.com/kubeflow/manifests) to deploy a _KfDef_ instance. Following table shows what releases have been tested.
+
+|branch tag|operator image|manifests version|kfdef example|note|
+|---|---|---|---|---|
+|[v1.0](https://github.com/kubeflow/kfctl/tree/v1.0)|[aipipeline/kubeflow-operator:v1.0.0](https://hub.docker.com/layers/aipipeline/kubeflow-operator/v1.0.0/images/sha256-63d00b29a61ff5bc9b0527c8a515cd4cb55de474c45d8e0f65742908ede4d88f?context=repo)|[1.0.0](https://github.com/kubeflow/manifests/tree/f56bb47d7dc5378497ad1e38ea99f7b5ebe7a950)|[kfctl_k8s_istio.v1.0.0.yaml](https://github.com/kubeflow/manifests/blob/f56bb47d7dc5378497ad1e38ea99f7b5ebe7a950/kfdef/kfctl_k8s_istio.v1.0.0.yaml)||
+|[v1.0.1](https://github.com/kubeflow/kfctl/tree/v1.0.1)|[aipipeline/kubeflow-operator:v1.0.1](https://hub.docker.com/layers/aipipeline/kubeflow-operator/v1.0.1/images/sha256-828024b773040271e4b547ce9219046f705fb7123e05503d5a2d1428dfbcfb6e?context=repo)|[1.0.1](https://github.com/kubeflow/manifests/tree/v1.0.1)|[kfctl_k8s_istio.v1.0.1.yaml](https://github.com/kubeflow/manifests/blob/v1.0.1/kfdef/kfctl_k8s_istio.v1.0.1.yaml)||
+|[v1.0.2](https://github.com/kubeflow/kfctl/tree/v1.0.2)|[aipipeline/kubeflow-operator:v1.0.2](https://hub.docker.com/layers/aipipeline/kubeflow-operator/v1.0.2/images/sha256-18d2ca6f19c1204d5654dfc4cc08032c168e89a95dee68572b9e2aaedada4bda?context=repo)|[1.0.2](https://github.com/kubeflow/manifests/tree/v1.0.2)|[kfctl_k8s_istio.v1.0.2.yaml](https://github.com/kubeflow/manifests/blob/v1.0.2/kfdef/kfctl_k8s_istio.v1.0.2.yaml)||
+|[master](https://github.com/kubeflow/kfctl)|[aipipeline/kubeflow-operator:master](https://hub.docker.com/layers/aipipeline/kubeflow-operator/master/images/sha256-e81020c426a12237c7cf84316dbbd0efda76e732233ddd57ef33543381dfb8a1?context=repo)|[master](https://github.com/kubeflow/manifests)|[kfctl_k8s_istio.yaml](https://github.com/kubeflow/manifests/blob/master/kfdef/kfctl_k8s_istio.yaml)|as of 05/15/2020|
+
+> Note: if building a customized operator for a specific version of Kubeflow is desired, you can run `git checkout` to that specific branch tag. Keep in mind to use the matching version of manifests.

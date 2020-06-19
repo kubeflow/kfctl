@@ -1,7 +1,7 @@
 #**********************************************************************
 # Builder
 # Create a go runtime suitable for building and testing kfctl
-ARG GOLANG_VERSION=1.12.7
+ARG GOLANG_VERSION=1.13.7
 FROM golang:$GOLANG_VERSION as builder
 
 ARG BRANCH=master
@@ -14,11 +14,12 @@ RUN apt-get install -y git unzip jq vim
 RUN go get -u github.com/jstemmer/go-junit-report
 
 # We need gcloud to get gke credentials.
-RUN \
-    cd /tmp && \
-    wget -nv https://dl.google.com/dl/cloudsdk/release/install_google_cloud_sdk.bash && \
-    chmod +x install_google_cloud_sdk.bash && \
-    ./install_google_cloud_sdk.bash --disable-prompts --install-dir=/opt/
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+        cd /tmp && \
+        wget -nv https://dl.google.com/dl/cloudsdk/release/install_google_cloud_sdk.bash && \
+        chmod +x install_google_cloud_sdk.bash && \
+        ./install_google_cloud_sdk.bash --disable-prompts --install-dir=/opt/; \
+    fi
 
 ENV PATH /go/bin:/usr/local/go/bin:/opt/google-cloud-sdk/bin:${PATH}
 
@@ -49,7 +50,10 @@ COPY . .
 #
 FROM builder as kfctl_base
 
-RUN make build-kfctl
+RUN make build-kfctl && \
+    if [ "$(uname -m)" = "aarch64" ]; then \
+        cp bin/arm64/kfctl bin/kfctl; \
+    fi
 
 #**********************************************************************
 #
