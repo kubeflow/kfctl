@@ -69,8 +69,8 @@ const (
 
 	MINIMUM_EKSCTL_VERSION = "0.1.32"
 
-	KUBEFLOW_ADMIN_ROLE_NAME = "kf-admin-%v"
-	KUBEFLOW_USER_ROLE_NAME  = "kf-user-%v"
+	KUBEFLOW_ADMIN_ROLE_NAME = "kf-admin-%v-%v"
+	KUBEFLOW_USER_ROLE_NAME  = "kf-user-%v-%v"
 )
 
 // Aws implements KfApp Interface
@@ -908,7 +908,7 @@ func (aws *Aws) detachPoliciesFromWorkerRoles() error {
 
 	if awsPluginSpec.GetEnablePodIamPolicy() {
 		// no matter it's managed or self-managed cluster, we setup kf-admin roles.
-		roles = append(roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name))
+		roles = append(roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name))
 	} else {
 		// Find worker roles based on new cluster kfctl created or existing cluster
 		if awsPluginSpec.GetManagedCluster() {
@@ -1005,13 +1005,16 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 		oidcProviderArn = arn
 	}
 
+	kubeflowAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name)
+	kubeflowUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, aws.region, eksCluster.name)
+
 	// Link service account, role and policy
 	kubeflowSAIamRoleMapping := map[string]string{
-		"kf-admin":                            fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"alb-ingress-controller":              fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"profiles-controller-service-account": fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"fluentd":                             fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"kf-user":                             fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name),
+		"kf-admin":                            kubeflowAdminRoleName,
+		"alb-ingress-controller":              kubeflowAdminRoleName,
+		"profiles-controller-service-account": kubeflowAdminRoleName,
+		"fluentd":                             kubeflowAdminRoleName,
+		"kf-user":                             kubeflowUserRoleName,
 	}
 
 	for ksa, iamRoleName := range kubeflowSAIamRoleMapping {
@@ -1034,7 +1037,7 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 
 	// We only want to attach admin role at this moment.
 	// Grant kf-user policies later, based on the potential actions use may have, like ECR access, S3 access, etc.
-	aws.roles = append(aws.roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name))
+	aws.roles = append(aws.roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name))
 	return nil
 }
 
@@ -1055,8 +1058,8 @@ func (aws *Aws) deleteWebIdentityRolesAndProvider() error {
 	}
 
 	// Delete IAM role we created
-	kfAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name)
-	kfUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name)
+	kfAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name)
+	kfUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, aws.region, eksCluster.name)
 	aws.deleteIAMRole(kfAdminRoleName)
 	aws.deleteIAMRole(kfUserRoleName)
 	log.Infof("IAM Role %s, %s has been deleted", kfAdminRoleName, kfUserRoleName)
