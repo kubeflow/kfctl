@@ -1,7 +1,6 @@
 package awsplugin
 
 import (
-	"github.com/kubeflow/kfctl/v3/pkg/kfconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -61,8 +60,8 @@ type Auth struct {
 }
 
 type BasicAuth struct {
-	Username string              `json:"username,omitempty"`
-	Password *kfconfig.SecretRef `json:"password,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type OIDC struct {
@@ -94,7 +93,7 @@ func (plugin *AwsPluginSpec) IsValid() (bool, string) {
 			msg += "BasicAuth requires username. "
 		}
 
-		if plugin.Auth.BasicAuth.Password == nil {
+		if plugin.Auth.BasicAuth.Password == "" {
 			isValid = false
 			msg += "BasicAuth requires password. "
 		}
