@@ -629,17 +629,17 @@ func (aws *Aws) setAwsPluginDefaults() error {
 
 	if awsPluginSpec.ManagedCluster == nil {
 		awsPluginSpec.ManagedCluster = proto.Bool(awsPluginSpec.GetManagedCluster())
-		log.Infof("ManagedCluster set defaulting to %v", *awsPluginSpec.ManagedCluster)
+		log.Infof("ManagedCluster set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.ManagedCluster))
 	}
 
 	if awsPluginSpec.EnablePodIamPolicy == nil {
 		awsPluginSpec.EnablePodIamPolicy = proto.Bool(awsPluginSpec.GetEnablePodIamPolicy())
-		log.Infof("EnablePodIamPolicy set defaulting to %v", *awsPluginSpec.EnablePodIamPolicy)
+		log.Infof("EnablePodIamPolicy set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.EnablePodIamPolicy))
 	}
 
 	if awsPluginSpec.EnableNodeGroupLog == nil {
 		awsPluginSpec.EnableNodeGroupLog = proto.Bool(awsPluginSpec.GetEnableNodeGroupLog())
-		log.Infof("EnableNodeGroupLog set defaulting to %v", *awsPluginSpec.EnableNodeGroupLog)
+		log.Infof("EnableNodeGroupLog set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.EnableNodeGroupLog))
 	}
 
 	if awsPluginSpec.Auth == nil {
