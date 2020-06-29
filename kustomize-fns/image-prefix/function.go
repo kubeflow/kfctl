@@ -57,11 +57,11 @@ type Metadata struct {
 }
 
 type Spec struct {
-	 ImageMappings []*ImageMapping   `yaml:"imageMappings"`
+	ImageMappings []*ImageMapping `yaml:"imageMappings"`
 }
 
 type ImageMapping struct {
-	Src string `yaml: src`
+	Src  string `yaml: src`
 	Dest string `yaml: dest`
 }
 
@@ -89,7 +89,7 @@ func (f *ImagePrefixFunction) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error
 	errors := []error{}
 
 	for _, r := range inputs {
-		if err := f.replaceImage(r); err !=nil {
+		if err := f.replaceImage(r); err != nil {
 			errors = append(errors, err)
 		}
 	}
@@ -99,8 +99,8 @@ func (f *ImagePrefixFunction) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error
 // replaceImage looks for an annotation changing docker image prefixes and if it is present
 // applies it to all the images.
 func (f *ImagePrefixFunction) replaceImage(r *yaml.RNode) error {
-	m , _  := r.GetMeta()
-	fmt.Fprintf(os.Stderr, "Meta %+v",m)
+	m, _ := r.GetMeta()
+	fmt.Fprintf(os.Stderr, "Meta %+v", m)
 	// lookup the containers field
 	containers, err := r.Pipe(yaml.Lookup("spec", "template", "spec", "containers"))
 	if err != nil {
@@ -113,7 +113,7 @@ func (f *ImagePrefixFunction) replaceImage(r *yaml.RNode) error {
 		return nil
 	}
 
-	// visit each container and apply the cpu and memory reservations
+	// visit each container and apply the image prefix transform
 	return containers.VisitElements(func(node *yaml.RNode) error {
 		image := node.Field("image").Value.YNode().Value
 
@@ -132,10 +132,10 @@ func (f *ImagePrefixFunction) replaceImage(r *yaml.RNode) error {
 
 		// set image
 		err := node.PipeE(
-			// lookup resources.requests.cpu, creating the field as a
+			// lookup image field, creating the field as a
 			// ScalarNode if it doesn't exist
 			yaml.LookupCreate(yaml.ScalarNode, "image"),
-			// set the field value to the cpuSize
+			// set the field value with new image
 			yaml.Set(yaml.NewScalarRNode(newImage)))
 		if err != nil {
 			s, _ := r.String()

@@ -18,6 +18,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	cmm "github.com/kubeflow/kfctl/kustomize-fns/config-map-merge"
 	ip "github.com/kubeflow/kfctl/kustomize-fns/image-prefix"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -80,7 +81,6 @@ func RunE(_ *cobra.Command, _ []string) error {
 	return d.run(os.Stdin)
 }
 
-
 // Dispatcher dispatches to the matching API
 type Dispatcher struct {
 	// IO hanldes reading / writing Resources
@@ -108,7 +108,8 @@ func (d *Dispatcher) run(input io.Reader) error {
 
 // dispatchTable maps configFunction Kinds to implementations
 var dispatchTable = map[string]func() kio.Filter{
-	ip.Kind: ip.Filter,
+	ip.Kind:  ip.Filter,
+	cmm.Kind: cmm.Filter,
 }
 
 func (d *Dispatcher) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error) {

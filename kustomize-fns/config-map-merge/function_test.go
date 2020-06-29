@@ -1,14 +1,15 @@
-package image_prefix
+package config_map_merge
 
 import (
 	"github.com/kubeflow/kfctl/kustomize-fns/utils"
 	"os"
 	"path"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"testing"
 )
 
-func Test_replace_image(t *testing.T) {
+func Test_merge_config_map(t *testing.T) {
 
 	type testCase struct {
 		InputFile    string
@@ -25,20 +26,20 @@ func Test_replace_image(t *testing.T) {
 
 	cases := []testCase{
 		{
-			InputFile:    path.Join(testDir, "input.yaml"),
+			InputFile:    path.Join(testDir, "kustomization.yaml"),
 			ExpectedFile: path.Join(testDir, "expected.yaml"),
 		},
 	}
 
-	f := &ImagePrefixFunction{
+	f := &ConfigMapMergeFunction{
 		Spec: Spec{
-			ImageMappings: []*ImageMapping{
-				{Src: "quay.io/jetstack",
-					Dest: "gcr.io/myproject",
-				},
+			ConfigMaps: []*types.GeneratorArgs{
 				{
-					Src:  "docker.io/kubeflow",
-					Dest: "gcr.io/project2",
+					Name:     "dex-parameters",
+					Behavior: "merge",
+					KvPairSources: types.KvPairSources{
+						LiteralSources: []string{"github_hostname=github.ibm.com", "github_org_name=kubeflow"},
+					},
 				},
 			},
 		},
@@ -56,9 +57,9 @@ func Test_replace_image(t *testing.T) {
 		}
 		node := nodes[0]
 
-		err = f.replaceImage(node)
+		err = f.mergeConfigMap(node)
 		if err != nil {
-			t.Errorf("prefixImage failed; error %v", err)
+			t.Errorf("mergeConfigMap failed; error %v", err)
 			continue
 		}
 
