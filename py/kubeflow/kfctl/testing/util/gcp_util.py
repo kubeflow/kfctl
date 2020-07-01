@@ -80,15 +80,10 @@ def iap_is_ready(url, wait_min=15):
     num_req += 1
     logging.info("Trying url: %s", url)
     try:
-      resp = None
       resp = make_iap_request(url, client_id, method="GET", verify=False)
-      logging.info(resp.text)
-      if resp.status_code == 200: # pylint: disable=no-else-return
-        logging.info("Endpoint is ready for %s!", url)
-        return True
-      else:
-        logging.info(
-            "%s: Endpoint not ready, request number: %s", url, num_req)
+      logging.info("Response: %s", resp)
+      logging.info("Endpoint is ready for %s!", url)
+      return True
     except Exception as e: # pylint: disable=broad-except
       logging.info("%s: Endpoint not ready, exception caught %s, request "
                    "number: %s", url, str(e), num_req)
