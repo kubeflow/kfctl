@@ -96,13 +96,17 @@ def test_metadata_is_ready(record_xml_attribute, namespace):
 def test_pipeline_is_ready(record_xml_attribute, namespace):
   deployment_names = [
     "argo-ui",
+    "workflow-controller",
     "minio",
+    "mysql",
     "ml-pipeline",
     "ml-pipeline-persistenceagent",
     "ml-pipeline-scheduledworkflow",
     "ml-pipeline-ui",
-    "ml-pipeline-viewer-controller-deployment",
-    "mysql",
+    "ml-pipeline-viewer-crd",
+    "ml-pipeline-visualizationserver",
+    "cache-deployer",
+    "cache-server",
   ]
   check_deployments_ready(record_xml_attribute, namespace,
                           "test_pipeline_is_ready", deployment_names)
