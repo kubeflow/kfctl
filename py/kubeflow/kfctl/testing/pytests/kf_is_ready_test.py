@@ -105,7 +105,7 @@ def test_pipeline_is_ready(record_xml_attribute, namespace):
     "ml-pipeline-ui",
     "ml-pipeline-viewer-crd",
     "ml-pipeline-visualizationserver",
-    "cache-deployer",
+    "cache-deployer-deployment",
     "cache-server",
   ]
   check_deployments_ready(record_xml_attribute, namespace,
