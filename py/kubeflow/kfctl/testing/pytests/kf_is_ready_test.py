@@ -170,7 +170,6 @@ def test_istio_is_ready(record_xml_attribute):
   istio_deployments = [
     "istio-ingressgateway",
     "istio-pilot",
-    "istio-policy",
     "istio-sidecar-injector",
     "istio-telemetry",
     "istio-tracing",
