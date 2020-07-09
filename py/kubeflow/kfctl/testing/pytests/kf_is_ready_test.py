@@ -171,16 +171,13 @@ def test_istio_is_ready(record_xml_attribute):
     "istio-ingressgateway",
     "istio-pilot",
     "istio-sidecar-injector",
-    "istio-telemetry",
-    "istio-tracing",
-    "prometheus",
   ]
 
   namespace = "istio-system"
   check_deployments_ready(record_xml_attribute, namespace,
                           "test_istio_is_ready", istio_deployments)
 
-def test_knative_is_deployed(record_xml_attribute, app_path):
+def test_knative_is_deployed(record_xml_attribute, platform):
 
   namespace = "knative-serving"
   deployments = [
@@ -188,8 +185,6 @@ def test_knative_is_deployed(record_xml_attribute, app_path):
           "autoscaler",
           "controller",
   ]
-
-  platform, _ = get_platform_app_name(app_path)
 
   if platform == "existing_arrikto":
     pytest.skip("knative tests skipped on existing_arrikto")
@@ -216,14 +211,13 @@ def test_dex_is_deployed(record_xml_attribute, app_path):
   check_deployments_ready(record_xml_attribute, namespace,
                           "test_dex_is_deployed", deployments)
 
-def test_gcp_ingress_services(record_xml_attribute, namespace, app_path):
+def test_gcp_ingress_services(record_xml_attribute, namespace, platform):
   """Test that Kubeflow was successfully deployed.
 
   Args:
     namespace: The namespace Kubeflow is deployed to.
   """
   namespace = "istio-system"
-  platform, _ = get_platform_app_name(app_path)
 
   if platform != "gcp":
     pytest.skip("Not running on GCP")
@@ -240,7 +234,7 @@ def test_gcp_ingress_services(record_xml_attribute, namespace, app_path):
   check_statefulsets_ready(record_xml_attribute, namespace,
                            name, stateful_sets)
 
-def test_gcp_access(record_xml_attribute, namespace, app_path, project):
+def test_gcp_access(record_xml_attribute, namespace, platform, project):
   """Test that Kubeflow gcp was configured with workload_identity and GCP service account credentails.
 
   Args:
@@ -256,7 +250,6 @@ def test_gcp_access(record_xml_attribute, namespace, app_path, project):
 
   api_client = deploy_utils.create_k8s_client()
 
-  platform, app_name = get_platform_app_name(app_path)
   if platform != "gcp":
 
     pytest.skip("Not running on GCP")
