@@ -99,7 +99,7 @@ def check_statefulsets_ready(record_xml_attribute, namespace, name, stateful_set
       # Collect debug information by running describe
       util.run(["kubectl", "-n", namespace, "describe", "statefulsets",
                 set_name])
-      raise
+      raise Exception(f"Stateful set {namespace}.{name} is not ready")
 
 def test_katib_is_ready(record_xml_attribute, namespace):
   deployment_names = [
@@ -223,7 +223,8 @@ def test_gcp_ingress_services(record_xml_attribute, namespace, platform):
     pytest.skip("Not running on GCP")
     return
 
-  deployments = ["cloud-endpoints-controller", "iap-enabler"]
+  # Deployed in istio-system
+  deployments = ["iap-enabler"]
   stateful_sets = ["backend-updater"]
 
   name = "test_gcp_ingress_services"
@@ -234,14 +235,22 @@ def test_gcp_ingress_services(record_xml_attribute, namespace, platform):
   check_statefulsets_ready(record_xml_attribute, namespace,
                            name, stateful_sets)
 
-def test_gcp_access(record_xml_attribute, namespace, platform, project):
-  """Test that Kubeflow gcp was configured with workload_identity and GCP service account credentails.
+  # Deployed in kubeflow namespace
+  deployments = ["cloud-endpoints-controller"]
+
+  check_deployments_ready(record_xml_attribute, "kubeflow",
+                          name, deployments)
+
+
+def test_gcp_kf_admin_wi(record_xml_attribute, namespace, app_name, platform,
+                         project):
+  """Test that the kubeflow admin SA has proper workload identity binding.
 
   Args:
     namespace: The namespace Kubeflow is deployed to.
   """
   set_logging()
-  util.set_pytest_junit(record_xml_attribute, "test_gcp_access")
+  util.set_pytest_junit(record_xml_attribute, "test_gcp_kf_admin_wi")
 
   # Need to activate account for scopes.
   if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
@@ -255,31 +264,48 @@ def test_gcp_access(record_xml_attribute, namespace, platform, project):
     pytest.skip("Not running on GCP")
     return
 
-  # check secret
-  util.check_secret(api_client, namespace, "user-gcp-sa")
-
   cred = GoogleCredentials.get_application_default()
   # Create the Cloud IAM service object
   service = googleapiclient.discovery.build('iam', 'v1', credentials=cred)
 
-  userSa = 'projects/%s/serviceAccounts/%s-user@%s.iam.gserviceaccount.com' % (project, app_name, project)
+  adminGcpSa = ('projects/%s/serviceAccounts/'
+                '%s-admin@%s.iam.gserviceaccount.com') % (
+                  project, app_name, project)
   adminSa = 'serviceAccount:%s-admin@%s.iam.gserviceaccount.com' % (app_name, project)
 
-  request = service.projects().serviceAccounts().getIamPolicy(resource=userSa)
+  request = service.projects().serviceAccounts().getIamPolicy(
+    resource=adminGcpSa)
   response = request.execute()
   roleToMembers = {}
   for binding in response['bindings']:
     roleToMembers[binding['role']] = set(binding['members'])
 
-  if 'roles/owner' not in roleToMembers:
-    raise Exception("roles/owner missing in iam-policy of %s" % userSa)
-
-  if adminSa not in roleToMembers['roles/owner']:
-    raise Exception("Admin %s should be owner of user %s" % (adminSa, userSa))
-
   workloadIdentityRole = 'roles/iam.workloadIdentityUser'
   if workloadIdentityRole not in roleToMembers:
-    raise Exception("roles/iam.workloadIdentityUser missing in iam-policy of %s" % userSa)
+    raise Exception("roles/iam.workloadIdentityUser missing in iam-policy of "
+                    "service account %s" % adminGcpSa)
+
+  account_str = "{project}.svc.id.goog[{namespace}/{account}]"
+
+  # Expected workload identity users of the admin service account
+  expected_wi_sa = [(namespace, "kf-admin"),
+                    (namespace, "profiles-controller-service-account"),
+                    ("istio-system", "kf-admin")]
+
+  for sa in expected_wi_sa:
+    gcp_sa = account_str.format(project=project, namespace=sa[0], account=sa[1])
+
+    error_message = ("GCP SA {0} missing workload identity binding for "
+                     "{1}").format(adminGcpSa, gcp_sa)
+
+    binding = "serviceAccount:" + gcp_sa
+    assert binding in roleToMembers[workloadIdentityRole], error_message
+
+
+  # TODO(jlewi): We should add tests for
+  # 1. Ensure GCP service accounts have proper IAM policy bindings
+  # 2. Ensure workload identity is properly configured in the profile created
+  #    namespace
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
