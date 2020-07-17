@@ -68,7 +68,8 @@ DEFAULT_REPOS = [
     "kubeflow/kfctl@HEAD",
     "kubeflow/kubeflow@HEAD",
     "kubeflow/testing@HEAD",
-    "kubeflow/tf-operator@HEAD"
+    "kubeflow/tf-operator@HEAD",
+    "kubeflow/kfserving@HEAD"
 ]
 
 class Builder(object):
@@ -151,6 +152,9 @@ class Builder(object):
     self.tf_operator_root = os.path.join(self.src_root_dir,
                                          "kubeflow/tf-operator")
     self.tf_operator_py = os.path.join(self.tf_operator_root, "py")
+
+    self.kfserving_py = os.path.join(self.src_root_dir,
+                                     "kubeflow/kfserving/python/kfserving/kfserving")
 
     self.go_path = self.test_dir
 
@@ -312,7 +316,8 @@ class Builder(object):
       {'name': 'PYTHONPATH',
        'value': ":".join([self.kubeflow_testing_py,
                           self.kfctl_py,
-                          self.tf_operator_py])},
+                          self.tf_operator_py,
+                          self.kfserving_py])},
       {'name': 'GOPATH',
         'value': self.go_path},
       {'name': 'KUBECONFIG',
@@ -380,6 +385,22 @@ class Builder(object):
     pytorch_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
                                     command, dependences)
     pytorch_test["container"]["workingDir"] = self.kfctl_pytest_dir
+    #*************************************************************************
+    # Test KFServing
+    step_name = "kfserving_e2e_test"
+    command = ["pytest",
+               "kfserving_e2e_test.py",
+               "-s",
+               "--timeout=600",
+               "--junitxml=" + self.artifacts_dir + "/junit_kfserving-test.xml",
+               "--kfctl_repo_path=" + self.src_dir,
+               "--namespace=" + self.steps_namespace,
+              ]
+
+    dependences = []
+    kfserving_test = self._build_step(step_name, self.workflow, TESTS_DAG_NAME, task_template,
+                                    command, dependences)
+    kfserving_test["container"]["workingDir"] = self.kfctl_pytest_dir
     #***************************************************************************
     # Notebook test
     step_name = "notebook-test"

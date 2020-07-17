@@ -193,9 +193,12 @@ def test_knative_is_deployed(record_xml_attribute, platform):
   check_deployments_ready(record_xml_attribute, namespace,
                           "test_knative_is_deployed", deployments)
 
+
+def test_kfserving_is_ready(record_xml_attribute, namespace):
+
   stateful_sets = ["kfserving-controller-manager"]
   check_statefulsets_ready(record_xml_attribute, namespace,
-                           "test_knative_is_deployed", stateful_sets)
+                           "test_kfserving_is_ready", stateful_sets)
 
 def test_dex_is_deployed(record_xml_attribute, app_path):
   platform, _ = get_platform_app_name(app_path)
