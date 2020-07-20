@@ -839,8 +839,12 @@ func (c *KfConfig) SetApplicationParameter(appName string, paramName string, val
 			"jupyter-web-app":  KfAppsStackName,
 			"metacontroller":   "metacontroller",
 			"profiles":         KfAppsStackName,
+			"dex":              "dex",
 			// Spartakus is its own application because we want kfctl to be able to remove it.
-			"spartakus": "spartakus",
+			"spartakus":                  "spartakus",
+			// AWS Specific
+			"aws-alb-ingress-controller": KfAppsStackName,
+			"istio-ingress":              KfAppsStackName,
 		}
 
 		appNameDir, ok := appToStack[appName]
