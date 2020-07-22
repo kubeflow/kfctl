@@ -24,7 +24,7 @@ require (
 	github.com/hashicorp/go-version v1.2.0
 	github.com/imdario/mergo v0.3.8
 	github.com/jlewi/cloud-endpoints-controller v0.0.0-20200604211613-aff0aaad5602
-	github.com/kubernetes-sigs/application v0.8.0
+	github.com/kubernetes-sigs/application v0.8.1
 	github.com/onrik/logrus v0.5.1
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/otiai10/copy v1.0.2
@@ -66,6 +66,7 @@ replace (
 	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.17.0
 	github.com/go-openapi/spec => github.com/go-openapi/spec v0.18.0
 	github.com/go-openapi/swag => github.com/go-openapi/swag v0.17.0
+	github.com/kubernetes-sigs/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	github.com/mitchellh/go-homedir => github.com/mitchellh/go-homedir v1.0.0
 	github.com/otiai10/copy => github.com/otiai10/copy v1.0.2
 	github.com/otiai10/mint => github.com/otiai10/mint v1.3.0
@@ -93,7 +94,6 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.0.0-20190620090156-2138f2c9de18
 	k8s.io/metrics => k8s.io/metrics v0.0.0-20190620085625-3b22d835f165
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190620085408-1aef9010884e
-	sigs.k8s.io/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/kustomize/v3 => sigs.k8s.io/kustomize/v3 v3.2.0
 )
