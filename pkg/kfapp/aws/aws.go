@@ -454,10 +454,6 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		return errors.WithStack(err)
 	}
 
-	if err := aws.kfDef.SetApplicationParameter("istio-ingress", "namespace", IstioNamespace); err != nil {
-		return errors.WithStack(err)
-	}
-
 	if pluginSpec.Auth != nil && pluginSpec.Auth.BasicAuth != nil && pluginSpec.Auth.BasicAuth.Password != "" {
 		if err := aws.kfDef.SetApplicationParameter("dex", "static_email", pluginSpec.Auth.BasicAuth.Username); err != nil {
 			return errors.WithStack(err)
