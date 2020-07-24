@@ -450,11 +450,7 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		return errors.WithStack(err)
 	}
 
-	if err := aws.kfDef.SetApplicationParameter("aws-alb-ingress-controller", "clusterName", aws.kfDef.Name); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err := aws.kfDef.SetApplicationParameter("istio-ingress", "namespace", IstioNamespace); err != nil {
+	if err := aws.kfDef.SetApplicationParameter("aws-alb-ingress-controller", "cluster-name", aws.kfDef.Name); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -471,10 +467,6 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		}
 	} else {
 		if pluginSpec.Auth.Cognito != nil {
-			if err := aws.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "ON"); err != nil {
-				return errors.WithStack(err)
-			}
-
 			if err := aws.kfDef.SetApplicationParameter("istio-ingress", "CognitoUserPoolArn", pluginSpec.Auth.Cognito.CognitoUserPoolArn); err != nil {
 				return errors.WithStack(err)
 			}
