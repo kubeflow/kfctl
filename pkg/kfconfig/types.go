@@ -844,7 +844,7 @@ func (c *KfConfig) SetApplicationParameter(appName string, paramName string, val
 			"spartakus":                  "spartakus",
 			// AWS Specific
 			"aws-alb-ingress-controller": KfAppsStackName,
-			"istio-ingress":              KfAppsStackName,
+			"istio-ingress":              "istio-ingress",
 		}
 
 		appNameDir, ok := appToStack[appName]
