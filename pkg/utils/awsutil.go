@@ -77,7 +77,6 @@ func GetEksctlVersion() (string, error) {
 		return "", err
 	}
 
-	log.Infof("Output: %s", output)
 	// [ℹ]  version.Info{BuiltAt:"", GitCommit:"", GitTag:"0.1.32"}
 	r := regexp.MustCompile("[0-9]+.[0-9]+.[0-9]+")
 	matchGroups := r.FindStringSubmatch(string(output))

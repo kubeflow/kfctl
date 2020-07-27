@@ -45,7 +45,6 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
@@ -69,8 +68,8 @@ const (
 
 	MINIMUM_EKSCTL_VERSION = "0.1.32"
 
-	KUBEFLOW_ADMIN_ROLE_NAME = "kf-admin-%v"
-	KUBEFLOW_USER_ROLE_NAME  = "kf-user-%v"
+	KUBEFLOW_ADMIN_ROLE_NAME = "kf-admin-%v-%v"
+	KUBEFLOW_USER_ROLE_NAME  = "kf-user-%v-%v"
 )
 
 // Aws implements KfApp Interface
@@ -110,6 +109,7 @@ func GetPlatform(kfdef *kfconfig.KfConfig) (kftypes.Platform, error) {
 			path: path.Join(KUBEFLOW_MANIFEST_DIR, "istio-install", "base", "istio-noauth.yaml"),
 		},
 	}
+
 	ingressManifests := []manifest{
 		{
 			name: "ALB Ingress",
@@ -344,49 +344,24 @@ func (aws *Aws) generateInfraConfigs() error {
 	return nil
 }
 
-// Use username and password provided by user and create secret for basic auth.
-func (aws *Aws) createBasicAuthSecret(client *clientset.Clientset) error {
+func (aws *Aws) generateBasicAuthPasswordHash() (string, error) {
 	awsPluginSpec, err := aws.GetPluginSpec()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if awsPluginSpec.Auth == nil || awsPluginSpec.Auth.BasicAuth == nil || awsPluginSpec.Auth.BasicAuth.Password.Name == "" {
-		err := errors.WithStack(fmt.Errorf("BasicAuth.Password.Name must be set"))
-		return err
+	if awsPluginSpec.Auth == nil || awsPluginSpec.Auth.BasicAuth == nil || awsPluginSpec.Auth.BasicAuth.Password == "" {
+		err := errors.WithStack(fmt.Errorf("BasicAuth.Password must be set if enabled BasicAuth"))
+		return "", err
 	}
 
-	password, err := aws.kfDef.GetSecret(awsPluginSpec.Auth.BasicAuth.Password.Name)
-	if err != nil {
-		log.Errorf("There was a problem getting the password for basic auth; error %v", err)
-		return err
-	}
-
-	encodedPassword, err := base64EncryptPassword(password)
+	encodedPassword, err := base64EncryptPassword(awsPluginSpec.Auth.BasicAuth.Password)
 	if err != nil {
 		log.Errorf("There was a problem encrypting the password; %v", err)
-		return err
+		return "", err
 	}
 
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      BASIC_AUTH_SECRET,
-			Namespace: aws.kfDef.Namespace,
-		},
-		Data: map[string][]byte{
-			"username":     []byte(awsPluginSpec.Auth.BasicAuth.Username),
-			"passwordhash": []byte(encodedPassword),
-		},
-	}
-	_, err = client.CoreV1().Secrets(aws.kfDef.Namespace).Update(secret)
-	if err != nil {
-		log.Warnf("Updating basic auth login failed, trying to create one: %v", err)
-		return createSecret(client, BASIC_AUTH_SECRET, aws.kfDef.Namespace, map[string][]byte{
-			"username":     []byte(awsPluginSpec.Auth.BasicAuth.Username),
-			"passwordhash": []byte(encodedPassword),
-		})
-	}
-	return nil
+	return encodedPassword, nil
 }
 
 func base64EncryptPassword(password string) (string, error) {
@@ -475,29 +450,23 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		return errors.WithStack(err)
 	}
 
-	if err := aws.kfDef.SetApplicationParameter("aws-alb-ingress-controller", "clusterName", aws.kfDef.Name); err != nil {
+	if err := aws.kfDef.SetApplicationParameter("aws-alb-ingress-controller", "cluster-name", aws.kfDef.Name); err != nil {
 		return errors.WithStack(err)
 	}
 
-	if err := aws.kfDef.SetApplicationParameter("istio-ingress", "namespace", IstioNamespace); err != nil {
-		return errors.WithStack(err)
-	}
-
-	// TODO: AWS doesn't enable BasicAuth yet.
-	if aws.kfDef.Spec.UseBasicAuth {
-		if err := aws.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "OFF"); err != nil {
+	if pluginSpec.Auth != nil && pluginSpec.Auth.BasicAuth != nil && pluginSpec.Auth.BasicAuth.Password != "" {
+		if err := aws.kfDef.SetApplicationParameter("dex", "static_email", pluginSpec.Auth.BasicAuth.Username); err != nil {
 			return errors.WithStack(err)
 		}
-
-		if pluginSpec.Auth.BasicAuth == nil {
-			return errors.WithStack(fmt.Errorf("AwsPluginSpec has no BasicAuth but UseBasicAuth set to true"))
+		if encodedPasswordHash, err := aws.generateBasicAuthPasswordHash(); err == nil {
+			if err := aws.kfDef.SetApplicationParameter("dex", "static_password_hash", encodedPasswordHash); err != nil {
+				return errors.WithStack(err)
+			}
+		} else {
+			return errors.WithStack(err)
 		}
 	} else {
 		if pluginSpec.Auth.Cognito != nil {
-			if err := aws.kfDef.SetApplicationParameter("istio", "clusterRbacConfig", "ON"); err != nil {
-				return errors.WithStack(err)
-			}
-
 			if err := aws.kfDef.SetApplicationParameter("istio-ingress", "CognitoUserPoolArn", pluginSpec.Auth.Cognito.CognitoUserPoolArn); err != nil {
 				return errors.WithStack(err)
 			}
@@ -652,17 +621,17 @@ func (aws *Aws) setAwsPluginDefaults() error {
 
 	if awsPluginSpec.ManagedCluster == nil {
 		awsPluginSpec.ManagedCluster = proto.Bool(awsPluginSpec.GetManagedCluster())
-		log.Infof("ManagedCluster set defaulting to %v", *awsPluginSpec.ManagedCluster)
+		log.Infof("ManagedCluster set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.ManagedCluster))
 	}
 
 	if awsPluginSpec.EnablePodIamPolicy == nil {
 		awsPluginSpec.EnablePodIamPolicy = proto.Bool(awsPluginSpec.GetEnablePodIamPolicy())
-		log.Infof("EnablePodIamPolicy set defaulting to %v", *awsPluginSpec.EnablePodIamPolicy)
+		log.Infof("EnablePodIamPolicy set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.EnablePodIamPolicy))
 	}
 
 	if awsPluginSpec.EnableNodeGroupLog == nil {
 		awsPluginSpec.EnableNodeGroupLog = proto.Bool(awsPluginSpec.GetEnableNodeGroupLog())
-		log.Infof("EnableNodeGroupLog set defaulting to %v", *awsPluginSpec.EnableNodeGroupLog)
+		log.Infof("EnableNodeGroupLog set defaulting to %v", utils.PrettyPrint(*awsPluginSpec.EnableNodeGroupLog))
 	}
 
 	if awsPluginSpec.Auth == nil {
@@ -908,7 +877,7 @@ func (aws *Aws) detachPoliciesFromWorkerRoles() error {
 
 	if awsPluginSpec.GetEnablePodIamPolicy() {
 		// no matter it's managed or self-managed cluster, we setup kf-admin roles.
-		roles = append(roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name))
+		roles = append(roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name))
 	} else {
 		// Find worker roles based on new cluster kfctl created or existing cluster
 		if awsPluginSpec.GetManagedCluster() {
@@ -1005,13 +974,16 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 		oidcProviderArn = arn
 	}
 
+	kubeflowAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name)
+	kubeflowUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, aws.region, eksCluster.name)
+
 	// Link service account, role and policy
 	kubeflowSAIamRoleMapping := map[string]string{
-		"kf-admin":                            fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"alb-ingress-controller":              fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"profiles-controller-service-account": fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"fluentd":                             fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name),
-		"kf-user":                             fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name),
+		"kf-admin":                            kubeflowAdminRoleName,
+		"alb-ingress-controller":              kubeflowAdminRoleName,
+		"profiles-controller-service-account": kubeflowAdminRoleName,
+		"fluentd":                             kubeflowAdminRoleName,
+		"kf-user":                             kubeflowUserRoleName,
 	}
 
 	for ksa, iamRoleName := range kubeflowSAIamRoleMapping {
@@ -1034,7 +1006,7 @@ func (aws *Aws) setupIamRoleForServiceAccount() error {
 
 	// We only want to attach admin role at this moment.
 	// Grant kf-user policies later, based on the potential actions use may have, like ECR access, S3 access, etc.
-	aws.roles = append(aws.roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name))
+	aws.roles = append(aws.roles, fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name))
 	return nil
 }
 
@@ -1055,8 +1027,8 @@ func (aws *Aws) deleteWebIdentityRolesAndProvider() error {
 	}
 
 	// Delete IAM role we created
-	kfAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, eksCluster.name)
-	kfUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, eksCluster.name)
+	kfAdminRoleName := fmt.Sprintf(KUBEFLOW_ADMIN_ROLE_NAME, aws.region, eksCluster.name)
+	kfUserRoleName := fmt.Sprintf(KUBEFLOW_USER_ROLE_NAME, aws.region, eksCluster.name)
 	aws.deleteIAMRole(kfAdminRoleName)
 	aws.deleteIAMRole(kfUserRoleName)
 	log.Infof("IAM Role %s, %s has been deleted", kfAdminRoleName, kfUserRoleName)
