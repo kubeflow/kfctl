@@ -1,12 +1,10 @@
 approvers:
-  - adrian555
-  - animeshsingh
   - crobby
-  - Jeffwan
   - vpavlin
-  - yanniszark
+  - LavLas
+  - nakfour
 reviewers:
-  - adrian555
-  - pdmack
-  - tomcli
-  - PatrickXYS
+  - crobby
+  - vpavlin
+  - LavLas
+  - nakfour
