@@ -159,6 +159,8 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 		}
 	}
 
+	sortResourceByKind(resMap, utils.InstallOrder)
+
 	// check to set owner references for resources if installed through kubeflow operator
 	annotations := kustomize.kfDef.GetAnnotations()
 	setOwnerReference := false
@@ -407,6 +409,10 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 				Message: fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err),
 			}
 		}
+
+		// Sort resources by kind to make sure we don't experience namespace terminating hanging.
+		sortResourceByKind(resMap, utils.UninstallOrder)
+
 		yamlBytes, err := resMap.AsYaml()
 		if err != nil {
 			return &kfapisv3.KfError{
@@ -422,7 +428,6 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			}
 		}
 		for _, r := range resources {
-
 			err := utils.DeleteResource(r, kubeclient, 5*time.Minute)
 			if err != nil {
 				msg := fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err)
@@ -464,6 +469,21 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 	}
 
 	return nil
+}
+
+// sortResourceByKind does in-place sort of resources by Kind.
+func sortResourceByKind(resMap resmap.ResMap, order utils.SortOrder) {
+	resourcesInUninstallOrder := utils.SortByKind(resMap.Resources(), order)
+
+	// Need to remove existing resource and append them in order.
+	allIdsToRemove := resMap.AllIds()
+	for _, idToRemove := range allIdsToRemove {
+		resMap.Remove(idToRemove)
+	}
+
+	for _, resourceToAdd := range resourcesInUninstallOrder {
+		resMap.Append(resourceToAdd)
+	}
 }
 
 // Generate is called from 'kfctl generate ...' and produces yaml output files under <deployment>/kustomize.
