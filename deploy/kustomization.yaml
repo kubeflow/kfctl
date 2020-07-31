@@ -1,10 +1,11 @@
-bases:
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
 - ./crds
 - ./service_account.yaml
 - ./role.yaml
 - ./cluster_role_binding.yaml
 - ./operator.yaml
-
 vars:
 - fieldref:
     fieldPath: metadata.namespace
@@ -16,3 +17,4 @@ vars:
 
 configurations:
 - ./params.yaml
+namespace: operators
