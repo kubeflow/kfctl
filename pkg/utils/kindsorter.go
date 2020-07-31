@@ -44,10 +44,13 @@ var InstallOrder SortOrder = []string{
 
 // UninstallOrder is the order in which resources should be uninstalled (by Kind).
 // Those occurring earlier in the list get uninstalled before those occurring later in the list.
+// Reason to move CustomResourceDefinition earlier is we want to leverage finalizer to delete created resources
+// like profile -> namespaces, etc
 var UninstallOrder SortOrder = []string{
 	"APIService",
 	"ValidatingWebhookConfiguration",
 	"MutatingWebhookConfiguration",
+	"CustomResourceDefinition",
 	"Ingress",
 	"Service",
 	"CronJob",
@@ -62,7 +65,6 @@ var UninstallOrder SortOrder = []string{
 	"Role",
 	"ClusterRoleBinding",
 	"ClusterRole",
-	"CustomResourceDefinition",
 	"ServiceAccount",
 	"PersistentVolumeClaim",
 	"PersistentVolume",
