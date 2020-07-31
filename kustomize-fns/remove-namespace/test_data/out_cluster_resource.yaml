@@ -1,0 +1,9 @@
+# Object that should have namespace removed
+apiVersion: kubeflow.org/v1beta1
+kind: Profile
+metadata:
+  name: default-profile
+spec:
+  owner:
+    kind: User
+    name: alice@foo.com
