@@ -143,7 +143,6 @@ func getGroup(apiVersion string) string {
 // remove namespace from cluster resources.
 func (f *RemoveNamespaceFunction) removeNamespace(r *yaml.RNode) error {
 
-	// check for the tshirt-size annotations
 	meta, err := r.GetMeta()
 	if err != nil {
 		return err
