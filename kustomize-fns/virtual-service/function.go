@@ -10,10 +10,6 @@ import (
 )
 
 const (
-	prefixAnnotation = "image-prefix.kubeflow.org"
-)
-
-const (
 	Kind       = "VirtualServiceTransform"
 	APIVersion = "kubeflow.org/v1alpha1"
 	VSKind     = "VirtualService"

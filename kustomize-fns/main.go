@@ -20,6 +20,7 @@ import (
 	"fmt"
 	ip "github.com/kubeflow/kfctl/kustomize-fns/image-prefix"
 	rn "github.com/kubeflow/kfctl/kustomize-fns/remove-namespace"
+	vs "github.com/kubeflow/kfctl/kustomize-fns/virtual-service"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
@@ -111,6 +112,7 @@ func (d *Dispatcher) run(input io.Reader) error {
 var dispatchTable = map[string]func() kio.Filter{
 	ip.Kind: ip.Filter,
 	rn.Kind: rn.Filter,
+	vs.Kind: vs.Filter,
 }
 
 func (d *Dispatcher) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error) {
