@@ -4,7 +4,6 @@ package image_prefix
 import (
 	"fmt"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"strings"
 
@@ -99,8 +98,6 @@ func (f *ImagePrefixFunction) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error
 // replaceImage looks for an annotation changing docker image prefixes and if it is present
 // applies it to all the images.
 func (f *ImagePrefixFunction) replaceImage(r *yaml.RNode) error {
-	m , _  := r.GetMeta()
-	fmt.Fprintf(os.Stderr, "Meta %+v",m)
 	// lookup the containers field
 	containers, err := r.Pipe(yaml.Lookup("spec", "template", "spec", "containers"))
 	if err != nil {
