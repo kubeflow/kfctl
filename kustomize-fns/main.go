@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	ip "github.com/kubeflow/kfctl/kustomize-fns/image-prefix"
+	rn "github.com/kubeflow/kfctl/kustomize-fns/remove-namespace"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
@@ -109,6 +110,7 @@ func (d *Dispatcher) run(input io.Reader) error {
 // dispatchTable maps configFunction Kinds to implementations
 var dispatchTable = map[string]func() kio.Filter{
 	ip.Kind: ip.Filter,
+	rn.Kind: rn.Filter,
 }
 
 func (d *Dispatcher) Filter(inputs []*yaml.RNode) ([]*yaml.RNode, error) {
