@@ -561,7 +561,7 @@ func (aws *Aws) Generate(resources kftypes.ResourceEnum) error {
 		}
 
 		if pluginSpec.ManagedRelationDatabase.Port != nil {
-			if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_PORT", string(*pluginSpec.ManagedRelationDatabase.Port)); err != nil {
+			if err := aws.kfDef.SetApplicationParameter("metadata", "MYSQL_PORT", fmt.Sprint(*pluginSpec.ManagedRelationDatabase.Port)); err != nil {
 				return errors.WithStack(err)
 			}
 		}
