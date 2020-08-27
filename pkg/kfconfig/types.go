@@ -531,7 +531,9 @@ func (c *KfConfig) SyncCache() error {
 			t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
 			t.RegisterProtocol("", http.NewFileTransport(http.Dir("/")))
 			hclient := &http.Client{Transport: t}
-			resp, err := hclient.Get(r.URI)
+			req, _ := http.NewRequest("GET", r.URI, nil)
+			req.Header.Set("User-Agent", "kfctl")
+			resp, err := hclient.Do(req)
 			if err != nil {
 				return &kfapis.KfError{
 					Code:    int(kfapis.INVALID_ARGUMENT),
