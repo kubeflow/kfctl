@@ -1,5 +1,5 @@
 channels:
-- currentCSV: opendatahub-operator.v0.6.1
+- currentCSV: opendatahub-operator.v0.8.0
   name: beta
 defaultChannel: beta
 packageName: opendatahub
