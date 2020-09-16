@@ -169,7 +169,8 @@ ifneq ($(DOCKERFILE), Dockerfile)
 	cp ${DOCKERFILE} Dockerfile &&\
 	popd
 endif
-	operator-sdk build --image-builder ${IMAGE_BUILDER} --image-build-args "--build-arg binary_name=${OPERATOR_BINARY_NAME}" ${OPERATOR_IMG}
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build -a -o build/_output/bin/$(OPERATOR_BINARY_NAME) cmd/manager/main.go
+	${IMAGE_BUILDER} build build -t ${OPERATOR_IMG}
 ifneq ($(DOCKERFILE), Dockerfile)
 	pushd build &&\
 	cp Dockerfile.bckp Dockerfile &&\
