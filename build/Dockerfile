@@ -7,9 +7,9 @@ ENV OPERATOR=/usr/local/bin/${binary_name} \
     HOMEDIR=/homedir
 
 # install operator binary
-COPY build/_output/bin/${binary_name} ${OPERATOR}
+COPY _output/bin/${binary_name} ${OPERATOR}
 
-COPY build/bin /usr/local/bin
+COPY bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
 RUN  /usr/local/bin/entrypoint
 

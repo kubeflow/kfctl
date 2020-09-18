@@ -88,8 +88,8 @@ func TestGenerateKustomizationFile(t *testing.T) {
 	}
 }
 
-// TestGenerateYamlWithOwnerReferences
-func TestGenerateYamlWithOwnerReferences(t *testing.T) {
+// TestGenerateYamlWithOperatorAnnotation
+func TestGenerateYamlWithOperatorAnnotation(t *testing.T) {
 	type testCase struct {
 		appDir   string
 		expected string
@@ -104,14 +104,14 @@ func TestGenerateYamlWithOwnerReferences(t *testing.T) {
 	instance.SetAPIVersion("kfdef.apps.kubeflow.org/v1")
 	instance.SetKind("KfDef")
 	instance.SetName("operator")
-	instance.SetUID("7d7fd317-5bf6-45c1-a543-bff27b7b5807")
+	instance.SetNamespace("kubeflow")
 
 	for _, c := range testCases {
 		resMap, err := EvaluateKustomizeManifest(c.appDir)
 		if err != nil {
 			t.Fatalf("Failed to evaluate manifest. Error: %v.", err)
 		}
-		actual, err := GenerateYamlWithOwnerReferences(resMap, instance)
+		actual, err := GenerateYamlWithOperatorAnnotation(resMap, instance)
 		if err != nil {
 			t.Fatalf("Failed to add owner reference. Error: %v.", err)
 		}
@@ -120,7 +120,7 @@ func TestGenerateYamlWithOwnerReferences(t *testing.T) {
 			t.Fatalf("Failed to read expected file. Error: %v", err)
 		}
 		if diff := cmp.Diff(expected, actual); diff != "" {
-			t.Fatalf("Set owner reference is different from expected. (-want, +got):\n%s", diff)
+			t.Fatalf("Set operator annotation is different from expected. (-want, +got):\n%s", diff)
 		}
 	}
 }

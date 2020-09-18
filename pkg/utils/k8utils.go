@@ -64,7 +64,9 @@ const (
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
 	KfDefAnnotation            = "kfctl.kubeflow.io"
 	ForceDelete                = "force-delete"
-	SetOwnerReference          = "set-ownerreference"
+	SetAnnotation              = "set-kubeflow-annotation"
+	KfDefInstance              = "kfdef-instance"
+	InstallByOperator          = "install-by-operator"
 )
 
 func generateRandStr(length int) string {
@@ -524,7 +526,10 @@ func (a *Apply) deleteFlags(usage string) *kubectldelete.DeleteFlags {
 	}
 }
 
-func DeleteResource(resourceBytes []byte, kubeclient client.Client, timeout time.Duration) error {
+// DeleteResource removes resource. Prior to that it checks whether the resource is created through the kubeflow operator.
+// always removes the resource if it is not created by the Kubeflow operator, otherwise checks the annotation to
+// be sure the resource is part of the deployment and then remove.
+func DeleteResource(resourceBytes []byte, kubeclient client.Client, timeout time.Duration, byOperator bool) error {
 
 	// Convert to unstructured in order to access object metadata
 	resourceMap := map[string]interface{}{}
@@ -552,6 +557,16 @@ func DeleteResource(resourceBytes []byte, kubeclient client.Client, timeout time
 	}
 	if err != nil {
 		return err
+	}
+
+	// if the func is called by the Kubeflow operator, validate it is installed through the operator
+	if byOperator {
+		anns := unstructuredObject.GetAnnotations()
+		kfdefAnn := strings.Join([]string{KfDefAnnotation, KfDefInstance}, "/")
+		_, found := anns[kfdefAnn]
+		if !found {
+			return nil
+		}
 	}
 
 	// Resource exists, try to delete
