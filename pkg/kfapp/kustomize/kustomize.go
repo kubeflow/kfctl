@@ -216,7 +216,8 @@ func (kustomize *kustomize) Dump(resources kftypesv3.ResourceEnum) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(data))
+		fmt.Print(string(data))
+		fmt.Println("---")
 	}
 	return nil
 }
