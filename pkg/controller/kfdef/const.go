@@ -40,5 +40,6 @@ var (
 		{Group: "rbac.istio.io", Version: "v1alpha1", Kind: "ServiceRoleBinding"},
 		{Group: "networking.istio.io", Version: "v1alpha3", Kind: "VirtualService"},
 		{Group: "argoproj.io", Version: "v1alpha1", Kind: "Workflow"},
+		{Group: "tekton.dev", Version: "v1alpha1", Kind: "Condition"},
 	}
 )
