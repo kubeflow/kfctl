@@ -1,0 +1,9 @@
+check:
+  - thoth-build
+build:
+  build-stratergy: "Dockerfile"
+  dockerfile-path: "build/Dockerfile.multistage"
+  registry: "quay.io"
+  registry-org: "opendatahub"
+  registry-project: "opendatahub-operator"
+  registry-secret: "opendatahub-thoth-pusher-secret"
