@@ -239,11 +239,6 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	// add to kfdefInstances if not exists
-	if _, ok := kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")]; !ok {
-		kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
-	}
-
 	deleted := instance.GetDeletionTimestamp() != nil
 	finalizers := sets.NewString(instance.GetFinalizers()...)
 	if deleted {
@@ -263,7 +258,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		err = kfDelete(instance)
 		if err == nil {
 			log.Infof("KubeFlow Deployment Removed.")
-		}	else {
+		} else {
 			// log an error and continue for cleanup. It does not make sense to retry the delete.
 			log.Errorf("Failed to delete Kubeflow.")
 		}
@@ -321,6 +316,12 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	err = kfApply(instance)
 	if err == nil {
 		log.Infof("KubeFlow Deployment Completed.")
+
+		// add to kfdefInstances if not exists
+		if _, ok := kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")]; !ok {
+			kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
+		}
+
 		if b2ndController == false {
 			c, err := controller.New("kubeflow-controller", kfdefManager, controller.Options{Reconciler: r})
 			if err != nil {

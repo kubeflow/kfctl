@@ -1391,6 +1391,7 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 // GenerateYamlWithOperatorAnnotation adds operator info to the annotation to every resource
 // some code copied from ResMap.AsYaml() func
 func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
+	addAnnotation := true
 	firstObj := true
 	var b []byte
 	buf := bytes.NewBuffer(b)
@@ -1412,7 +1413,6 @@ func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstruct
 		kfdefCr := strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")
 
 		if m.GetKind() == "Namespace" {
-			// if namespace already exists, should not add ownerReferences
 			config, _ := rest.InClusterConfig()
 			corev1client, err := corev1.NewForConfig(config)
 			if err != nil {
@@ -1425,27 +1425,28 @@ func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstruct
 			if err == nil {
 				log.Infof("Namespace %v already exists.", m.GetName())
 
-				// if the namespace is created by this operator, should append the annotation
 				_, found := anns[kfdefAnn]
 				if !found || anns[kfdefAnn] != kfdefCr {
-					continue
+					// if the namespace is not created by this operator, should not append the annotation
+					addAnnotation = false
 				}
 			}
 		} else if m.GetKind() == "CustomResourceDefinition" && m.GetName() == "profiles.kubeflow.org" {
 			// profiles will contain user info and data, should not remove during uninstall
-			if _, err = buf.Write(y); err != nil {
-				return nil, err
-			}
-			continue
+			addAnnotation = false
 		}
 
-		anns[kfdefAnn] = kfdefCr
-		m.SetAnnotations(anns)
+		if addAnnotation {
+			anns[kfdefAnn] = kfdefCr
+			m.SetAnnotations(anns)
+		}
 		out, err := yaml.Marshal(m)
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("KfDef annotation added for resource %v.%v", m.GetName(), m.GetNamespace())
+		if addAnnotation {
+			log.Infof("KfDef annotation added for resource %v.%v", m.GetName(), m.GetNamespace())
+		}
 
 		if firstObj {
 			firstObj = false
