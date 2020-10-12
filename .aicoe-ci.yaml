@@ -3,6 +3,7 @@ check:
 build:
   build-stratergy: "Dockerfile"
   dockerfile-path: "build/Dockerfile.multistage"
+  custom-tag: "latest"
   registry: "quay.io"
   registry-org: "opendatahub"
   registry-project: "opendatahub-operator"
