@@ -257,7 +257,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		// Uninstall Kubeflow
 		err = kfDelete(instance)
 		if err == nil {
-			log.Infof("KubeFlow Deployment Removed.")
+			log.Infof("KubeFlow Deployment Deleted.")
 		} else {
 			// log an error and continue for cleanup. It does not make sense to retry the delete.
 			log.Errorf("Failed to delete Kubeflow.")
