@@ -114,7 +114,6 @@ The operator responds to following events:
     kfctl.kubeflow.io/kfdef-instance: <kfdef-name>.<kfdef-namespace>
   ```
   
-  indicating they are owned by this _KfDef_ instance.
 
 * When a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the finalizer to run the `Delete` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) and go through all applications and components owned by the _KfDef_ instance.
 
