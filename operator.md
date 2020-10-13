@@ -107,7 +107,7 @@ The Kubeflow operator also support multiple _KfDef_ instances deployment. It wat
 
 The operator responds to following events:
 
-* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be added with 
+* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be added with the following annotation to indicate that they are owned by this _KfDef_ instance.
   
   ```
   annotations:
