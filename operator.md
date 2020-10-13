@@ -118,7 +118,7 @@ The operator responds to following events:
 
 * When a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the finalizer to run the `Delete` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) and go through all applications and components owned by the _KfDef_ instance.
 
-* When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy the Kubeflow. The deleted resource will be recreated with the same manifest as specified when the _KfDef_ instance is created.
+* When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy Kubeflow. The deleted resource will be recreated with the same manifest which was specified when the _KfDef_ instance was created.
 
 ## Delete Kubeflow
 
