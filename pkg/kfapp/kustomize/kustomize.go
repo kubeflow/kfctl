@@ -163,16 +163,16 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 
 	// check to set owner references for resources if installed through kubeflow operator
 	annotations := kustomize.kfDef.GetAnnotations()
-	setOwnerReference := false
-	if setOwner, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.SetOwnerReference}, "/")]; ok {
-		if setOwnerBool, err := strconv.ParseBool(setOwner); err == nil {
-			setOwnerReference = setOwnerBool
+	setOperatorAnnotation := false
+	if setOperator, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.SetAnnotation}, "/")]; ok {
+		if setOperatorBool, err := strconv.ParseBool(setOperator); err == nil {
+			setOperatorAnnotation = setOperatorBool
 		}
 	}
 
 	//TODO this should be streamed
 	var data []byte
-	if setOwnerReference {
+	if setOperatorAnnotation {
 		// retrieve the UID of the KfDef resource using dynamic client
 		config, _ := rest.InClusterConfig()
 		dyn, err := dynamic.NewForConfig(config)
@@ -190,7 +190,7 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 				Message: fmt.Sprintf("failed to get the KfDef object: %v", err),
 			}
 		}
-		data, err = GenerateYamlWithOwnerReferences(resMap, instance)
+		data, err = GenerateYamlWithOperatorAnnotation(resMap, instance)
 		if err != nil {
 			return nil, &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
@@ -211,7 +211,15 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 
 // Dump prints the kustomize generated resources to stdout
 func (kustomize *kustomize) Dump(resources kftypesv3.ResourceEnum) error {
+
+	applications := make(map[string]bool)
 	for _, app := range kustomize.kfDef.Spec.Applications {
+		if applications[app.Name] == true {
+			// if the application name already
+			continue
+		}
+		applications[app.Name] = true
+
 		data, err := kustomize.render(app)
 		if err != nil {
 			return err
@@ -247,7 +255,14 @@ func (kustomize *kustomize) Apply(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 
+	applications := make(map[string]bool)
 	for _, app := range kustomize.kfDef.Spec.Applications {
+		if applications[app.Name] == true {
+			// if the application name already
+			continue
+		}
+		applications[app.Name] = true
+
 		log.Infof("Deploying application %v", app.Name)
 		data, err := kustomize.render(app)
 		if err != nil {
@@ -361,6 +376,14 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		log.Warnf("Running force deletion.")
 	}
 
+	// Get bool value indicating whether this func is called from kubeflow operator
+	byOperator := false
+	if byOperatorAnn, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.InstallByOperator}, "/")]; ok {
+		if byOperatorAnnBol, err := strconv.ParseBool(byOperatorAnn); err == nil {
+			byOperator = byOperatorAnnBol
+		}
+	}
+
 	// Get kubeconfig for cluster and initialize clients
 	msg := ""
 	kubeconfig := kftypesv3.GetKubeConfig()
@@ -429,7 +452,7 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 			}
 		}
 		for _, r := range resources {
-			err := utils.DeleteResource(r, kubeclient, 5*time.Minute)
+			err := utils.DeleteResource(r, kubeclient, 5*time.Minute, byOperator)
 			if err != nil {
 				msg := fmt.Sprintf("error evaluating kustomization manifest for %v: %v", app.Name, err)
 				errList = append(errList, errors.New(msg))
@@ -457,9 +480,19 @@ func (kustomize *kustomize) Delete(resources kftypesv3.ResourceEnum) error {
 		}
 	}
 	namespace := kustomize.kfDef.Namespace
-	log.Infof("Deleting namespace: %v", namespace)
 	ns, nsMissingErr := corev1client.Namespaces().Get(namespace, metav1.GetOptions{})
 	if nsMissingErr == nil {
+		// if the func is called by the Kubeflow operator, validate it is installed through the operator
+		if byOperator {
+			anns := ns.GetAnnotations()
+			kfdefAnn := strings.Join([]string{utils.KfDefAnnotation, utils.KfDefInstance}, "/")
+			_, found := anns[kfdefAnn]
+			if !found {
+				return nil
+			}
+		}
+
+		log.Infof("Deleting namespace: %v", namespace)
 		nsErr := corev1client.Namespaces().Delete(ns.Name, metav1.NewDeleteOptions(int64(100)))
 		if nsErr != nil {
 			return &kfapisv3.KfError{
@@ -1356,9 +1389,10 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 	}
 }
 
-// GenerateYamlWithOwnerReferences adds ownerReferences to every resource
+// GenerateYamlWithOperatorAnnotation adds operator info to the annotation to every resource
 // some code copied from ResMap.AsYaml() func
-func GenerateYamlWithOwnerReferences(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
+func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
+	addAnnotation := true
 	firstObj := true
 	var b []byte
 	buf := bytes.NewBuffer(b)
@@ -1371,23 +1405,50 @@ func GenerateYamlWithOwnerReferences(resMap resmap.ResMap, instance *unstructure
 		if err = yaml.Unmarshal(y, m); err != nil {
 			return nil, err
 		}
-		boolPtr := func(b bool) *bool { return &b }
-		owner := []metav1.OwnerReference{
-			{
-				Kind:               instance.GetKind(),
-				Name:               instance.GetName(),
-				APIVersion:         instance.GetAPIVersion(),
-				UID:                instance.GetUID(),
-				BlockOwnerDeletion: boolPtr(true),
-				Controller:         boolPtr(true),
-			},
+
+		anns := m.GetAnnotations()
+		if anns == nil {
+			anns = map[string]string{}
 		}
-		m.SetOwnerReferences(owner)
+		kfdefAnn := strings.Join([]string{utils.KfDefAnnotation, utils.KfDefInstance}, "/")
+		kfdefCr := strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")
+
+		if m.GetKind() == "Namespace" {
+			config, _ := rest.InClusterConfig()
+			corev1client, err := corev1.NewForConfig(config)
+			if err != nil {
+				return nil, &kfapisv3.KfError{
+					Code:    int(kfapisv3.INTERNAL_ERROR),
+					Message: fmt.Sprintf("failed to create corev1 client: %v", err),
+				}
+			}
+			_, err = corev1client.Namespaces().Get(m.GetName(), metav1.GetOptions{})
+			if err == nil {
+				log.Infof("Namespace %v already exists.", m.GetName())
+
+				_, found := anns[kfdefAnn]
+				if !found || anns[kfdefAnn] != kfdefCr {
+					// if the namespace is not created by this operator, should not append the annotation
+					addAnnotation = false
+				}
+			}
+		} else if m.GetKind() == "CustomResourceDefinition" && m.GetName() == "profiles.kubeflow.org" {
+			// profiles will contain user info and data, should not remove during uninstall
+			addAnnotation = false
+		}
+
+		if addAnnotation {
+			anns[kfdefAnn] = kfdefCr
+			m.SetAnnotations(anns)
+		}
 		out, err := yaml.Marshal(m)
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("ownerReferences added for resource %v.%v", m.GetName(), m.GetNamespace())
+		if addAnnotation {
+			log.Infof("KfDef annotation added for resource %v.%v", m.GetName(), m.GetNamespace())
+		}
+
 		if firstObj {
 			firstObj = false
 		} else {
