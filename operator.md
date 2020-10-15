@@ -52,7 +52,7 @@ Similary for GCP, IBM Cloud etc. you can point to the respective kfdefs in Kubef
 export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
 ```
 
-Then specify the `KUBEFLOW_DEPLOYMENT_NAME` you want to give to your deployment
+Then specify the `KUBEFLOW_DEPLOYMENT_NAME` you want to give to your deployment. Please note that currently multi-user deployments have a hard dependency on using `kubeflow` as the deployment name.
 
 ```shell
 export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
