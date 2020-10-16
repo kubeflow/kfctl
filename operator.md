@@ -127,7 +127,7 @@ The operator responds to following events:
 kubectl delete kfdef -n ${KUBEFLOW_NAMESPACE} --all
 ```
 
-> Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either.
+> Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either. The delete process usually takes 5 to 15 minutes because the operator needs to delete each component sequentially to avoid any race condition such as the [namespace finalizer issue](https://github.com/kubeflow/kfctl/issues/404).
 
 * Delete Kubeflow Operator
 
@@ -145,14 +145,11 @@ Please follow the instructions [here](https://github.com/operator-framework/comm
 
 ## Trouble Shooting
 
-* When deleting the Kubeflow deployment, some _mutatingwebhookconfigurations_ resources are cluster-wide resources and may not be removed as their owner is not the _KfDef_ instance. To remove them, run following:
+* When deleting the Kubeflow deployment, some _mutatingwebhookconfigurations_ resources are cluster-wide resources and may not be removed as they are dynamically created by the individual controller. It's a [known issue](https://github.com/kubeflow/manifests/issues/1379) for some of the components. To remove them, run the following:
 
 ```shell
-kubectl delete mutatingwebhookconfigurations admission-webhook-mutating-webhook-configuration
-kubectl delete mutatingwebhookconfigurations inferenceservice.serving.kubeflow.org
-kubectl delete mutatingwebhookconfigurations istio-sidecar-injector
 kubectl delete mutatingwebhookconfigurations katib-mutating-webhook-config
-kubectl delete mutatingwebhookconfigurations mutating-webhook-configurations
+kubectl delete mutatingwebhookconfigurations cache-webhook-kubeflow
 ```
 
 ## Development Instructions
