@@ -52,7 +52,7 @@ Similary for GCP, IBM Cloud etc. you can point to the respective kfdefs in Kubef
 export KFDEF_URL=https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_ibm.yaml
 ```
 
-Then specify the `KUBEFLOW_DEPLOYMENT_NAME` you want to give to your deployment
+Then specify the `KUBEFLOW_DEPLOYMENT_NAME` you want to give to your deployment. Please note that currently multi-user deployments have a hard dependency on using `kubeflow` as the deployment name.
 
 ```shell
 export KUBEFLOW_DEPLOYMENT_NAME=kubeflow
@@ -107,11 +107,17 @@ The Kubeflow operator also support multiple _KfDef_ instances deployment. It wat
 
 The operator responds to following events:
 
-* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be owned by the _KfDef_ instance with their `ownerReferences` set.
+* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be added with the following annotation to indicate that they are owned by this _KfDef_ instance.
+  
+  ```
+  annotations:
+    kfctl.kubeflow.io/kfdef-instance: <kfdef-name>.<kfdef-namespace>
+  ```
+  
 
-* When a _KfDef_ instance is deleted, since the owner is deleted, all the secondary resources owned by it will be deleted through the [garbage colleciton](https://kubernetes.io/docs/concepts/cluster-administration/kubelet-garbage-collection/). In the mean time, the _reconciler_ will be notified of the event and remove the finalizers.
+* When a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the finalizer to run the `Delete` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) and go through all applications and components owned by the _KfDef_ instance.
 
-* When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` functions provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy the Kubeflow. The deleted resource will be recreated with the same manifest as specified when the _KfDef_ instance is created.
+* When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy Kubeflow. The deleted resource will be recreated with the same manifest which was specified when the _KfDef_ instance was created.
 
 ## Delete Kubeflow
 
@@ -121,7 +127,7 @@ The operator responds to following events:
 kubectl delete kfdef -n ${KUBEFLOW_NAMESPACE} --all
 ```
 
-> Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either.
+> Note that the users profile namespaces created by `profile-controller` will not be deleted. The `${KUBEFLOW_NAMESPACE}` created outside of the operator will not be deleted either. The delete process usually takes up to 15 minutes because the Operator needs to delete each component sequentially to avoid race conditions such as the [namespace finalizer issue](https://github.com/kubeflow/kfctl/issues/404).
 
 * Delete Kubeflow Operator
 
@@ -139,14 +145,11 @@ Please follow the instructions [here](https://github.com/operator-framework/comm
 
 ## Trouble Shooting
 
-* When deleting the Kubeflow deployment, some _mutatingwebhookconfigurations_ resources are cluster-wide resources and may not be removed as their owner is not the _KfDef_ instance. To remove them, run following:
+* When deleting a Kubeflow deployment, some _mutatingwebhookconfigurations_ may not be removed as they are cluster-wide resources and dynamically created by the individual controller. It's a [known issue](https://github.com/kubeflow/manifests/issues/1379) for some of the Kubeflow components. To remove them, run the following:
 
 ```shell
-kubectl delete mutatingwebhookconfigurations admission-webhook-mutating-webhook-configuration
-kubectl delete mutatingwebhookconfigurations inferenceservice.serving.kubeflow.org
-kubectl delete mutatingwebhookconfigurations istio-sidecar-injector
 kubectl delete mutatingwebhookconfigurations katib-mutating-webhook-config
-kubectl delete mutatingwebhookconfigurations mutating-webhook-configurations
+kubectl delete mutatingwebhookconfigurations cache-webhook-kubeflow
 ```
 
 ## Development Instructions

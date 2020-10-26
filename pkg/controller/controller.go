@@ -8,5 +8,5 @@ import (
 
 // AddToManager adds all Controllers to the Manager
 func AddToManager(m manager.Manager) error {
-	return kfdef.Add(m)
+	return kfdef.AddToManager(m)
 }

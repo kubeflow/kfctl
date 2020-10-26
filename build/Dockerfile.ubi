@@ -9,7 +9,7 @@ RUN mkdir -p ${HOME} &&\
 
 WORKDIR ${HOME}
 
-COPY build/_output/bin/${binary_name} ${OPERATOR}
+COPY _output/bin/${binary_name} ${OPERATOR}
 
 ENTRYPOINT ["${OPERATOR}"]
 
