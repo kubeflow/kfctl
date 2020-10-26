@@ -1392,7 +1392,6 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 // GenerateYamlWithOperatorAnnotation adds operator info to the annotation to every resource
 // some code copied from ResMap.AsYaml() func
 func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
-	addAnnotation := true
 	firstObj := true
 	var b []byte
 	buf := bytes.NewBuffer(b)
@@ -1413,6 +1412,7 @@ func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstruct
 		kfdefAnn := strings.Join([]string{utils.KfDefAnnotation, utils.KfDefInstance}, "/")
 		kfdefCr := strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")
 
+		addAnnotation := true
 		if m.GetKind() == "Namespace" {
 			config, _ := rest.InClusterConfig()
 			corev1client, err := corev1.NewForConfig(config)
@@ -1422,14 +1422,19 @@ func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstruct
 					Message: fmt.Sprintf("failed to create corev1 client: %v", err),
 				}
 			}
-			_, err = corev1client.Namespaces().Get(m.GetName(), metav1.GetOptions{})
+			ns, err := corev1client.Namespaces().Get(m.GetName(), metav1.GetOptions{})
 			if err == nil {
 				log.Infof("Namespace %v already exists.", m.GetName())
 
-				_, found := anns[kfdefAnn]
-				if !found || anns[kfdefAnn] != kfdefCr {
-					// if the namespace is not created by this operator, should not append the annotation
+				nsAnns := ns.GetAnnotations()
+				if nsAnns == nil {
 					addAnnotation = false
+				} else {
+					_, found := nsAnns[kfdefAnn]
+					if !found || nsAnns[kfdefAnn] != kfdefCr {
+						// if the namespace is not created by this operator, should not append the annotation
+						addAnnotation = false
+					}
 				}
 			}
 		} else if m.GetKind() == "CustomResourceDefinition" && m.GetName() == "profiles.kubeflow.org" {

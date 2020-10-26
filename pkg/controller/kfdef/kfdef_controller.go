@@ -175,7 +175,20 @@ var kfdefPredicates = predicate.Funcs{
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		object, _ := meta.Accessor(e.ObjectOld)
 		log.Infof("Got update event for %v.%v.", object.GetName(), object.GetNamespace())
-		return true
+
+		upd, _ := meta.Accessor(e.ObjectNew)
+		// these cases will result in a reconcile request
+		// 1. the finalizer is added 2. the deletiontimestamp is added 3. generation is increased
+		if len(object.GetFinalizers()) == 0 && len(upd.GetFinalizers()) > 0 {
+			return true
+		}
+		if object.GetDeletionTimestamp() == nil && upd.GetDeletionTimestamp() != nil {
+			return true
+		}
+		if upd.GetGeneration() > object.GetGeneration() {
+			return true
+		}
+		return false
 	},
 }
 
