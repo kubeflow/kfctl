@@ -1,0 +1,10 @@
+managers:
+  - name: version
+    configuration:
+      maintainers:
+        - crobby
+        - vpavlin
+      assignees:
+        - sesheta
+      labels: [bot]
+      changelog_file: true
