@@ -38,7 +38,7 @@ local kubeflowPy = srcRootDir + "/kubeflow/kubeflow";
 // py scripts to use.
 local kubeflowTestingPy = srcRootDir + "/kubeflow/testing/py";
 
-local cluster=params.cluster_name;
+local cluster = params.cluster_name;
 
 // Build an Argo template to execute a particular command.
 // step_name: Name for the template

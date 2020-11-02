@@ -27,6 +27,7 @@ workflows:
     name: kfctl-e2e
     job_types:
      - presubmit
+     - periodic
     include_dirs:
       - config/*
       - cmd/*
