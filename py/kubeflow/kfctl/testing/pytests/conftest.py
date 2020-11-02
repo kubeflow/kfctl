@@ -2,16 +2,16 @@ import pytest
 
 def pytest_addoption(parser):
   parser.addoption(
-      "--platform", action="store", default="gcp",
-      help="Platform used to trigger platform specific tests")
-
-  parser.addoption(
       "--app_path", action="store", default="",
       help="Path where the KF application should be stored")
 
   parser.addoption(
       "--app_name", action="store", default="",
       help="Name of the KF application")
+
+  parser.addoption(
+      "--cluster_name", action="store", default="",
+      help="Name of ephemeral EKS cluster for e2e test.")
 
   parser.addoption(
       "--kfctl_path", action="store", default="",
@@ -94,10 +94,6 @@ def namespace(request):
   return request.config.getoption("--namespace")
 
 @pytest.fixture
-def platform(request):
-  return request.config.getoption("--platform")
-
-@pytest.fixture
 def project(request):
   return request.config.getoption("--project")
 
@@ -116,6 +112,10 @@ def cluster_creation_script(request):
 @pytest.fixture
 def cluster_deletion_script(request):
   return request.config.getoption("--cluster_deletion_script")
+
+@pytest.fixture
+def cluster_name(request):
+  return request.config.getoption("--cluster_name")
 
 @pytest.fixture
 def build_and_apply(request):

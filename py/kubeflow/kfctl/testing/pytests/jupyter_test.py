@@ -20,16 +20,17 @@ import pytest
 
 from kubernetes import client as k8s_client
 from kubeflow.testing import util
+from kubeflow.kfctl.testing.util import aws_util as kfctl_aws_util
 
-def test_jupyter(record_xml_attribute, kfctl_repo_path, namespace):
+
+def test_jupyter(record_xml_attribute, kfctl_repo_path, namespace, cluster_name):
   """Test the jupyter notebook.
   Args:
     record_xml_attribute: Test fixture provided by pytest.
     kfctl_repo_path: path to local kfctl repository.
     namespace: namespace to run in.
   """
-  util.load_kube_config()
-  util.load_kube_credentials()
+  kfctl_aws_util.aws_auth_load_kubeconfig(cluster_name)
   logging.info("using kfctl repo: %s" % kfctl_repo_path)
   util.run(["kubectl", "apply", "-f",
             os.path.join(kfctl_repo_path,
@@ -41,6 +42,7 @@ def test_jupyter(record_xml_attribute, kfctl_repo_path, namespace):
   names = [service.metadata.name for service in resp.items]
   if not "jupyter-test" in names:
     raise ValueError("not able to find jupyter-test service.")
+
 
 if __name__ == "__main__":
   logging.basicConfig(
