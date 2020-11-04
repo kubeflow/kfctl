@@ -24,9 +24,10 @@ local artifactsDir = outputDir + "/artifacts";
 local srcRootDir = testDir + "/src";
 // The directory containing the kubeflow/kfctl repo
 local srcDir = srcRootDir + "/kubeflow/kfctl";
+local kfctlPy = srcDir + "/py/kubeflow/kfctl";
 
-local image = "gcr.io/kubeflow-ci/test-worker-py3:f91eaf1-dirty";
-local testing_image = "gcr.io/kubeflow-ci/kubeflow-testing";
+local image = "527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:latest";
+local testing_image = "527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:latest";
 
 // The name of the NFS volume claim to use for test files.
 local nfsVolumeClaim = "nfs-external";
@@ -37,7 +38,7 @@ local kubeflowPy = srcRootDir + "/kubeflow/kubeflow";
 // py scripts to use.
 local kubeflowTestingPy = srcRootDir + "/kubeflow/testing/py";
 
-local project = "kubeflow-ci";
+local cluster = params.cluster_name;
 
 // Build an Argo template to execute a particular command.
 // step_name: Name for the template
@@ -57,25 +58,54 @@ local buildTemplate(step_name, command, working_dir=null, env_vars=[], sidecars=
       {
         // Add the source directories to the python path.
         name: "PYTHONPATH",
-        value: kubeflowPy + ":" + kubeflowTestingPy,
+        value: kubeflowPy + ":" + kubeflowTestingPy + ":" + kfctlPy,
       },
       {
-        name: "GOOGLE_APPLICATION_CREDENTIALS",
-        value: "/secret/gcp-credentials/key.json",
+        // EKS cluster name
+        name: "CLUSTER_NAME",
+        value: cluster,
+      },
+      {
+        name: "GITHUB_TOKEN",
+        valueFrom: {
+          secretKeyRef: {
+            name: "github-token",
+            key: "github_token",
+          },
+        },
+      },
+      {
+        name: "AWS_ACCESS_KEY_ID",
+        valueFrom: {
+          secretKeyRef: {
+            name: "aws-credentials",
+            key: "AWS_ACCESS_KEY_ID",
+          },
+        },
+      },
+      {
+        name: "AWS_SECRET_ACCESS_KEY",
+        valueFrom: {
+          secretKeyRef: {
+            name: "aws-credentials",
+            key: "AWS_SECRET_ACCESS_KEY",
+          },
+        },
+      },
+      {
+        name: "AWS_DEFAULT_REGION",
+        value: "us-west-2",
+      },
+      {
+          // EKS Namespace
+          name: "EKS_NAMESPACE",
+          value: namespace,
       },
     ] + prowEnv + env_vars,
     volumeMounts: [
       {
         name: dataVolume,
         mountPath: mountPath,
-      },
-      {
-        name: "github-token",
-        mountPath: "/secret/github-token",
-      },
-      {
-        name: "gcp-credentials",
-        mountPath: "/secret/gcp-credentials",
       },
     ],
   },
@@ -88,20 +118,16 @@ local buildTemplate(step_name, command, working_dir=null, env_vars=[], sidecars=
 local dagTemplates = [
   {
     template: buildTemplate("checkout",
-                            ["/usr/local/bin/checkout.sh", srcRootDir],
-                            env_vars=[{
-                              name: "EXTRA_REPOS",
-                              value: "kubeflow/kubeflow@HEAD;kubeflow/tf-operator@HEAD;kubeflow/testing@HEAD",
-                            }]),
+                            ["/usr/local/bin/checkout.sh", srcRootDir]),
     dependencies: null,
   },
   {
     template: buildTemplate("create-pr-symlink", [
       "python",
       "-m",
-      "kubeflow.testing.prow_artifacts",
+      "kubeflow.testing.cloudprovider.aws.prow_artifacts",
       "--artifacts_dir=" + outputDir,
-      "create_pr_symlink",
+      "create_pr_symlink_s3",
       "--bucket=" + bucket,
     ]),  // create-pr-symlink
     dependencies: ["checkout"],
@@ -117,10 +143,6 @@ local dagTemplates = [
           value: artifactsDir + "/junit_go-kfctl-unit-tests.xml",
        }],
        ) + {
-      someRandomField: "jeremy",
-      container+:{
-        image: "gcr.io/kubeflow-ci/test-worker-py3:f91eaf1-dirty",
-      },
     },  // go-kfctl-unit-tests
     dependencies: ["checkout"],
   },
@@ -133,9 +155,9 @@ local exitTemplates = [
     template: buildTemplate("copy-artifacts", [
       "python",
       "-m",
-      "kubeflow.testing.prow_artifacts",
+      "kubeflow.testing.cloudprovider.aws.prow_artifacts",
       "--artifacts_dir=" + outputDir,
-      "copy_artifacts",
+      "copy_artifacts_to_s3",
       "--bucket=" + bucket,
     ]),  // copy-artifacts,
     dependencies: null,
@@ -145,7 +167,7 @@ local exitTemplates = [
       buildTemplate("test-dir-delete", [
         "python",
         "-m",
-        "testing.run_with_retry",
+        "testing.util.run_with_retry",
         "--retries=5",
         "--",
         "rm",
@@ -200,7 +222,7 @@ local workflow = {
     namespace: namespace,
     labels: {
       org: "kubeflow",
-      repo: "kubeflow",
+      repo: "kfctl",
       workflow: "e2e",
       // TODO(jlewi): Add labels for PR number and commit. Need to write a function
       // to convert list of environment variables to labels.
@@ -213,12 +235,6 @@ local workflow = {
         name: "github-token",
         secret: {
           secretName: "github-token",
-        },
-      },
-      {
-        name: "gcp-credentials",
-        secret: {
-          secretName: "kubeflow-testing-credentials",
         },
       },
       {

@@ -17,5 +17,11 @@ params + {
       versionTag: 'v20180226-403',
       zone: 'us-central1-a',
     },
+    unit_tests+: {
+      name: 'kubeflow-kfctl-release-111-2222',
+      namespace: 'kubeflow-test-infra',
+      prow_env: 'JOB_NAME=kubeflow-kfctl-aws-utest,JOB_TYPE=presubmit,PULL_NUMBER=111,REPO_NAME=kfctl,REPO_OWNER=kubeflow,BUILD_NUMBER=2222',
+      versionTag: 'v20200911-111',
+    },
   },
 }

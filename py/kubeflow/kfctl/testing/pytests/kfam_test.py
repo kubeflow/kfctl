@@ -7,19 +7,12 @@ import json
 from retrying import retry
 from time import sleep
 import uuid
+from kubeflow.kfctl.testing.util import aws_util as kfctl_aws_util
 
 
-logging.basicConfig(level=logging.INFO,
-                    format=('%(levelname)s|%(asctime)s'
-                            '|%(pathname)s|%(lineno)d| %(message)s'),
-                    datefmt='%Y-%m-%dT%H:%M:%S',
-                    )
-logging.getLogger().setLevel(logging.INFO)
-
-def test_kfam(record_xml_attribute):
+def test_kfam(record_xml_attribute, cluster_name):
   util.set_pytest_junit(record_xml_attribute, "test_kfam_e2e")
-  util.load_kube_config()
-  util.load_kube_credentials()
+  kfctl_aws_util.aws_auth_load_kubeconfig(cluster_name)
 
   getcmd = "kubectl get pods -n kubeflow -l=app=jupyter-web-app --template '{{range.items}}{{.metadata.name}}{{end}}'"
   jupyterpod = util.run(getcmd.split(' '))[1:-1]
@@ -36,6 +29,7 @@ def test_kfam(record_xml_attribute):
 
   assert verify_profile_creation(jupyterpod, profile_name)
 
+
 @retry(wait_fixed=2000, stop_max_delay=20 * 1000)
 def verify_profile_creation(jupyterpod, profile_name):
   # Verify Profile Creation
@@ -46,6 +40,7 @@ def verify_profile_creation(jupyterpod, profile_name):
   if profile_name not in [binding['referredNamespace'] for binding in bindings['bindings']]:
     raise Exception("testprofile not created yet!")
   return True
+
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,

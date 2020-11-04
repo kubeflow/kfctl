@@ -1,26 +1,18 @@
 import datetime
 import logging
 import os
-import subprocess
-import tempfile
-import uuid
-import yaml
-
-from retrying import retry
-
 import pytest
 
 from kubeflow.testing import util
 from kubernetes import client as k8s_client
-from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
+from kubeflow.kfctl.testing.util import aws_util as kfctl_aws_util
+
 
 @pytest.mark.xfail(reason=("See: https://github.com/kubeflow/kfctl/issues/199; "
                            "test is flaky."))
-def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path, namespace):
+def test_deploy_pytorchjob(kfctl_repo_path, namespace, cluster_name):
   """Deploy PytorchJob."""
-  util.load_kube_config()
-  util.load_kube_credentials()
+  kfctl_aws_util.aws_auth_load_kubeconfig(cluster_name)
   logging.info("using kfctl repo: %s" % kfctl_repo_path)
   util.run(["kubectl", "apply", "-f",
             os.path.join(kfctl_repo_path,
@@ -46,6 +38,7 @@ def test_deploy_pytorchjob(record_xml_attribute, kfctl_repo_path, namespace):
       msg.append("pod %s is not found" % n)
   if msg:
     raise ValueError("; ".join(msg))
+
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,

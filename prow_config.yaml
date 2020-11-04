@@ -22,61 +22,17 @@ workflows:
       - kustomize-fns/*
       - testing/*
       - py/*
-  #****************************************************************************************************
-  # Per https://github.com/kubeflow/kfctl/issues/57 the following tests should not be blocking
-  # presubmits.      
+
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
-    name: kfctl-go-iap
+    name: kfctl-e2e
     job_types:
-      - postsubmit
-      - periodic
+     - presubmit
+     - periodic
     include_dirs:
       - config/*
       - cmd/*
       - pkg/*
-      - testing/*
       - py/*
     kwargs:
-      use_basic_auth: false
-      # Run build and then apply rather than just apply
-      build_and_apply: true
-      # test_endpoint flag is actually deprecated; we use pytest annotations to skip on
-      # presubmit.
-      test_endpoint: true
-      config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_iap.yaml
-  # Run basic auth test as part of every periodic and postsubmit run.
-  - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
-    name: kfctl-bauth
-    job_types:
-      - postsubmit
-      - periodic
-    include_dirs:
-      - config/*
-      - cmd/*
-      - pkg/*
-      - testing/*
-      - py/*
-    kwargs:
-      use_basic_auth: true
-      build_and_apply: true
-      test_endpoint: true
-      config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_basic_auth.yaml
-  - py_func: kubeflow.kfctl.testing.ci.kfctl_upgrade_e2e_workflow.create_workflow
-    name: kfctl-upgrade
-    job_types:
-      - postsubmit
-      - periodic
-    include_dirs:
-      - pkg/kfupgrade/*
-      - pkg/apis/apps/kfupgrade/*
-      - py/kubeflow/kfctl/testing/ci/kfctl_upgrade_e2e_workflow.py
-      - py/kubeflow/kfctl/testing/pytests/kfctl_upgrade_test.py
-    kwargs:
-      use_basic_auth: false
-      # Run build and then apply rather than just apply
-      build_and_apply: true
-      # test_endpoint flag is actually deprecated; we use pytest annotations to skip on
-      # presubmit.
-      test_endpoint: true
-      config_path: https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_gcp_iap.v1.0.0.yaml
-      upgrade_spec_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_upgrade_gcp_iap_1.0.2.yaml
+      build_and_apply: false
+      config_path: https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_istio_dex.yaml

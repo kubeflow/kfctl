@@ -6,14 +6,15 @@ import os
 import tempfile
 import urllib
 import uuid
-import re
 
 import requests
 import yaml
 from kubeflow.testing import util
-from kubeflow.testing import prow_artifacts
-from google.cloud import storage  # pylint: disable=no-name-in-module
+from kubeflow.testing.cloudprovider.aws import util as aws_util
+from kubeflow.kfctl.testing.util import aws_util as kfctl_aws_util
+from kubeflow.testing.cloudprovider.aws import prow_artifacts as aws_prow_artifacts
 from retrying import retry
+
 
 # retry 4 times, waiting 3 minutes between retries
 @retry(stop_max_attempt_number=4, wait_fixed=180000)
@@ -136,17 +137,15 @@ def filter_spartakus(spec):
       break
   return spec
 
-def get_config_spec(config_path, project, email, zone, app_path):
+def get_config_spec(config_path, app_path, cluster_name):
   """Generate KfDef spec.
 
   Args:
     config_path: Path to a YAML file containing a KFDef object.
     Can be a local path or a URI like
     https://raw.githubusercontent.com/kubeflow/manifests/master/kfdef/kfctl_gcp_iap.yaml
-    project: The GCP project to use.
-    email: a valid email of the GCP account
-    zone: a valid GCP zone for the cluster.
     app_path: The path to the Kubeflow app.
+    cluster_name: Name of EKS cluster
   Returns:
     config_spec: Updated KfDef spec
   """
@@ -154,30 +153,6 @@ def get_config_spec(config_path, project, email, zone, app_path):
   # supports loading version from a URI we should use that so that we
   # pull the configs from the repo we checked out.
   config_spec = load_config(config_path)
-  apiVersion = config_spec["apiVersion"].strip().split("/")
-  if len(apiVersion) != 2:
-    raise RuntimeError("Invalid apiVersion: " + config_spec["apiVersion"].strip())
-  if apiVersion[-1] == "v1alpha1":
-    config_spec["spec"]["project"] = project
-    config_spec["spec"]["email"] = email
-    config_spec["spec"]["zone"] = zone
-  elif apiVersion[-1] in ["v1beta1", "v1"]:
-    for plugin in config_spec["spec"].get("plugins", []):
-      if plugin.get("kind", "") == "KfGcpPlugin":
-        plugin["spec"]["project"] = project
-        plugin["spec"]["email"] = email
-        plugin["spec"]["zone"] = zone
-        break
-  else:
-    raise RuntimeError("Unknown version: " + apiVersion[-1])
-  config_spec["spec"] = filter_spartakus(config_spec["spec"])
-
-  # Set KfDef name to be unique
-  # TODO(swiftdiaries): this is already being set at app_name
-  # we need to reuse that
-  regex = re.compile('[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?')
-  kfdef_name = regex.findall(app_path)[-1]
-  config_spec["metadata"]["name"] = kfdef_name
 
   repos = config_spec["spec"]["repos"]
   manifests_repo_name = "manifests"
@@ -212,17 +187,15 @@ def get_config_spec(config_path, project, email, zone, app_path):
     logging.info(str(config_spec))
   return config_spec
 
-def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_path, kfctl_path, build_and_apply):
+def kfctl_deploy_kubeflow(app_path, config_path, kfctl_path, build_and_apply, cluster_name):
   """Deploy kubeflow.
 
   Args:
   app_path: The path to the Kubeflow app.
-  project: The GCP project to use.
-  use_basic_auth: Whether to use basic_auth.
-  use_istio: Whether to use Istio or not
   config_path: Path to the KFDef spec file.
   kfctl_path: Path to the kfctl go binary
   build_and_apply: whether to build and apply or apply
+  cluster_name: Name of EKS cluster
   Returns:
   app_path: Path where Kubeflow is installed
   """
@@ -233,6 +206,8 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
   # test case 2: apply
   # kfctl apply -f <config file>
 
+  kfctl_aws_util.aws_auth_load_kubeconfig(cluster_name)
+
   if not os.path.exists(kfctl_path):
     msg = "kfctl Go binary not found: {path}".format(path=kfctl_path)
     logging.error(msg)
@@ -240,35 +215,12 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
 
   app_path, parent_dir = get_or_create_app_path_and_parent_dir(app_path)
 
-  logging.info("Project: %s", project)
   logging.info("app path %s", app_path)
   logging.info("kfctl path %s", kfctl_path)
-  # TODO(nrchakradhar): Probably move all the environ sets to set_env_init_args
-  zone = 'us-central1-a'
-  if not zone:
-    raise ValueError("Could not get zone being used")
 
-  # We need to specify a valid email because
-  #  1. We need to create appropriate RBAC rules to allow the current user
-  #   to create the required K8s resources.
-  #  2. Setting the IAM policy will fail if the email is invalid.
-  email = util.run(["gcloud", "config", "get-value", "account"])
-
-  if not email:
-    raise ValueError("Could not determine GCP account being used.")
-  if not project:
-    raise ValueError("Could not get project being used")
-
-  config_spec = get_config_spec(config_path, project, email, zone, app_path)
+  config_spec = get_config_spec(config_path, app_path, cluster_name)
   with open(os.path.join(app_path, "tmp.yaml"), "w") as f:
     yaml.dump(config_spec, f)
-
-  # Set ENV for credentials IAP/basic auth needs.
-  set_env_init_args(config_spec)
-
-  # Write basic auth login username/password to a file for later tests.
-  # If the ENVs are not set, this function call will be noop.
-  write_basic_auth_login(os.path.join(app_path, "login.json"))
 
   # build_and_apply
   logging.info("running kfctl with build and apply: %s \n", build_and_apply)
@@ -276,8 +228,16 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
   logging.info("switching working directory to: %s \n", app_path)
   os.chdir(app_path)
 
-  # push newly built kfctl to GCS
-  push_kfctl_to_gcs(kfctl_path)
+  # push newly built kfctl to S3
+  push_kfctl_to_s3(kfctl_path)
+
+  # Workaround to fix issue
+  # msg="Encountered error applying application bootstrap:  (kubeflow.error): Code 500 with message: Apply.Run
+  # : error when creating \"/tmp/kout927048001\": namespaces \"kubeflow-test-infra\" not found"
+  # filename="kustomize/kustomize.go:266"
+  # TODO(PatrickXYS): fix the issue permanentely rather than work-around
+  util.run(["kubectl", "create", "namespace", "kubeflow-test-infra"])
+
   # Do not run with retries since it masks errors
   logging.info("Running kfctl with config:\n%s", yaml.safe_dump(config_spec))
   if build_and_apply:
@@ -286,11 +246,11 @@ def kfctl_deploy_kubeflow(app_path, project, use_basic_auth, use_istio, config_p
     apply_kubeflow(kfctl_path, app_path)
   return app_path
 
-def push_kfctl_to_gcs(kfctl_path):
-  bucket = prow_artifacts.PROW_RESULTS_BUCKET
-  logging.info("Bucket name: %s", prow_artifacts.get_gcs_dir(bucket))
-  gcs_path = os.path.join(prow_artifacts.get_gcs_dir(bucket) + "/artifacts/build_bin/kfctl")
-  util.upload_file_to_gcs(kfctl_path, gcs_path)
+def push_kfctl_to_s3(kfctl_path):
+  bucket = aws_prow_artifacts.AWS_PROW_RESULTS_BUCKET
+  logging.info("Bucket name: %s", aws_prow_artifacts.get_s3_dir(bucket))
+  s3_path = os.path.join(aws_prow_artifacts.get_s3_dir(bucket) + "/artifacts/build_bin/kfctl")
+  aws_util.upload_file_to_s3(kfctl_path, s3_path)
 
 def apply_kubeflow(kfctl_path, app_path):
   util.run([kfctl_path, "apply", "-V", "-f=" + os.path.join(app_path, "tmp.yaml")], cwd=app_path)
