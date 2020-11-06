@@ -193,6 +193,8 @@ def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth,
 
     stateful_set_names = []
 
+    daemon_set_names = []
+
     platform, _ = get_platform_app_name(app_path)
 
     # TODO(PatrickXYS): not sure why istio-galley can't found
@@ -233,6 +235,7 @@ def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth,
     elif platform == "aws":
         # TODO(PatrickXYS): Extend List with AWS Deployment
         deployment_names.extend(["alb-ingress-controller"])
+        daemon_set_names.extend(["nvidia-device-plugin-daemonset"])
 
     # TODO(jlewi): Might want to parallelize this.
     for deployment_name in deployment_names:
@@ -254,6 +257,17 @@ def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth,
         except:
             # Collect debug information by running describe
             util.run(["kubectl", "-n", ss_namespace, "describe", "statefulsets", name])
+            raise
+
+    all_daemon_sets = [(namespace, name) for name in daemon_set_names]
+
+    for ds_namespace, name in all_daemon_sets:
+        logging.info("Verifying that daemonset set %s.%s started...", ds_namespace, name)
+        try:
+            util.wait_for_daemonset(api_client, ds_namespace, name)
+        except:
+            # Collect debug information by running describe
+            util.run(["kubectl", "-n", ds_namespace, "describe", "daemonset", name])
             raise
 
     ingress_names = ["istio-ingress"]
