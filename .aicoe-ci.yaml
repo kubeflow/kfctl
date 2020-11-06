@@ -8,3 +8,6 @@ build:
   registry-org: "modh"
   registry-project: "opendatahub-operator"
   registry-secret: "modh-pusher-secret"
+sibling:
+  sibling-project-org: "red-hat-data-services"
+  sibling-project: "odh-manifests"
