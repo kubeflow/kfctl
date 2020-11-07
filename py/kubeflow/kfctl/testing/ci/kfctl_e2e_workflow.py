@@ -295,7 +295,7 @@ class Builder(object):
         {"name": "TEST_TARGET_NAME",
          "value": self.test_target_name},
        ],
-      'image': '527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:latest',
+      'image': '527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:v1.2-branch',
       'imagePullPolicy': 'Always',
       'name': '',
       'resources': {'limits': {'cpu': '4', 'memory': '4Gi'},
@@ -431,7 +431,7 @@ class Builder(object):
     self.workflow = self._build_workflow()
     task_template = self._build_task_template()
     py3_template = argo_build_util.deep_copy(task_template)
-    py3_template["container"]["image"] = "527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:latest"
+    py3_template["container"]["image"] = "527798164940.dkr.ecr.us-west-2.amazonaws.com/aws-kubeflow-ci/test-worker:v1.2-branch"
     default_namespace = "kubeflow"
 
     #**************************************************************************
