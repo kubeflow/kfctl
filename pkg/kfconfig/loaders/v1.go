@@ -45,11 +45,11 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	config.Annotations = kfdef.Annotations
 	config.ClusterName = kfdef.ClusterName
 	config.Spec.Version = kfdef.Spec.Version
-	for _, app := range kfdef.Spec.Applications {
+	for i, app := range kfdef.Spec.Applications {
 		if app.Name == "" {
 			return nil, &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("must have name for application"),
+				Message: fmt.Sprintf("must have name for application. missing application name on application %d in kfdef", i),
 			}
 		}
 		application := kfconfig.Application{
