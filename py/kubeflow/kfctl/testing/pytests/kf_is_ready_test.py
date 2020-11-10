@@ -214,7 +214,6 @@ def test_kf_is_ready(record_xml_attribute, namespace, use_basic_auth,
     knative_related_deployments = [
         "activator",
         "autoscaler",
-        "autoscaler-hpa",
         "controller",
         "networking-istio",
         "webhook",
