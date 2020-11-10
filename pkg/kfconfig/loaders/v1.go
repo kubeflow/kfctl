@@ -46,6 +46,12 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 	config.ClusterName = kfdef.ClusterName
 	config.Spec.Version = kfdef.Spec.Version
 	for _, app := range kfdef.Spec.Applications {
+		if app.Name == "" {
+			return nil, &kfapis.KfError{
+				Code:    int(kfapis.INVALID_ARGUMENT),
+				Message: fmt.Sprintf("must have name for application"),
+			}
+		}
 		application := kfconfig.Application{
 			Name: app.Name,
 		}
