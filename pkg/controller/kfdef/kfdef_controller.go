@@ -287,6 +287,26 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		// Remove this KfDef instance
 		delete(kfdefInstances, strings.Join([]string{instance.GetName(), instance.GetNamespace()}, "."))
 
+		// Knative webhooks need to be deleted manually
+		knativeWebhooks := map[string][]string{
+			"MutatingWebhookConfiguration": {
+				"webhook.serving.knative.dev",
+			},
+			"ValidatingWebhookConfiguration": {
+				"config.webhook.serving.knative.dev",
+				"validation.webhook.serving.knative.dev",
+			},
+		}
+		knativeWebhookApiVersion := "admissionregistration.k8s.io/v1beta1"
+		for webhookKind, webhooks := range knativeWebhooks {
+			for _, webhookName := range webhooks {
+				err = kfutils.DeleteResourceByNameAndKind(r.client, webhookName, webhookKind, knativeWebhookApiVersion)
+			}
+		}
+		if err != nil {
+			log.Errorf("Error removing knative webhooks: %v.", err)
+		}
+
 		// Remove finalizer once kfDelete is completed.
 		finalizers.Delete(finalizer)
 		instance.SetFinalizers(finalizers.List())
