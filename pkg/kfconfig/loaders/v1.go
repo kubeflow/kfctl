@@ -49,7 +49,7 @@ func (v V1) LoadKfConfig(def interface{}) (*kfconfig.KfConfig, error) {
 		if app.Name == "" {
 			return nil, &kfapis.KfError{
 				Code:    int(kfapis.INVALID_ARGUMENT),
-				Message: fmt.Sprintf("must have name for application. missing application name on application %d in kfdef", i),
+				Message: fmt.Sprintf("must have name for application. missing application name on application[%d] in kfdef", i),
 			}
 		}
 		application := kfconfig.Application{
