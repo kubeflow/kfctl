@@ -85,10 +85,8 @@ def test_katib_is_ready(record_xml_attribute, namespace, cluster_name):
 
 def test_metadata_is_ready(record_xml_attribute, namespace, cluster_name):
     deployment_names = [
-        "metadata-deployment",
         "metadata-grpc-deployment",
         "metadata-db",
-        "metadata-ui",
         "metadata-envoy-deployment",
         "metadata-writer",
     ]
