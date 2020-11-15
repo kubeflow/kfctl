@@ -74,10 +74,10 @@ class Builder(object):
                use_basic_auth=False,
                build_and_apply=False,
                test_target_name=None,
+               eks_cluster_version="1.17",
                extra_repos="",
                **kwargs):
     """Initialize a builder.
-
     Args:
       name: Name for the workflow.
       namespace: Namespace for the workflow.
@@ -156,6 +156,9 @@ class Builder(object):
 
     # Name for ephemeral EKS cluster
     self.cluster_name = "eks-cluster-" + self.uuid
+
+    # Version for ephemeral EKS clsuter
+    self.eks_cluster_version = eks_cluster_version
 
     # Config name is the name of the config file. This is used to give junit
     # files unique names.
@@ -526,6 +529,7 @@ class Builder(object):
         # Failures still appear to be captured and stored in the junit file.
         "-s",
         "--cluster_name=" + self.cluster_name,
+        "--eks_cluster_version=" + str(self.eks_cluster_version),
         # Embedded Script in the ECR Image
         "--cluster_creation_script=" + "/usr/local/bin/create-eks-cluster.sh",
         "--values=" + self.values_str,
@@ -667,7 +671,6 @@ class Builder(object):
 # let e2e_tool take care of this.
 def create_workflow(**kwargs): # pylint: disable=too-many-statements
   """Create workflow returns an Argo workflow to test kfctl upgrades.
-
   Args:
     name: Name to give to the workflow. This can also be used to name things
      associated with the workflow.

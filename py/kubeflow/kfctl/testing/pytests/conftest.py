@@ -56,6 +56,10 @@ def pytest_addoption(parser):
       help="Use istio.")
 
   parser.addoption(
+      "--eks_cluster_version", action="store", default="",
+      help="Version of ephemeral EKS cluster")
+
+  parser.addoption(
       "--cluster_creation_script", action="store", default="",
       help="The script to use to create a K8s cluster before running kfctl.")
 
@@ -104,6 +108,10 @@ def config_path(request):
 @pytest.fixture
 def values(request):
   return request.config.getoption("--values")
+
+@pytest.fixture
+def eks_cluster_version(request):
+  return request.config.getoption("--eks_cluster_version")
 
 @pytest.fixture
 def cluster_creation_script(request):
