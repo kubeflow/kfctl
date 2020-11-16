@@ -4,11 +4,11 @@ import os
 from kubeflow.testing import util
 
 
-def test_create_cluster(record_xml_attribute, cluster_name, cluster_creation_script, values):
+def test_create_cluster(record_xml_attribute, cluster_name, eks_cluster_version, cluster_creation_script, values):
   """Test Create Cluster For E2E Test.
-
   Args:
     cluster_name: Name of EKS cluster
+    eks_cluster_version: Version of EKS cluster
     cluster_creation_script: script invoked to create a new cluster
     values: Comma separated list of variables to substitute into config_path
   """
@@ -24,6 +24,7 @@ def test_create_cluster(record_xml_attribute, cluster_name, cluster_creation_scr
   # Create EKS Cluster
   logging.info("Creating EKS Cluster")
   os.environ["CLUSTER_NAME"] = cluster_name
+  os.environ["EKS_CLUSTER_VERSION"] = eks_cluster_version
   util.run(["/bin/bash", "-c", cluster_creation_script])
 
 
