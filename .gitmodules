@@ -1,0 +1,3 @@
+[submodule "odh-manifests"]
+	path = odh-manifests
+	url = https://github.com/red-hat-data-services/odh-manifests

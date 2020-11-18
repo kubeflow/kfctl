@@ -10,6 +10,12 @@ RUN go mod vendor &&\
 
 RUN go build -o build/_output/bin/kfctl -gcflags all=-trimpath=/scratch -asmflags all=-trimpath=/scratch -mod=vendor github.com/kubeflow/kfctl/v3/cmd/manager
 
+# Add in the odh-manifests tarball
+RUN mkdir -p /opt/manifests &&\
+    tar -czf /opt/manifests/odh-manifests.tar.gz \
+        --exclude={.*,*.md,Makefile,Dockerfile,Containerfile,OWNERS,tests} \
+        odh-manifests
+
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV HOME=/opt/kfctl
 
@@ -20,6 +26,9 @@ RUN mkdir -p ${HOME} &&\
 WORKDIR ${HOME}
 
 COPY --from=builder /scratch/build/_output/bin/kfctl /usr/local/bin/kfctl
+COPY --from=builder /opt/manifests/odh-manifests.tar.gz /opt/manifests/
+RUN chown -R 1001:0 /opt/manifests &&\
+    chmod -R a+r /opt/manifests
 
 # Add a symlink here so that the image can be invoked multiple ways
 # Autobuilds do not support adding -p binary_name ... so we provide all known names

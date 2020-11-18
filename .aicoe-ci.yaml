@@ -2,11 +2,11 @@ check:
   - thoth-build
 build:
   build-stratergy: "Dockerfile"
-  dockerfile-path: "build/Dockerfile.multistage"
+  dockerfile-path: "build/Dockerfile.modh"
   custom-tag: "latest"
   registry: "quay.io"
   registry-org: "modh"
-  registry-project: "opendatahub-operator"
+  registry-project: "odh-operator-image"
   registry-secret: "modh-pusher-secret"
 sibling:
   sibling-project-org: "red-hat-data-services"
