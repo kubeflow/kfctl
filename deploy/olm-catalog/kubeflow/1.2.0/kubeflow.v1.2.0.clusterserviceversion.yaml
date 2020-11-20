@@ -272,6 +272,8 @@ spec:
       email: tommy.chaoping.li@ibm.com
     - name: Weiqiang Zhuang
       email: wzhuang@us.ibm.com
+    - name: Evan Hataishi
+      email: evan.hataishi@ibm.com
   keywords: 
     - Kubeflow
     - Operator
