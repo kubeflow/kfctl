@@ -16,7 +16,7 @@ spec:
       containers:
         - name: kubeflow-operator
           # Replace this with the built image name
-          image: evanhataishi/kubeflow-operator:v1.2.0
+          image: aipipeline/kubeflow-operator:v1.2.0
           command:
           - kfctl
           imagePullPolicy: Always
