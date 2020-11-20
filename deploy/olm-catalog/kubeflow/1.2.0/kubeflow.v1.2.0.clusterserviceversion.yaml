@@ -14,15 +14,6 @@ metadata:
         "spec": {
             "applications": [
               {
-                "kustomizeConfig": {
-                  "repoRef": {
-                      "name": "manifests",
-                      "path": "openshift/openshift-scc/base"
-                  }
-                },
-                "name": "openshift-scc"
-              },
-              {
                   "kustomizeConfig": {
                     "repoRef": {
                         "name": "manifests",
