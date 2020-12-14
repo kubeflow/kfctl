@@ -13,7 +13,9 @@ COPY bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
 RUN  /usr/local/bin/entrypoint
 
-FROM gcr.io/distroless/base-debian10
+FROM alpine:3.10.1 as barebones_base
+RUN apk update
+RUN apk add git
 ENV OPERATOR=/usr/local/bin/${binary_name} \
     USER_UID=1001 \
     USER_NAME=kfctl \
