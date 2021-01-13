@@ -526,6 +526,7 @@ class Builder(object):
     step_name = "kfctl-go-unittests"
     command = ["make",
                "go-unittests-junit",
+               "JUNIT_DIR=" + self.artifacts_dir,
                "JUNIT_FILE=" + self.artifacts_dir + "/junit_go-kfctl-unit-tests.xml",
                ]
 

@@ -305,7 +305,8 @@ test-junit: build-kfctl
 
 
 go-unittests-junit:
-	@echo $(JUNIT_FILE)
+	echo Running tests ... junit_file=$(JUNIT_FILE)
+	mkdir -p $(JUNIT_DIR)
 	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
 #***************************************************************************************************
