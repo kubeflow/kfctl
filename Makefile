@@ -303,6 +303,11 @@ test-junit: build-kfctl
 	echo Running tests ... junit_file=$(JUNIT_FILE)
 	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
+
+go-unittests-junit:
+	@echo $(JUNIT_FILE)
+	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
+
 #***************************************************************************************************
 test-init: clean install dockerfordesktop.init minikube.init gcp.init none.init-no-platform
 

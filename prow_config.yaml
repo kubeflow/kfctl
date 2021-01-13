@@ -6,22 +6,22 @@ python_paths:
   - kubeflow/testing/py
   - kubeflow/kfctl/py
 workflows:
-  - app_dir: kubeflow/kfctl/testing/workflows
-    component: unit_tests
-    name: unittests
-    params:
-      workflowName: unittest
-    job_types:
-      - presubmit
-      - postsubmit
-      - periodic
-    include_dirs:
-      - config/*
-      - cmd/*
-      - pkg/*
-      - kustomize-fns/*
-      - testing/*
-      - py/*
+#  - app_dir: kubeflow/kfctl/testing/workflows
+#    component: unit_tests
+#    name: unittests
+#    params:
+#      workflowName: unittest
+#    job_types:
+#      - presubmit
+#      - postsubmit
+#      - periodic
+#    include_dirs:
+#      - config/*
+#      - cmd/*
+#      - pkg/*
+#      - kustomize-fns/*
+#      - testing/*
+#      - py/*
 
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-e2e
