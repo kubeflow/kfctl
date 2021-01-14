@@ -106,6 +106,7 @@ class Builder(object):
     # output_dir is the directory to sync to S3 to contain the output for this
     # job.
     self.output_dir = self.test_dir + "/output"
+    self.artifactsDir = self.output_dir + "/artifacts"
 
     # We prefix the artifacts directory with junit because
     # that's what spyglass/prow requires. This ensures multiple
@@ -519,6 +520,26 @@ class Builder(object):
     build_kfctl = self._build_step(step_name, self.workflow, E2E_DAG_NAME,
                                    py3_template, command, dependences)
 
+    #***************************************************************************
+    # kfctl go unit tests
+    #***************************************************************************
+    step_name = "kfctl-go-unittests"
+    command = ["make",
+               "go-unittests-junit",
+               "JUNIT_DIR=" + self.artifacts_dir,
+               "JUNIT_FILE=" + self.artifacts_dir + "/junit_go-kfctl-unit-tests.xml",
+               ]
+
+    dependences = [checkout["name"]]
+    # Temporarily change workingDir to kubeflow/kfctl
+    task_template["container"]["workingDir"] = os.path.join(
+      self.src_dir)
+    kfctl_go_unittests = self._build_step(step_name, self.workflow, E2E_DAG_NAME,
+                                   task_template, command, dependences)
+    # Roll back workingDir
+    task_template["container"]["workingDir"] = os.path.join(
+      self.kfctl_pytest_dir)
+
     #**************************************************************************
     # Create EKS cluster for E2E test
     step_name = "kfctl-create-cluster"
@@ -576,7 +597,7 @@ class Builder(object):
         "--kfctl_repo_path=" + self.src_dir,
     ]
 
-    dependences = [build_kfctl["name"], create_cluster["name"], symlink["name"]]
+    dependences = [build_kfctl["name"], create_cluster["name"], symlink["name"], kfctl_go_unittests["name"]]
     deploy_kf = self._build_step(step_name, self.workflow, E2E_DAG_NAME,
                                    py3_template, command, dependences)
 

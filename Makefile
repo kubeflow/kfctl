@@ -297,10 +297,10 @@ check-licenses:
 test: build-kfctl check-licenses
 	go test ./... -v
 
-
-# Run the unittests and output a junit report for use with prow
-test-junit: build-kfctl
+# Unit test invoked by Github Action
+go-unittests-junit:
 	echo Running tests ... junit_file=$(JUNIT_FILE)
+	mkdir -p $(JUNIT_DIR)
 	go test ./... -v 2>&1 | go-junit-report > $(JUNIT_FILE) --set-exit-code
 
 #***************************************************************************************************
