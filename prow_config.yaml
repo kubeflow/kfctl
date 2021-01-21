@@ -9,6 +9,9 @@ workflows:
   - py_func: kubeflow.kfctl.testing.ci.kfctl_e2e_workflow.create_workflow
     name: kfctl-e2e
     job_types:
+     # Disable presubmit E2E test because large refactoring in manifests repo
+     # Details can be found https://github.com/kubeflow/manifests/pull/1719
+     # - presubmit
      - periodic
     include_dirs:
       - config/*
