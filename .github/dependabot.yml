@@ -1,0 +1,74 @@
+updates:
+- assignees:
+  - adrian555
+  - animeshsingh
+  - crobby
+  - Jeffwan
+  - PatrickXYS
+  - vpavlin
+  - yanniszark
+  directory: .
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - adrian555
+  - pdmack
+  - tomcli
+  schedule:
+    interval: daily
+- assignees:
+  - jlewi
+  directory: kustomize-fns
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - jlewi
+  directory: kustomize-fns/remove-namespace
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - adrian555
+  - animeshsingh
+  - crobby
+  - Jeffwan
+  - PatrickXYS
+  - vpavlin
+  - yanniszark
+  directory: build
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - adrian555
+  - pdmack
+  - tomcli
+  schedule:
+    interval: daily
+- assignees:
+  - adrian555
+  - animeshsingh
+  - crobby
+  - Jeffwan
+  - PatrickXYS
+  - vpavlin
+  - yanniszark
+  directory: .
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  reviewers:
+  - adrian555
+  - pdmack
+  - tomcli
+  schedule:
+    interval: daily
+- assignees:
+  - jlewi
+  directory: kustomize-fns
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  schedule:
+    interval: daily
+version: 2

@@ -310,3 +310,5 @@ test-generate: test-init dockerfordesktop.generate minikube.generate gcp.generat
 
 test-apply: test-generate dockerfordesktop.apply minikube.apply gcp.apply none.apply
 
+build-dependabot:
+	python3 hack/create_dependabot.py
