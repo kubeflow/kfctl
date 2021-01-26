@@ -70,7 +70,7 @@ class Builder(object):
   def __init__(self, name=None, namespace="kubeflow-test-infra",
                config_path=("https://raw.githubusercontent.com/kubeflow"
                             "/manifests/master/kfdef/kfctl_istio_dex.v1.1.0.yaml"),
-               bucket="aws-kubernetes-jenkins",
+               bucket="aws-kubeflow-jenkins",
                use_basic_auth=False,
                build_and_apply=False,
                test_target_name=None,
