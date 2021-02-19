@@ -7,3 +7,7 @@
 ### Improvements
 * Add ODH 1.0 release bundle manifest (#84)
 * Adding Dockerfile.bundle and bundle dir to build bundle images (#81)
+
+## Release 1.0.1 (2021-02-18T20:31:05)
+### Features
+* Update .thoth.yaml
