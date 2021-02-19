@@ -5,6 +5,7 @@ managers:
         - crobby
         - vpavlin
         - lavlas
+        - nakfour
       assignees:
         - sesheta
       labels: [bot]
