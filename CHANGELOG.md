@@ -11,3 +11,7 @@
 ## Release 1.0.1 (2021-02-18T20:31:05)
 ### Features
 * Update .thoth.yaml
+
+## Release 1.0.4 (2021-03-11T19:17:30)
+### Bug Fix
+* Rebase the version string with latest release (#104)
