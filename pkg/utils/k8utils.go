@@ -594,6 +594,22 @@ func DeleteResource(resourceBytes []byte, kubeclient client.Client, timeout time
 	return nil
 }
 
+func DeleteResourceByNameAndKind(kubeclient client.Client, name string, kind string, apiVersion string) error {
+	u := &unstructured.Unstructured{}
+	u.SetName(name)
+	u.SetKind(kind)
+	u.SetAPIVersion(apiVersion)
+
+	log.Infof("Deleting resource %s with kind '%s' in APIVersion '%s'", name, kind, apiVersion)
+	err := kubeclient.Delete(context.TODO(), u)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to delete resource %s with kind '%s' in APIVersion '%s'",
+			name, kind, apiVersion)
+	}
+
+	return nil
+}
+
 func SplitYAML(resources []byte) ([][]byte, error) {
 
 	dec := goyaml.NewDecoder(bytes.NewReader(resources))
