@@ -63,7 +63,7 @@ curl -L ${KFDEF_URL} > ${KFDEF}
 Next, we need to update the KFDEF file with the KUBEFLOW_DEPLOYMENT_NAME. We strongly recommend to install the [yq](https://github.com/mikefarah/yq) tool and run the `yq` command. However, if you can't install `yq`, you can run the `perl` command to do the same thing assuming you are using one of the kfdefs under the [manifests repository](https://github.com/kubeflow/manifests/tree/master/kfdef).
 
 ```shell
-yq w ${KFDEF} 'metadata.name' ${KUBEFLOW_DEPLOYMENT_NAME} > ${KFDEF}.tmp && mv ${KFDEF}.tmp ${KFDEF}
+yq eval '.metadata.name = "'${KUBEFLOW_DEPLOYMENT_NAME}'"' ${KFDEF} > ${KFDEF}.tmp && mv ${KFDEF}.tmp ${KFDEF}
 # perl -pi -e $'s@metadata:@metadata:\\\n  name: '"${KUBEFLOW_DEPLOYMENT_NAME}"'@' ${KFDEF}
 ```
 
