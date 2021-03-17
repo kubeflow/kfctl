@@ -111,7 +111,7 @@ func TestGenerateYamlWithOperatorAnnotation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to evaluate manifest. Error: %v.", err)
 		}
-		actual, err := GenerateYamlWithOperatorAnnotation(resMap, instance)
+		actual, err := GenerateYamlWithOwnerReference(resMap, instance)
 		if err != nil {
 			t.Fatalf("Failed to add owner reference. Error: %v.", err)
 		}

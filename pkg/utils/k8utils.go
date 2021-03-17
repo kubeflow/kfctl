@@ -64,7 +64,7 @@ const (
 	katibMetricsCollectorLabel = "katib-metricscollector-injection"
 	KfDefAnnotation            = "kfctl.kubeflow.io"
 	ForceDelete                = "force-delete"
-	SetAnnotation              = "set-kubeflow-annotation"
+	SetOwnerReference          = "set-owner-reference"
 	KfDefInstance              = "kfdef-instance"
 	InstallByOperator          = "install-by-operator"
 )
