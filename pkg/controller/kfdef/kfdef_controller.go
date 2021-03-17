@@ -37,8 +37,10 @@ const (
 	finalizerMaxRetries = 10
 )
 
-// kfdefInstances keep all KfDef CRs watched by the operator
-var kfdefInstances = map[string]struct{}{}
+// kfdefInstances maps every instance of KfDef with corresponding name and namespace.
+// This is required since we are removing the annotation kfctl.kubeflow.io/kfdef-instance: <kfdef-name>.<kfdef-namespace>
+// that had data regarding name and namespace of a KfDef instance.
+var kfdefInstances = map[types.UID]types.NamespacedName{}
 
 // whether the 2nd controller is added
 var b2ndController = false
@@ -126,25 +128,28 @@ func watchKubeflowResources(c controller.Controller, r client.Client, watchedRes
 		})
 		err := c.Watch(&source.Kind{Type: u}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				anns := a.Meta.GetAnnotations()
-				kfdefAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.KfDefInstance}, "/")
-				_, found := anns[kfdefAnn]
-				if found {
-					kfdefCr := strings.Split(anns[kfdefAnn], ".")
-					namespacedName := types.NamespacedName{Name: kfdefCr[0], Namespace: kfdefCr[1]}
-					instance := &kfdefv1.KfDef{}
-					err := r.Get(context.TODO(), types.NamespacedName{Name: kfdefCr[0], Namespace: kfdefCr[1]}, instance)
-					if err != nil {
-						if errors.IsNotFound(err) {
-							// KfDef CR may have been deleted
+
+				for _, owner := range a.Meta.GetOwnerReferences() {
+					if owner.Kind == string(kftypesv3.KFDEF) {
+						if namespacedName, ok := kfdefInstances[owner.UID]; ok {
+							instance := &kfdefv1.KfDef{}
+							err := r.Get(context.TODO(), namespacedName, instance)
+							if err != nil {
+								if errors.IsNotFound(err) {
+									// KfDef CR may have been deleted
+									return nil
+								}
+							} else if instance.GetDeletionTimestamp() != nil {
+								// KfDef is being deleted
+								return nil
+							}
+							log.Infof("Watch a change for Kubeflow resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
+							return []reconcile.Request{{NamespacedName: namespacedName}}
+						} else {
+							log.Errorf("unable to get name and namespace for KfDef with UID :%v", owner.UID)
 							return nil
 						}
-					} else if instance.GetDeletionTimestamp() != nil {
-						// KfDef is being deleted
-						return nil
 					}
-					log.Infof("Watch a change for Kubeflow resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
-					return []reconcile.Request{{NamespacedName: namespacedName}}
 				}
 				return nil
 			}),
@@ -210,9 +215,15 @@ var ownedResourcePredicates = predicate.Funcs{
 		log.Infof("Got delete event for %v.%v.", object.GetName(), object.GetNamespace())
 		// if this object has an owner, let the owner handle the appropriate recovery
 		if len(object.GetOwnerReferences()) > 0 {
-			return false
+			for _, owner := range object.GetOwnerReferences() {
+				// if owner is KfDef, reconcile function needs to handle the delete.
+				if owner.Kind == string(kftypesv3.KFDEF) {
+					return true
+				}
+			}
 		}
-		return true
+		return false
+
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		// no action
@@ -252,6 +263,11 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
+	// add to kfdefInstances if not exists
+	if _, ok := kfdefInstances[instance.GetUID()]; !ok {
+		kfdefInstances[instance.GetUID()] = request.NamespacedName
+	}
+
 	deleted := instance.GetDeletionTimestamp() != nil
 	finalizers := sets.NewString(instance.GetFinalizers()...)
 	if deleted {
@@ -267,15 +283,6 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			b2ndController = false
 		}
 
-		// Uninstall Kubeflow
-		err = kfDelete(instance)
-		if err == nil {
-			log.Infof("KubeFlow Deployment Deleted.")
-		} else {
-			// log an error and continue for cleanup. It does not make sense to retry the delete.
-			log.Errorf("Failed to delete Kubeflow.")
-		}
-
 		// Delete the kfapp directory
 		kfAppDir := path.Join("/tmp", instance.GetNamespace(), instance.GetName())
 		if err := os.RemoveAll(kfAppDir); err != nil {
@@ -285,7 +292,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Infof("kfAppDir deleted.")
 
 		// Remove this KfDef instance
-		delete(kfdefInstances, strings.Join([]string{instance.GetName(), instance.GetNamespace()}, "."))
+		delete(kfdefInstances, instance.GetUID())
 
 		// Remove finalizer once kfDelete is completed.
 		finalizers.Delete(finalizer)
@@ -331,8 +338,8 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Infof("KubeFlow Deployment Completed.")
 
 		// add to kfdefInstances if not exists
-		if _, ok := kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")]; !ok {
-			kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
+		if _, ok := kfdefInstances[instance.GetUID()]; !ok {
+			kfdefInstances[instance.GetUID()] = request.NamespacedName
 		}
 
 		if b2ndController == false {
@@ -373,19 +380,6 @@ func kfApply(instance *kfdefv1.KfDef) error {
 	return err
 }
 
-// kfDelete is equivalent of kfctl delete
-func kfDelete(instance *kfdefv1.KfDef) error {
-	log.Infof("Uninstall Kubeflow. KubeFlow.Namespace: %v.", instance.Namespace)
-	kfApp, err := kfLoadConfig(instance, "delete")
-	if err != nil {
-		log.Errorf("Failed to load KfApp. Error: %v.", err)
-		return err
-	}
-	// Delete kfApp.
-	err = kfApp.Delete(kftypesv3.K8S)
-	return err
-}
-
 func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, error) {
 	// Define kfApp
 	kfdefBytes, _ := yaml.Marshal(instance)
@@ -406,9 +400,9 @@ func kfLoadConfig(instance *kfdefv1.KfDef, action string) (kftypesv3.KfApp, erro
 
 	if action == "apply" {
 		// Indicate to add annotation to the top level resources
-		setAnnotationAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.SetAnnotation}, "/")
+		setOwnerRefAnn := strings.Join([]string{kfutils.KfDefAnnotation, kfutils.SetOwnerReference}, "/")
 		setAnnotations(configFilePath, map[string]string{
-			setAnnotationAnn: "true",
+			setOwnerRefAnn: "true",
 		})
 	}
 

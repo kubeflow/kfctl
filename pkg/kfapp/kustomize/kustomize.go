@@ -163,16 +163,16 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 
 	// check to set owner references for resources if installed through kubeflow operator
 	annotations := kustomize.kfDef.GetAnnotations()
-	setOperatorAnnotation := false
-	if setOperator, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.SetAnnotation}, "/")]; ok {
+	setOwnerReference := false
+	if setOperator, ok := annotations[strings.Join([]string{utils.KfDefAnnotation, utils.SetOwnerReference}, "/")]; ok {
 		if setOperatorBool, err := strconv.ParseBool(setOperator); err == nil {
-			setOperatorAnnotation = setOperatorBool
+			setOwnerReference = setOperatorBool
 		}
 	}
 
 	//TODO this should be streamed
 	var data []byte
-	if setOperatorAnnotation {
+	if setOwnerReference {
 		// retrieve the UID of the KfDef resource using dynamic client
 		config, _ := rest.InClusterConfig()
 		dyn, err := dynamic.NewForConfig(config)
@@ -190,7 +190,7 @@ func (kustomize *kustomize) render(app kfconfig.Application) ([]byte, error) {
 				Message: fmt.Sprintf("failed to get the KfDef object: %v", err),
 			}
 		}
-		data, err = GenerateYamlWithOperatorAnnotation(resMap, instance)
+		data, err = GenerateYamlWithOwnerReference(resMap, instance)
 		if err != nil {
 			return nil, &kfapisv3.KfError{
 				Code:    int(kfapisv3.INTERNAL_ERROR),
@@ -1389,9 +1389,9 @@ func CreateKustomizationMaps() map[MapType]map[string]bool {
 	}
 }
 
-// GenerateYamlWithOperatorAnnotation adds operator info to the annotation to every resource
+// GenerateYamlWithOwnerReference adds ownerReferences to every resource
 // some code copied from ResMap.AsYaml() func
-func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
+func GenerateYamlWithOwnerReference(resMap resmap.ResMap, instance *unstructured.Unstructured) ([]byte, error) {
 	firstObj := true
 	var b []byte
 	buf := bytes.NewBuffer(b)
@@ -1404,56 +1404,26 @@ func GenerateYamlWithOperatorAnnotation(resMap resmap.ResMap, instance *unstruct
 		if err = yaml.Unmarshal(y, m); err != nil {
 			return nil, err
 		}
-
-		anns := m.GetAnnotations()
-		if anns == nil {
-			anns = map[string]string{}
+		boolTrue := true
+		// Create OwnerReference object
+		owner := []metav1.OwnerReference{
+			{
+				Kind:               instance.GetKind(),
+				Name:               instance.GetName(),
+				APIVersion:         instance.GetAPIVersion(),
+				UID:                instance.GetUID(),
+				BlockOwnerDeletion: &boolTrue,
+				Controller:         &boolTrue,
+			},
 		}
-		kfdefAnn := strings.Join([]string{utils.KfDefAnnotation, utils.KfDefInstance}, "/")
-		kfdefCr := strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")
+		m.SetOwnerReferences(owner)
 
-		addAnnotation := true
-		if m.GetKind() == "Namespace" {
-			config, _ := rest.InClusterConfig()
-			corev1client, err := corev1.NewForConfig(config)
-			if err != nil {
-				return nil, &kfapisv3.KfError{
-					Code:    int(kfapisv3.INTERNAL_ERROR),
-					Message: fmt.Sprintf("failed to create corev1 client: %v", err),
-				}
-			}
-			ns, err := corev1client.Namespaces().Get(m.GetName(), metav1.GetOptions{})
-			if err == nil {
-				log.Infof("Namespace %v already exists.", m.GetName())
-
-				nsAnns := ns.GetAnnotations()
-				if nsAnns == nil {
-					addAnnotation = false
-				} else {
-					_, found := nsAnns[kfdefAnn]
-					if !found || nsAnns[kfdefAnn] != kfdefCr {
-						// if the namespace is not created by this operator, should not append the annotation
-						addAnnotation = false
-					}
-				}
-			}
-		} else if m.GetKind() == "CustomResourceDefinition" && m.GetName() == "profiles.kubeflow.org" {
-			// profiles will contain user info and data, should not remove during uninstall
-			addAnnotation = false
-		}
-
-		if addAnnotation {
-			anns[kfdefAnn] = kfdefCr
-			m.SetAnnotations(anns)
-		}
 		out, err := yaml.Marshal(m)
 		if err != nil {
 			return nil, err
 		}
-		if addAnnotation {
-			log.Infof("KfDef annotation added for resource %v.%v", m.GetName(), m.GetNamespace())
-		}
 
+		log.Infof("ownerReferences added for resource %v.%v", m.GetName(), m.GetNamespace())
 		if firstObj {
 			firstObj = false
 		} else {

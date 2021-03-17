@@ -107,14 +107,13 @@ The Kubeflow operator also support multiple _KfDef_ instances deployment. It wat
 
 The operator responds to following events:
 
-* When a _KfDef_ instance is created or updated, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to deploy Kubeflow. The Kubeflow resources specified with the manifests will be added with the following annotation to indicate that they are owned by this _KfDef_ instance.
+* When a _KfDef_ instance is created or updated, the operator's _reconciler_
+ will be notified of the event and invoke the `Apply` function provided by
+ the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to
+ deploy Kubeflow. The Kubeflow resources specified with the manifests will
+ have KfDef object in their ownerReferences field to indicate that they are
+ owned by this _KfDef_ instance.
   
-  ```
-  annotations:
-    kfctl.kubeflow.io/kfdef-instance: <kfdef-name>.<kfdef-namespace>
-  ```
-  
-
 * When a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the finalizer to run the `Delete` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) and go through all applications and components owned by the _KfDef_ instance.
 
 * When any resource deployed as part of a _KfDef_ instance is deleted, the operator's _reconciler_ will be notified of the event and invoke the `Apply` function provided by the [`kfctl` package](https://github.com/kubeflow/kfctl/tree/master/pkg) to re-deploy Kubeflow. The deleted resource will be recreated with the same manifest which was specified when the _KfDef_ instance was created.
