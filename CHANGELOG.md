@@ -15,3 +15,7 @@
 ## Release 1.0.4 (2021-03-11T19:17:30)
 ### Bug Fix
 * Rebase the version string with latest release (#104)
+
+## Release 1.0.6 (2021-03-25T17:17:12)
+### Bug Fix
+* Bump version to v1.0.5 for kebechet bot (#109)
