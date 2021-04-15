@@ -2,6 +2,7 @@ package kfdef
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,14 +14,20 @@ import (
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
+	olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -35,6 +42,11 @@ const (
 	finalizer = "kfdef-finalizer.kfdef.apps.kubeflow.org"
 	// finalizerMaxRetries defines the maximum number of attempts to add finalizers.
 	finalizerMaxRetries = 10
+	// deleteConfigMapLabel is the label for configMap used to trigger operator uninstall
+	// TODO: Label should be updated if addon name changes
+	deleteConfigMapLabel = "api.openshift.com/addon-managed-odh-delete"
+	// odhGeneratedNamespaceLabel is the label added to all the namespaces genereated by odh-deployer
+	odhGeneratedNamespaceLabel = "opendatahub.io/generated-namespace"
 )
 
 // kfdefInstances keep all KfDef CRs watched by the operator
@@ -63,7 +75,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKfDef{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileKfDef{client: mgr.GetClient(), scheme: mgr.GetScheme(), restConfig: mgr.GetConfig()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -145,6 +157,16 @@ func watchKubeflowResources(c controller.Controller, r client.Client, watchedRes
 					}
 					log.Infof("Watch a change for Kubeflow resource: %v.%v.", a.Meta.GetName(), a.Meta.GetNamespace())
 					return []reconcile.Request{{NamespacedName: namespacedName}}
+				} else if a.Object.GetObjectKind().GroupVersionKind().Kind == "ConfigMap" {
+					labels := a.Meta.GetLabels()
+					if val, ok := labels[deleteConfigMapLabel]; ok {
+						if val == "true" {
+							for k := range kfdefInstances {
+								kfdefCr := strings.Split(k, ".")
+								return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: kfdefCr[0], Namespace: kfdefCr[1]}}}
+							}
+						}
+					}
 				}
 				return nil
 			}),
@@ -180,8 +202,23 @@ var kfdefPredicates = predicate.Funcs{
 }
 
 var ownedResourcePredicates = predicate.Funcs{
-	CreateFunc: func(_ event.CreateEvent) bool {
-		// no action
+	CreateFunc: func(e event.CreateEvent) bool {
+		// handle create event
+		object, err := meta.Accessor(e.Object)
+		if err != nil {
+			return false
+		}
+		// handle create event if object has kind configMap
+		if e.Object.GetObjectKind().GroupVersionKind().Kind == "ConfigMap" {
+			log.Infof("Got create event for %v.%v.", object.GetName(), object.GetNamespace())
+			labels := e.Meta.GetLabels()
+			if val, ok := labels[deleteConfigMapLabel]; ok {
+				if val == "true" {
+					return true
+				}
+			}
+		}
+
 		return false
 	},
 	GenericFunc: func(_ event.GenericEvent) bool {
@@ -214,8 +251,9 @@ var _ reconcile.Reconciler = &ReconcileKfDef{}
 type ReconcileKfDef struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client     client.Client
+	scheme     *runtime.Scheme
+	restConfig *rest.Config
 }
 
 // Reconcile reads that state of the cluster for a KfDef object and makes changes based on the state read
@@ -233,6 +271,9 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
+			if hasDeleteConfigMap(r.client) {
+				return reconcile.Result{}, operatorUninstall(r.client, r.restConfig)
+			}
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -244,6 +285,10 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	if deleted {
 		if !finalizers.Has(finalizer) {
 			log.Info("Kfdef deleted.")
+			if hasDeleteConfigMap(r.client) {
+				// if delete configmap exists, requeue the request to handle operator uninstall
+				return reconcile.Result{Requeue: true}, err
+			}
 			return reconcile.Result{}, nil
 		}
 		log.Infof("Deleting kfdef.")
@@ -291,6 +336,9 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		if finalizerError != nil {
 			log.Errorf("Error removing finalizer: %v.", finalizerError)
 			return reconcile.Result{}, finalizerError
+		}
+		if hasDeleteConfigMap(r.client) {
+			return reconcile.Result{Requeue: true}, nil
 		}
 		return reconcile.Result{}, nil
 	} else if !finalizers.Has(finalizer) {
@@ -343,6 +391,15 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			b2ndController = true
 		}
 	}
+	if hasDeleteConfigMap(r.client) {
+		if err := r.client.Delete(context.TODO(), instance, []client.DeleteOption{}...); err != nil {
+			if !errors.IsNotFound(err) {
+				return reconcile.Result{}, err
+			}
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	// If deployment created successfully - don't requeue
 	return reconcile.Result{}, err
 }
@@ -436,4 +493,101 @@ func setAnnotations(configPath string, annotations map[string]string) error {
 	}
 	config.SetAnnotations(anns)
 	return kfloaders.WriteConfigToFile(*config)
+}
+
+// getClusterServiceVersion retries the clusterserviceversions available in the operator namespace.
+func getClusterServiceVersion(cfg *rest.Config, watchNameSpace string) (*olm.ClusterServiceVersion, error) {
+
+	operatorClient, err := olmclientset.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("error getting operator client %v", err)
+	}
+	csvs, err := operatorClient.ClusterServiceVersions(watchNameSpace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// get csv with CR KfDef
+	if len(csvs.Items) != 0 {
+		for _, csv := range csvs.Items {
+			for _, operatorCR := range csv.Spec.CustomResourceDefinitions.Owned {
+				if operatorCR.Kind == string(kftypesv3.KFDEF) {
+					return &csv, nil
+				}
+			}
+		}
+	}
+	return nil, nil
+}
+
+// operatorUninstall deletes all the externally generated resources. This includes monitoring resources and applications
+// installed by KfDef.
+func operatorUninstall(c client.Client, cfg *rest.Config) error {
+	// Get watchNamespace
+	operatorNamespace, err := k8sutil.GetOperatorNamespace()
+	if err != nil {
+		return err
+	}
+
+	// Delete generated namespaces
+	generatedNamespaces := &v1.NamespaceList{}
+	nsOptions := []client.ListOption{
+		client.MatchingLabels{odhGeneratedNamespaceLabel: "true"},
+	}
+	if err := c.List(context.TODO(), generatedNamespaces, nsOptions...); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("error getting generated namespaces : %v", err)
+		}
+	}
+
+	if len(generatedNamespaces.Items) != 0 {
+		for _, namespace := range generatedNamespaces.Items {
+			if err := c.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
+				return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
+			}
+			log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
+		}
+	}
+
+	// Delete operator csv for CR KfDef
+	operatorCsv, err := getClusterServiceVersion(cfg, operatorNamespace)
+	if err != nil {
+		return err
+	}
+
+	if operatorCsv != nil {
+		log.Infof("Deleting csv %s", operatorCsv.Name)
+		err = c.Delete(context.TODO(), operatorCsv, []client.DeleteOption{}...)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("error deleting clusterserviceversion: %v", err)
+		}
+		log.Infof("Clusterserviceversion %s deleted as a part of uninstall.", operatorCsv.Name)
+	}
+	log.Info("No clusterserviceversion for the operator found.")
+	return nil
+}
+
+// hasDeleteConfigMap returns true if delete configMap is added to the operator namespace by managed-tenants repo.
+// It returns false in all other cases.
+func hasDeleteConfigMap(c client.Client) bool {
+	// Get watchNamespace
+	operatorNamespace, err := k8sutil.GetOperatorNamespace()
+	if err != nil {
+		return false
+	}
+
+	// If delete configMap is added, uninstall the operator and the resources
+	deleteConfigMapList := &v1.ConfigMapList{}
+	cmOptions := []client.ListOption{
+		client.InNamespace(operatorNamespace),
+		client.MatchingLabels{deleteConfigMapLabel: "true"},
+	}
+
+	if err := c.List(context.TODO(), deleteConfigMapList, cmOptions...); err != nil {
+		return false
+	}
+	return len(deleteConfigMapList.Items) != 0
 }
