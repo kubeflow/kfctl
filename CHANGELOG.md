@@ -19,3 +19,10 @@
 ## Release 1.0.6 (2021-03-25T17:17:12)
 ### Bug Fix
 * Bump version to v1.0.5 for kebechet bot (#109)
+
+## Release 1.0.9 (2021-04-15T16:14:40)
+### Improvements
+* Fix imagestream watch (#118)
+* Update resource watches (#116)
+### Features
+* Implement clean uninstall of operator (#117)
