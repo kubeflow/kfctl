@@ -19,7 +19,7 @@ var (
 		{Group: "apps", Version: "v1", Kind: "DaemonSet"},
 		{Group: "apps", Version: "v1", Kind: "Deployment"},
 		{Group: "apps.openshift.io", Version: "v1", Kind: "DeploymentConfig"},
-		{Group: "images.openshift.io", Version: "v1", Kind: "ImageStream"},
+		{Group: "image.openshift.io", Version: "v1", Kind: "ImageStream"},
 		{Group: "build.openshift.io", Version: "v1", Kind: "BuildConfig"},
 		{Group: "extensions", Version: "v1beta1", Kind: "Ingress"},
 		{Group: "admissionregistration.k8s.io", Version: "v1beta1", Kind: "MutatingWebhookConfiguration"},
