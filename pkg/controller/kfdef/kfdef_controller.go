@@ -370,7 +370,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 	}
 
-	err = kfApply(instance)
+	err = getReconcileStatus(instance, kfApply(instance))
 	if err == nil {
 		log.Infof("KubeFlow Deployment Completed.")
 
@@ -379,7 +379,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
 		}
 
-		if b2ndController == false {
+		if !b2ndController {
 			c, err := controller.New("kubeflow-controller", kfdefManager, controller.Options{Reconciler: r})
 			if err != nil {
 				return reconcile.Result{}, nil
@@ -407,6 +407,11 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			}
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// set status of the KfDef resource
+	if err := r.reconcileStatus(instance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// If deployment created successfully - don't requeue
