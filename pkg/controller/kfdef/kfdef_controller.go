@@ -239,8 +239,17 @@ var ownedResourcePredicates = predicate.Funcs{
 		return true
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
-		// no action
-		return false
+		// handle update events
+		object, err := meta.Accessor(e.ObjectOld)
+		if err != nil {
+			return false
+		}
+		log.Infof("Got update event for %v.%v.", object.GetName(), object.GetNamespace())
+		// if this object has an owner, let the owner handle the appropriate recovery
+		if len(object.GetOwnerReferences()) > 0 {
+			return false
+		}
+		return true
 	},
 }
 
@@ -361,7 +370,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 	}
 
-	err = kfApply(instance)
+	err = getReconcileStatus(instance, kfApply(instance))
 	if err == nil {
 		log.Infof("KubeFlow Deployment Completed.")
 
@@ -370,7 +379,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
 		}
 
-		if b2ndController == false {
+		if !b2ndController {
 			c, err := controller.New("kubeflow-controller", kfdefManager, controller.Options{Reconciler: r})
 			if err != nil {
 				return reconcile.Result{}, nil
@@ -398,6 +407,11 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			}
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// set status of the KfDef resource
+	if err := r.reconcileStatus(instance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// If deployment created successfully - don't requeue
