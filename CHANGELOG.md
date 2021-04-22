@@ -26,3 +26,9 @@
 * Update resource watches (#116)
 ### Features
 * Implement clean uninstall of operator (#117)
+
+## Release 1.0.10 (2021-04-22T13:13:22)
+### Improvements
+* Update ODH operator to reconcile updated objects (#119)
+### Features
+* Implement initial KfDef status (#113)
