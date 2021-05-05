@@ -316,7 +316,7 @@ spec:
     type: MultiNamespace
   - supported: true
     type: AllNamespaces
-  maturity: beta
+  maturity: stable
   links:
   - name: Open Data Hub
     url: https://opendatahub.io
