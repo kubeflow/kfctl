@@ -30,3 +30,7 @@
 * Update ODH operator to reconcile updated objects (#119)
 ### Features
 * Implement initial KfDef status (#113)
+
+## Release 1.0.11 (2021-05-05T19:58:47)
+### Improvements
+* Add community operator release v1.0.10
