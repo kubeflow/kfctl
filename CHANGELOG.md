@@ -11,6 +11,8 @@
 ## Release 1.0.1 (2021-02-18T20:31:05)
 ### Features
 * Update .thoth.yaml
+
+## Release 1.0.4 (2021-03-11T19:17:30)
 ### Bug Fix
 * Rebase the version string with latest release (#104)
 
@@ -34,3 +36,7 @@
 ## Release 1.0.11 (2021-05-05T19:58:47)
 ### Improvements
 * Add community operator release v1.0.10
+
+## Release 1.1.0 (2021-06-21T01:41:47)
+### Improvements
+* Add OLM files for v1.1.0 release
