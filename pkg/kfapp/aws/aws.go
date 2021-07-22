@@ -308,7 +308,11 @@ func (aws *Aws) generateInfraConfigs() error {
 		log.Infof("Creating AWS infrastructure configs in directory %v", destDir)
 		destDirErr := os.MkdirAll(destDir, os.ModePerm)
 		if destDirErr != nil {
-			return destDirErr
+			return &kfapis.KfError{
+				Code: destDirErr.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("Could not create directory %v: %v",
+					destDir, destDirErr.(*kfapis.KfError).Message),
+			}
 		}
 	} else {
 		log.Infof("AWS infrastructure configs already exist in directory %v", destDir)
@@ -317,7 +321,11 @@ func (aws *Aws) generateInfraConfigs() error {
 	// List all the files under source directory
 	files, err := ioutil.ReadDir(sourceDir)
 	if err != nil {
-		return err
+		return &kfapis.KfError{
+				Code: err.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("Could not list files in source directory %v: %v",
+					sourceDir, err.(*kfapis.KfError).Message),
+			}
 	}
 
 	for _, file := range files {
@@ -927,7 +935,7 @@ func (aws *Aws) deleteIamRolePolicy(roleName, policyName string) error {
 
 // attachIamInlinePolicy attach inline policy to IAM role
 func (aws *Aws) attachIamInlinePolicy(roleName, policyName, policyDocumentPath string) error {
-	log.Infof("Attaching inline policy %s for iam role %s", policyName, roleName)
+	log.Infof("Attaching inline policy %s for iam role %s: from file: %s", policyName, roleName, policyDocumentPath)
 	policyDocumentJSONBytes, _ := ioutil.ReadFile(policyDocumentPath)
 
 	input := &iam.PutRolePolicyInput{
