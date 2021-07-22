@@ -56,7 +56,7 @@ const (
 	PATH                   = "path"
 	BASIC_AUTH_SECRET      = "kubeflow-login"
 	// Path in manifests repo to where the additional configs are located
-	CONFIG_LOCAL_PATH = "aws/infra_configs"
+	CONFIG_LOCAL_PATH = "distributions/aws/infra_configs"
 
 	ALB_OIDC_SECRET = "alb-oidc-secret"
 
@@ -308,23 +308,36 @@ func (aws *Aws) generateInfraConfigs() error {
 		log.Infof("Creating AWS infrastructure configs in directory %v", destDir)
 		destDirErr := os.MkdirAll(destDir, os.ModePerm)
 		if destDirErr != nil {
-			return destDirErr
+			log.Errorf("There was a problem creating the directory; %v", destDirErr)
+			return &kfapis.KfError{
+				Code: destDirErr.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("Could not create directory %v: %v",
+					destDir, destDirErr.(*kfapis.KfError).Message),
+			}
 		}
 	} else {
 		log.Infof("AWS infrastructure configs already exist in directory %v", destDir)
 	}
 
 	// List all the files under source directory
+	log.Infof("Reading source directory: %v", sourceDir)
 	files, err := ioutil.ReadDir(sourceDir)
 	if err != nil {
-		return err
+		log.Errorf("There was a problem reading the source directory; %v", err)
+		return &kfapis.KfError{
+				Code: err.(*kfapis.KfError).Code,
+				Message: fmt.Sprintf("Could not list files in source directory %v: %v",
+					sourceDir, err.(*kfapis.KfError).Message),
+			}
 	}
 
+	log.Infof("Copying aws_config files...")
 	for _, file := range files {
 		sourceFile := filepath.Join(sourceDir, file.Name())
 		destFile := filepath.Join(destDir, file.Name())
 		copyErr := copyFile(sourceFile, destFile)
 		if copyErr != nil {
+			log.Errorf("There was a problem copying file: %v to %v: %v", sourceFile, destFile, copyErr)
 			return &kfapis.KfError{
 				Code: copyErr.(*kfapis.KfError).Code,
 				Message: fmt.Sprintf("Could not copy %v to %v: %v",
@@ -335,6 +348,7 @@ func (aws *Aws) generateInfraConfigs() error {
 
 	// 2. Reading from cluster_config.yaml and replace placeholders with values in aws.kfDef.Spec.
 	clusterConfigFile := filepath.Join(destDir, CLUSTER_CONFIG_FILE)
+	log.Infof("Updating cluster_config from file: %v", clusterConfigFile)
 	if err := aws.updateClusterConfig(clusterConfigFile); err != nil {
 		return err
 	}
@@ -927,7 +941,7 @@ func (aws *Aws) deleteIamRolePolicy(roleName, policyName string) error {
 
 // attachIamInlinePolicy attach inline policy to IAM role
 func (aws *Aws) attachIamInlinePolicy(roleName, policyName, policyDocumentPath string) error {
-	log.Infof("Attaching inline policy %s for iam role %s", policyName, roleName)
+	log.Infof("Attaching inline policy %s for iam role %s: from file: %s", policyName, roleName, policyDocumentPath)
 	policyDocumentJSONBytes, _ := ioutil.ReadFile(policyDocumentPath)
 
 	input := &iam.PutRolePolicyInput{
