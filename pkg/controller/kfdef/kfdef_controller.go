@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
+	apiserv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -281,7 +282,9 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			if hasDeleteConfigMap(r.client) {
-				return reconcile.Result{}, operatorUninstall(r.client, r.restConfig)
+				return reconcile.Result{}, fmt.Errorf("error while operator uninstall: %v",
+						r.operatorUninstall(request))
+
 			}
 			return reconcile.Result{}, nil
 		}
@@ -370,6 +373,32 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 	}
 
+	if hasDeleteConfigMap(r.client) {
+		for key, _ := range kfdefInstances{
+			keyVal := strings.Split(key,".")
+			if len(keyVal) == 2 {
+				instanceName, namespace := keyVal[0], keyVal[1]
+				currentInstance := &kfdefv1.KfDef{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instanceName,
+						Namespace: namespace,
+					},
+				}
+
+				if err := r.client.Delete(context.TODO(), currentInstance, []client.DeleteOption{}...); err != nil {
+					if !errors.IsNotFound(err) {
+						return reconcile.Result{}, err
+					}
+				}
+			}else{
+				return reconcile.Result{}, fmt.Errorf("error getting kfdef instance name and namespace")
+			}
+
+		}
+
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	err = getReconcileStatus(instance, kfApply(instance))
 	if err == nil {
 		log.Infof("KubeFlow Deployment Completed.")
@@ -400,14 +429,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			b2ndController = true
 		}
 	}
-	if hasDeleteConfigMap(r.client) {
-		if err := r.client.Delete(context.TODO(), instance, []client.DeleteOption{}...); err != nil {
-			if !errors.IsNotFound(err) {
-				return reconcile.Result{}, err
-			}
-		}
-		return reconcile.Result{Requeue: true}, nil
-	}
+
 
 	// set status of the KfDef resource
 	if err := r.reconcileStatus(instance); err != nil {
@@ -536,52 +558,69 @@ func getClusterServiceVersion(cfg *rest.Config, watchNameSpace string) (*olm.Clu
 
 // operatorUninstall deletes all the externally generated resources. This includes monitoring resources and applications
 // installed by KfDef.
-func operatorUninstall(c client.Client, cfg *rest.Config) error {
-	// Get watchNamespace
-	operatorNamespace, err := k8sutil.GetOperatorNamespace()
-	if err != nil {
-		return err
+func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
+
+	// Delete namespace for the given request
+	namespace := &v1.Namespace{ObjectMeta:metav1.ObjectMeta{
+		Name:                       request.Namespace,
+	}}
+
+	if err := r.client.Delete(context.TODO(), namespace); err!=nil{
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("error deleting current namespace :%v", err)
+		}
+	}
+	log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
+
+	// Delete any unavailable api services
+	apiservices := &apiserv1.APIServiceList{}
+	if err := r.client.List(context.TODO(), apiservices); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("error getting dangling apiservices : %v", err)
+		}
 	}
 
-	// Delete generated namespaces
+	if len(apiservices.Items) != 0 {
+		for _, apiservice := range apiservices.Items {
+			conditionsLength := len(apiservice.Status.Conditions)
+			if conditionsLength >= 1{
+				if apiservice.Status.Conditions[conditionsLength - 1].Status == apiserv1.ConditionFalse {
+					if err := r.client.Delete(context.TODO(), &apiservice, []client.DeleteOption{}...); err != nil {
+					return fmt.Errorf("error deleting apiservice %v: %v", apiservice.Name, err)
+				}
+				}
+			}
+			log.Infof("Unavailable api service %v is deleted", apiservice.Name)
+
+		}
+	}
+
+	// Wait until all kfdef instances and corresponding namespaces are deleted
+	if len(kfdefInstances) != 0 {
+		return fmt.Errorf("waiting for KfDef instances to be deleted")
+	}
+
+	// Delete generated namespaces that do not have KfDef instance
 	generatedNamespaces := &v1.NamespaceList{}
 	nsOptions := []client.ListOption{
 		client.MatchingLabels{odhGeneratedNamespaceLabel: "true"},
 	}
-	if err := c.List(context.TODO(), generatedNamespaces, nsOptions...); err != nil {
+	if err := r.client.List(context.TODO(), generatedNamespaces, nsOptions...); err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("error getting generated namespaces : %v", err)
 		}
 	}
-
 	if len(generatedNamespaces.Items) != 0 {
-		for _, namespace := range generatedNamespaces.Items {
-			if err := c.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
-				return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
+			for _, namespace := range generatedNamespaces.Items {
+				if namespace.Status.Phase == v1.NamespaceActive {
+					if err := r.client.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
+						return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
+					}
+					log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
+				}
 			}
-			log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
 		}
-	}
-
-	// Delete operator csv for CR KfDef
-	operatorCsv, err := getClusterServiceVersion(cfg, operatorNamespace)
-	if err != nil {
-		return err
-	}
-
-	if operatorCsv != nil {
-		log.Infof("Deleting csv %s", operatorCsv.Name)
-		err = c.Delete(context.TODO(), operatorCsv, []client.DeleteOption{}...)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			return fmt.Errorf("error deleting clusterserviceversion: %v", err)
-		}
-		log.Infof("Clusterserviceversion %s deleted as a part of uninstall.", operatorCsv.Name)
-	}
-	log.Info("No clusterserviceversion for the operator found.")
-	return nil
+	return removeCsv(r.client, r.restConfig)
 }
 
 // hasDeleteConfigMap returns true if delete configMap is added to the operator namespace by managed-tenants repo.
@@ -604,4 +643,31 @@ func hasDeleteConfigMap(c client.Client) bool {
 		return false
 	}
 	return len(deleteConfigMapList.Items) != 0
+}
+
+func removeCsv(	c client.Client, r *rest.Config) error{
+		// Get watchNamespace
+		operatorNamespace, err := k8sutil.GetOperatorNamespace()
+		if err != nil {
+		return err
+	}
+
+	operatorCsv, err := getClusterServiceVersion(r, operatorNamespace)
+	if err != nil {
+		return err
+	}
+
+	if operatorCsv != nil {
+		log.Infof("Deleting csv %s", operatorCsv.Name)
+		err = c.Delete(context.TODO(), operatorCsv, []client.DeleteOption{}...)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("error deleting clusterserviceversion: %v", err)
+		}
+		log.Infof("Clusterserviceversion %s deleted as a part of uninstall.", operatorCsv.Name)
+	}
+	log.Info("No clusterserviceversion for the operator found.")
+	return nil
 }
