@@ -610,16 +610,28 @@ func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
 			return fmt.Errorf("error getting generated namespaces : %v", err)
 		}
 	}
+
+	// Return if any one of the namespaces is Terminating due to resources that are in process of deletion. (e.g CRDs)
 	if len(generatedNamespaces.Items) != 0 {
 			for _, namespace := range generatedNamespaces.Items {
-				if namespace.Status.Phase == v1.NamespaceActive {
-					if err := r.client.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
-						return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
-					}
-					log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
+				if namespace.Status.Phase == v1.NamespaceTerminating{
+					return fmt.Errorf("waiting for namespace %v to be deleted", namespace.Name)
+				}
 				}
 			}
+
+	// Delete all the active namespaces
+	for _, namespace := range generatedNamespaces.Items {
+		if namespace.Status.Phase == v1.NamespaceActive{
+			if err := r.client.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
+				return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
+			}
+			log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
 		}
+	}
+
+
+
 	return removeCsv(r.client, r.restConfig)
 }
 
