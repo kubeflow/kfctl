@@ -10,7 +10,9 @@ import (
 
 	"github.com/ghodss/yaml"
 	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	intgr8lyv1alpha "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
 	kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
+	intgr8lyv1alphatypes "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
 	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
 	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
 	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
@@ -304,6 +306,41 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			return reconcile.Result{}, nil
 		}
 		log.Infof("Deleting kfdef.")
+
+
+		// Delete postgres object from the namespace
+		postgresList := &intgr8lyv1alpha.PostgresList{}
+		listOptions := []client.ListOption{
+			client.InNamespace(request.Namespace),
+		}
+		err := r.client.List(context.TODO(), postgresList, listOptions... )
+		if err != nil{
+			return reconcile.Result{}, fmt.Errorf("error listing postgres objects")
+
+		}
+
+		if len(postgresList.Items) != 0 {
+			for _, postgres := range postgresList.Items{
+				// Delete postgres object if its not already in deletion phase
+				if postgres.Status.Phase != intgr8lyv1alphatypes.PhaseDeleteInProgress {
+					if err := r.client.Delete(context.TODO(), &postgres); err != nil {
+						if !errors.IsNotFound(err) {
+							return reconcile.Result{}, fmt.Errorf("error deleting postgress object %v from namespace %v to be deleted",
+								postgres.Name, request.Namespace)
+						}
+					}
+					log.Infof("postgres object %v is being deleted from namespace %v",postgres.Name,
+						postgres.Namespace)
+					return reconcile.Result{Requeue: true}, nil
+
+				}else{
+					return reconcile.Result{},fmt.Errorf("waiting for deletion of postgres")
+				}
+			}
+
+		}
+
+		log.Infof("all Postgres objects are deleted for namespace %v", request.Namespace)
 
 		// stop the 2nd controller
 		if len(kfdefInstances) == 1 {
