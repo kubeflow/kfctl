@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"runtime"
 
@@ -13,6 +14,8 @@ import (
 
 	apis "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/controller"
+	kfdefcontroller "github.com/kubeflow/kfctl/v3/pkg/controller/kfdef"
+
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
@@ -151,7 +154,8 @@ func main() {
 func serveCRMetrics(cfg *rest.Config) error {
 	// Below function returns filtered operator/CustomResource specific GVKs.
 	// For more control override the below GVK list with your own custom logic.
-	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+//filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+	gvks, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
 	if err != nil {
 		return err
 	}
@@ -160,6 +164,13 @@ func serveCRMetrics(cfg *rest.Config) error {
 	if err != nil {
 		return err
 	}
+
+	// Perform custom gvk filtering
+	filteredGVK := filterGKVsFromAddToScheme(gvks)
+	if err != nil {
+		return err
+	}
+
 	// To generate metrics in other namespaces, add the values below.
 	ns := []string{operatorNs}
 	// Generate and serve custom resource specific metrics.
@@ -168,4 +179,38 @@ func serveCRMetrics(cfg *rest.Config) error {
 		return err
 	}
 	return nil
+}
+
+// Reference Issue: https://github.com/operator-framework/operator-sdk/issues/2807#issuecomment-611586550
+// For this version of operator-sdk, kube-metrics  lists all of the defined Kinds in the schemas
+// that are passed, including Kinds that the operator doesn't use. This function filters the Kinds
+// that are watched by the operator.
+// Note: This issue was resolved in the later versions of the sdk
+func filterGKVsFromAddToScheme(gvks []schema.GroupVersionKind) []schema.GroupVersionKind {
+	matchAnyValue := "*"
+	watchedGVKs := append(kfdefcontroller.WatchedKubeflowResources, kfdefcontroller.WatchedResources...)
+
+	ownGVKs := []schema.GroupVersionKind{}
+	for _, gvk := range gvks {
+		for _, watchedGVK := range watchedGVKs {
+			match := true
+			if watchedGVK.Kind == matchAnyValue && watchedGVK.Group == matchAnyValue && watchedGVK.Version == matchAnyValue {
+				match = false
+			} else {
+				if watchedGVK.Kind != matchAnyValue && watchedGVK.Kind != gvk.Kind {
+					match = false
+				}
+				if watchedGVK.Group != matchAnyValue && watchedGVK.Group != gvk.Group {
+					match = false
+				}
+				if watchedGVK.Version != matchAnyValue && watchedGVK.Version != gvk.Version {
+					match = false
+				}
+			}
+			if match {
+				ownGVKs = append(ownGVKs, gvk)
+			}
+		}
+	}
+	return ownGVKs
 }

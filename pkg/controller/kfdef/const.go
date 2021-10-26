@@ -11,7 +11,7 @@ const (
 
 var (
 	// watchedResources contains all resources we will watch and reconcile when changed
-	watchedResources = []schema.GroupVersionKind{
+	WatchedResources = []schema.GroupVersionKind{
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRole"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Kind: "ClusterRoleBinding"},
 		{Group: "", Version: "v1", Kind: "ConfigMap"},
@@ -34,7 +34,7 @@ var (
 		{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "ValidatingWebhookConfiguration"},
 	}
 
-	watchedKubeflowResources = []schema.GroupVersionKind{
+	WatchedKubeflowResources = []schema.GroupVersionKind{
 		{Group: "app.k8s.io", Version: "v1beta1", Kind: "Application"},
 		{Group: "networking.istio.io", Version: "v1beta1", Kind: "VirtualService"},
 		{Group: "argoproj.io", Version: "v1alpha1", Kind: "Workflow"},
