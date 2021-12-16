@@ -627,26 +627,23 @@ func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
 		"Namespace %s deleted as a part of uninstall.", namespace.Name )
 	log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
 
-	// Delete any unavailable api services
-	apiservices := &apiserv1.APIServiceList{}
-	if err := r.client.List(context.TODO(), apiservices); err != nil {
+	certmanagerApi := &apiserv1.APIService{
+		ObjectMeta: metav1.ObjectMeta{Name:"v1beta1.webhook.cert-manager.io" }}
+
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: certmanagerApi.Name},certmanagerApi)
+	if err != nil{
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("error getting dangling apiservices : %v", err)
 		}
-	}
-
-	if len(apiservices.Items) != 0 {
-		for _, apiservice := range apiservices.Items {
-			conditionsLength := len(apiservice.Status.Conditions)
-			if conditionsLength >= 1{
-				if apiservice.Status.Conditions[conditionsLength - 1].Status == apiserv1.ConditionFalse {
-					if err := r.client.Delete(context.TODO(), &apiservice, []client.DeleteOption{}...); err != nil {
-					return fmt.Errorf("error deleting apiservice %v: %v", apiservice.Name, err)
+	}else{
+		conditionsLength := len(certmanagerApi.Status.Conditions)
+		if conditionsLength >= 1 {
+			if certmanagerApi.Status.Conditions[conditionsLength-1].Status == apiserv1.ConditionFalse {
+				if err := r.client.Delete(context.TODO(), certmanagerApi, []client.DeleteOption{}...); err != nil {
+					return fmt.Errorf("error deleting apiservice %v: %v", certmanagerApi.Name, err)
 				}
-				}
+				log.Infof("Unavailable api service %v is deleted", certmanagerApi.Name)
 			}
-			log.Infof("Unavailable api service %v is deleted", apiservice.Name)
-
 		}
 	}
 
