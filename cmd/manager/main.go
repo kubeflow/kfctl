@@ -188,11 +188,10 @@ func serveCRMetrics(cfg *rest.Config) error {
 // Note: This issue was resolved in the later versions of the sdk
 func filterGKVsFromAddToScheme(gvks []schema.GroupVersionKind) []schema.GroupVersionKind {
 	matchAnyValue := "*"
-	watchedGVKs := append(kfdefcontroller.WatchedKubeflowResources, kfdefcontroller.WatchedResources...)
 
 	ownGVKs := []schema.GroupVersionKind{}
 	for _, gvk := range gvks {
-		for _, watchedGVK := range watchedGVKs {
+		for _, watchedGVK := range kfdefcontroller.WatchedResources {
 			match := true
 			if watchedGVK.Kind == matchAnyValue && watchedGVK.Group == matchAnyValue && watchedGVK.Version == matchAnyValue {
 				match = false

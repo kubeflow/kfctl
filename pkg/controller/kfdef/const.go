@@ -33,11 +33,4 @@ var (
 		{Group: "apps", Version: "v1", Kind: "StatefulSet"},
 		{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "ValidatingWebhookConfiguration"},
 	}
-
-	WatchedKubeflowResources = []schema.GroupVersionKind{
-		{Group: "app.k8s.io", Version: "v1beta1", Kind: "Application"},
-		{Group: "networking.istio.io", Version: "v1beta1", Kind: "VirtualService"},
-		{Group: "argoproj.io", Version: "v1alpha1", Kind: "Workflow"},
-		{Group: "tekton.dev", Version: "v1beta1", Kind: "Condition"},
-	}
 )

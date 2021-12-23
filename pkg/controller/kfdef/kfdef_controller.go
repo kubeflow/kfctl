@@ -461,26 +461,6 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 			kfdefInstances[strings.Join([]string{instance.GetName(), instance.GetNamespace()}, ".")] = struct{}{}
 		}
 
-		if !b2ndController {
-			c, err := controller.New("kubeflow-controller", kfdefManager, controller.Options{Reconciler: r})
-			if err != nil {
-				return reconcile.Result{}, nil
-			}
-			// Watch for changes to kfdef resource and requeue the owner KfDef
-			err = watchKubeflowResources(c, kfdefManager.GetClient(), WatchedKubeflowResources)
-			if err != nil {
-				return reconcile.Result{}, nil
-			}
-			stop = make(chan struct{})
-			go func() {
-				// Start the controller
-				if err := c.Start(stop); err != nil {
-					log.Error(err, "cannot run the 2nd Kubeflow controller")
-				}
-			}()
-			log.Infof("Controller added to watch resources from CRDs created by Kubeflow deployment.")
-			b2ndController = true
-		}
 	}
 
 
