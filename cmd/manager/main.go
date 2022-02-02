@@ -7,6 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -15,7 +17,6 @@ import (
 	apis "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
 	"github.com/kubeflow/kfctl/v3/pkg/controller"
 	kfdefcontroller "github.com/kubeflow/kfctl/v3/pkg/controller/kfdef"
-
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
@@ -65,10 +66,11 @@ func main() {
 
 	printVersion()
 
-	namespace, err := k8sutil.GetWatchNamespace()
+	watchNamespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
-		log.Errorf("Failed to get watch namespace. Error %v.", err)
-		os.Exit(1)
+		log.Warnf("Failed to get watch watchNamespace. "+
+			"The manager will watch and manage resources in all Namespaces. "+
+			"Error %v.", err)
 	}
 
 	// Get a config to talk to the apiserver
@@ -86,13 +88,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{
-		// Watch all namespace
-		Namespace:          "",
+	options := manager.Options{
+		Namespace:          watchNamespace, //"" will watch all namespaces
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
-	})
+	}
+
+	// MultiNamespace set in WATCH_NAMESPACE (e.g ns1,ns2)
+	if strings.Contains(watchNamespace, ",") {
+		log.Infof("manager set up with multiple namespaces: %s", watchNamespace)
+		// configure cluster-scoped with MultiNamespacedCacheBuilder
+		options.Namespace = ""
+		options.NewCache = cache.MultiNamespacedCacheBuilder(strings.Split(watchNamespace, ","))
+	}
+
+	// Create a new Cmd to provide shared dependencies and start components
+	mgr, err := manager.New(cfg, options)
 	if err != nil {
 		log.Errorf("Error: %v.", err)
 		os.Exit(1)
@@ -129,8 +140,9 @@ func main() {
 
 	// CreateServiceMonitors will automatically create the prometheus-operator ServiceMonitor resources
 	// necessary to configure Prometheus to scrape metrics from this operator.
+	operatorNamespace, _ := k8sutil.GetOperatorNamespace()
 	services := []*v1.Service{service}
-	_, err = metrics.CreateServiceMonitors(cfg, namespace, services)
+	_, err = metrics.CreateServiceMonitors(cfg, operatorNamespace, services)
 	if err != nil {
 		log.Errorf("Could not create ServiceMonitor object. Error: %v.", err.Error())
 		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
@@ -154,7 +166,7 @@ func main() {
 func serveCRMetrics(cfg *rest.Config) error {
 	// Below function returns filtered operator/CustomResource specific GVKs.
 	// For more control override the below GVK list with your own custom logic.
-//filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+	//filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
 	gvks, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
 	if err != nil {
 		return err
