@@ -1,45 +1,44 @@
 package kfdef
 
 import (
-	"context"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"strings"
+    "context"
+    "fmt"
+    "io/ioutil"
+    "os"
+    "path"
+    "strings"
 
-	"github.com/ghodss/yaml"
-	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-	intgr8lyv1alpha "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
-	kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
-	intgr8lyv1alphatypes "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
-	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
-	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
-	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
-	olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
-	apiserv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+    "github.com/ghodss/yaml"
+    intgr8lyv1alpha "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
+    intgr8lyv1alphatypes "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
+    kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+    kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
+    "github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+    kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
+    kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
+    olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+    olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
+    "github.com/operator-framework/operator-sdk/pkg/k8sutil"
+    log "github.com/sirupsen/logrus"
+    v1 "k8s.io/api/core/v1"
+    "k8s.io/apimachinery/pkg/api/errors"
+    "k8s.io/apimachinery/pkg/api/meta"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+    "k8s.io/apimachinery/pkg/runtime"
+    "k8s.io/apimachinery/pkg/runtime/schema"
+    "k8s.io/apimachinery/pkg/types"
+    "k8s.io/apimachinery/pkg/util/sets"
+    "k8s.io/client-go/rest"
+    "k8s.io/client-go/tools/record"
+    "sigs.k8s.io/controller-runtime/pkg/client"
+    "sigs.k8s.io/controller-runtime/pkg/controller"
+    "sigs.k8s.io/controller-runtime/pkg/event"
+    "sigs.k8s.io/controller-runtime/pkg/handler"
+    "sigs.k8s.io/controller-runtime/pkg/manager"
+    "sigs.k8s.io/controller-runtime/pkg/predicate"
+    "sigs.k8s.io/controller-runtime/pkg/reconcile"
+    "sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -606,26 +605,6 @@ func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
 	r.recorder.Eventf(namespace, v1.EventTypeNormal, "NamespaceDeletionSuccessful",
 		"Namespace %s deleted as a part of uninstall.", namespace.Name )
 	log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
-
-	certmanagerApi := &apiserv1.APIService{
-		ObjectMeta: metav1.ObjectMeta{Name:"v1beta1.webhook.cert-manager.io" }}
-
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: certmanagerApi.Name},certmanagerApi)
-	if err != nil{
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("error getting dangling apiservices : %v", err)
-		}
-	}else{
-		conditionsLength := len(certmanagerApi.Status.Conditions)
-		if conditionsLength >= 1 {
-			if certmanagerApi.Status.Conditions[conditionsLength-1].Status == apiserv1.ConditionFalse {
-				if err := r.client.Delete(context.TODO(), certmanagerApi, []client.DeleteOption{}...); err != nil {
-					return fmt.Errorf("error deleting apiservice %v: %v", certmanagerApi.Name, err)
-				}
-				log.Infof("Unavailable api service %v is deleted", certmanagerApi.Name)
-			}
-		}
-	}
 
 	// Wait until all kfdef instances and corresponding namespaces are deleted
 	if len(kfdefInstances) != 0 {
