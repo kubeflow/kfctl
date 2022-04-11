@@ -2,10 +2,13 @@ package kfdef
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -20,6 +23,7 @@ import (
 	olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -60,6 +64,9 @@ var b2ndController = false
 
 // the manager
 var kfdefManager manager.Manager
+
+// Flag to to trigger update of alerting configuration
+var addonManagedODHParametersSecretUpdated = false
 
 // the stop channel for the 2nd controller
 var stop chan struct{}
@@ -256,6 +263,14 @@ var ownedResourcePredicates = predicate.Funcs{
 			return false
 		}
 		// TODO:  Add update log message when plugin is integrated. We need to only log events for the resources with 'configurable' label
+
+		// Set flag if the object is the addon-managed-odh-parameters secret
+		if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "Secret" {
+			if object.GetName() == "addon-managed-odh-parameters" && object.GetNamespace() == "redhat-ods-operator" {
+				log.Infof("%v secret was updated. Enabling update of alertmanager configuration", object.GetName())
+				addonManagedODHParametersSecretUpdated = true
+			}
+		}
 		return true
 	},
 }
@@ -300,6 +315,41 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	if addonManagedODHParametersSecretUpdated {
+
+		newUserNotificationEmails, err := getNewUserNotificationEmails(r.client)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error getting secret: addon-managed-odh-parameters")
+		}
+
+		config := &v1.ConfigMap{}
+		configParams := client.ObjectKey{
+			Namespace: "redhat-ods-monitoring",
+			Name:      "alertmanager",
+		}
+
+		err = r.client.Get(context.TODO(), configParams, config)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error getting configmap: alertmanager")
+		}
+
+		config.Data["alertmanager.yml"] = updateUserNotificationsEmails(config.Data["alertmanager.yml"], newUserNotificationEmails)
+
+		err = r.client.Update(context.TODO(), config)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error updating configmap: alertmanager")
+		}
+
+		alertmanagerAnnotationHash := sha256.Sum256([]byte(config.Data["alertmanager.yml"]))
+		base64AlertmanagerAnnotationHash := base64.StdEncoding.EncodeToString(alertmanagerAnnotationHash[:])
+
+		err = updateDeploymentConfigurationAnnotationHash(r.client, "prometheus", "redhat-ods-monitoring", "alertmanager", base64AlertmanagerAnnotationHash)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error updating Prometheus deployment annotations")
+		}
+		addonManagedODHParametersSecretUpdated = false
 	}
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -691,5 +741,56 @@ func removeCsv(c client.Client, r *rest.Config) error {
 		log.Infof("Clusterserviceversion %s deleted as a part of uninstall.", operatorCsv.Name)
 	}
 	log.Info("No clusterserviceversion for the operator found.")
+	return nil
+}
+
+func getNewUserNotificationEmails(c client.Client) (string, error) {
+
+	secret := &v1.Secret{}
+	secretParams := client.ObjectKey{
+		Namespace: "redhat-ods-operator",
+		Name:      "addon-managed-odh-parameters",
+	}
+
+	err := c.Get(context.TODO(), secretParams, secret)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("'%s'", string(secret.Data["notification-email"])), nil
+}
+
+func updateUserNotificationsEmails(oldAlertmanagerConfig string, newUserNotificationEmails string) string {
+
+	userNotificationregex := regexp.MustCompile(`- name: 'user-notifications'\n  email_configs:\n  - to: '.*com'`)
+	userNotificationMatch := userNotificationregex.FindAllString(oldAlertmanagerConfig, -1)
+
+	emailsRegex := regexp.MustCompile(`'.*com'`)
+	emailsMatch := emailsRegex.ReplaceAllString(userNotificationMatch[0], newUserNotificationEmails)
+
+	newAlertmanagerConfig := userNotificationregex.ReplaceAllString(oldAlertmanagerConfig, emailsMatch)
+
+	return newAlertmanagerConfig
+}
+
+func updateDeploymentConfigurationAnnotationHash(c client.Client, deploymentName string, deploymentNamespace string, annotationName string, annotationHash string) error {
+
+	deployment := &appsv1.Deployment{}
+	deploymentParams := client.ObjectKey{
+		Namespace: deploymentNamespace,
+		Name:      deploymentName,
+	}
+
+	err := c.Get(context.TODO(), deploymentParams, deployment)
+	if err != nil {
+		return err
+	}
+
+	deployment.Spec.Template.Annotations[annotationName] = annotationHash
+	err = c.Update(context.TODO(), deployment)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
