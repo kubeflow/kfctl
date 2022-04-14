@@ -1,44 +1,48 @@
 package kfdef
 
 import (
-    "context"
-    "fmt"
-    "io/ioutil"
-    "os"
-    "path"
-    "strings"
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"regexp"
+	"strings"
 
-    "github.com/ghodss/yaml"
-    intgr8lyv1alpha "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
-    intgr8lyv1alphatypes "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
-    kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
-    kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
-    "github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
-    kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
-    kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
-    olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-    olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
-    "github.com/operator-framework/operator-sdk/pkg/k8sutil"
-    log "github.com/sirupsen/logrus"
-    v1 "k8s.io/api/core/v1"
-    "k8s.io/apimachinery/pkg/api/errors"
-    "k8s.io/apimachinery/pkg/api/meta"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-    "k8s.io/apimachinery/pkg/runtime"
-    "k8s.io/apimachinery/pkg/runtime/schema"
-    "k8s.io/apimachinery/pkg/types"
-    "k8s.io/apimachinery/pkg/util/sets"
-    "k8s.io/client-go/rest"
-    "k8s.io/client-go/tools/record"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/controller"
-    "sigs.k8s.io/controller-runtime/pkg/event"
-    "sigs.k8s.io/controller-runtime/pkg/handler"
-    "sigs.k8s.io/controller-runtime/pkg/manager"
-    "sigs.k8s.io/controller-runtime/pkg/predicate"
-    "sigs.k8s.io/controller-runtime/pkg/reconcile"
-    "sigs.k8s.io/controller-runtime/pkg/source"
+	"github.com/ghodss/yaml"
+	intgr8lyv1alpha "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
+	intgr8lyv1alphatypes "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
+	kftypesv3 "github.com/kubeflow/kfctl/v3/pkg/apis/apps"
+	kfdefv1 "github.com/kubeflow/kfctl/v3/pkg/apis/apps/kfdef/v1"
+	"github.com/kubeflow/kfctl/v3/pkg/kfapp/coordinator"
+	kfloaders "github.com/kubeflow/kfctl/v3/pkg/kfconfig/loaders"
+	kfutils "github.com/kubeflow/kfctl/v3/pkg/utils"
+	olm "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	olmclientset "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1alpha1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -61,6 +65,9 @@ var b2ndController = false
 // the manager
 var kfdefManager manager.Manager
 
+// Flag to to trigger update of alerting configuration
+var addonManagedODHParametersSecretUpdated = false
+
 // the stop channel for the 2nd controller
 var stop chan struct{}
 
@@ -79,10 +86,10 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileKfDef{
-		client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		client:     mgr.GetClient(),
+		scheme:     mgr.GetScheme(),
 		restConfig: mgr.GetConfig(),
-		recorder:  mgr.GetEventRecorderFor("kfdef-controller")}
+		recorder:   mgr.GetEventRecorderFor("kfdef-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -256,6 +263,14 @@ var ownedResourcePredicates = predicate.Funcs{
 			return false
 		}
 		// TODO:  Add update log message when plugin is integrated. We need to only log events for the resources with 'configurable' label
+
+		// Set flag if the object is the addon-managed-odh-parameters secret
+		if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "Secret" {
+			if object.GetName() == "addon-managed-odh-parameters" && object.GetNamespace() == "redhat-ods-operator" {
+				log.Infof("%v secret was updated. Enabling update of alertmanager configuration", object.GetName())
+				addonManagedODHParametersSecretUpdated = true
+			}
+		}
 		return true
 	},
 }
@@ -293,13 +308,48 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 				r.recorder.Eventf(instance, v1.EventTypeWarning, "UninstallInProgress",
 					"Resource deletion restricted as the operator uninstall is in progress")
 				return reconcile.Result{}, fmt.Errorf("error while operator uninstall: %v",
-						r.operatorUninstall(request))
+					r.operatorUninstall(request))
 
 			}
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	if addonManagedODHParametersSecretUpdated {
+
+		newUserNotificationEmails, err := getNewUserNotificationEmails(r.client)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error getting secret: addon-managed-odh-parameters")
+		}
+
+		config := &v1.ConfigMap{}
+		configParams := client.ObjectKey{
+			Namespace: "redhat-ods-monitoring",
+			Name:      "alertmanager",
+		}
+
+		err = r.client.Get(context.TODO(), configParams, config)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error getting configmap: alertmanager")
+		}
+
+		config.Data["alertmanager.yml"] = updateUserNotificationsEmails(config.Data["alertmanager.yml"], newUserNotificationEmails)
+
+		err = r.client.Update(context.TODO(), config)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error updating configmap: alertmanager")
+		}
+
+		alertmanagerAnnotationHash := sha256.Sum256([]byte(config.Data["alertmanager.yml"]))
+		base64AlertmanagerAnnotationHash := base64.StdEncoding.EncodeToString(alertmanagerAnnotationHash[:])
+
+		err = updateDeploymentConfigurationAnnotationHash(r.client, "prometheus", "redhat-ods-monitoring", "alertmanager", base64AlertmanagerAnnotationHash)
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error updating Prometheus deployment annotations")
+		}
+		addonManagedODHParametersSecretUpdated = false
 	}
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -315,20 +365,19 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		log.Infof("Deleting kfdef instance %s.", instance.Name)
 
-
 		// Delete postgres object from the namespace
 		postgresList := &intgr8lyv1alpha.PostgresList{}
 		listOptions := []client.ListOption{
 			client.InNamespace(request.Namespace),
 		}
-		err := r.client.List(context.TODO(), postgresList, listOptions... )
-		if err != nil{
+		err := r.client.List(context.TODO(), postgresList, listOptions...)
+		if err != nil {
 			return reconcile.Result{}, fmt.Errorf("error listing postgres objects")
 
 		}
 
 		if len(postgresList.Items) != 0 {
-			for _, postgres := range postgresList.Items{
+			for _, postgres := range postgresList.Items {
 				// Delete postgres object if its not already in deletion phase
 				if postgres.Status.Phase != intgr8lyv1alphatypes.PhaseDeleteInProgress {
 					if err := r.client.Delete(context.TODO(), &postgres); err != nil {
@@ -337,12 +386,12 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 								postgres.Name, request.Namespace)
 						}
 					}
-					log.Infof("postgres object %v is being deleted from namespace %v",postgres.Name,
+					log.Infof("postgres object %v is being deleted from namespace %v", postgres.Name,
 						postgres.Namespace)
 					return reconcile.Result{Requeue: true}, nil
 
-				}else{
-					return reconcile.Result{},fmt.Errorf("waiting for deletion of postgres")
+				} else {
+					return reconcile.Result{}, fmt.Errorf("waiting for deletion of postgres")
 				}
 			}
 
@@ -424,8 +473,8 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	if hasDeleteConfigMap(r.client) {
-		for key, _ := range kfdefInstances{
-			keyVal := strings.Split(key,".")
+		for key, _ := range kfdefInstances {
+			keyVal := strings.Split(key, ".")
 			if len(keyVal) == 2 {
 				instanceName, namespace := keyVal[0], keyVal[1]
 				currentInstance := &kfdefv1.KfDef{
@@ -440,7 +489,7 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 						return reconcile.Result{}, err
 					}
 				}
-			}else{
+			} else {
 				return reconcile.Result{}, fmt.Errorf("error getting kfdef instance name and namespace")
 			}
 
@@ -461,7 +510,6 @@ func (r *ReconcileKfDef) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 
 	}
-
 
 	// set status of the KfDef resource
 	if err := r.reconcileStatus(instance); err != nil {
@@ -593,17 +641,17 @@ func getClusterServiceVersion(cfg *rest.Config, watchNameSpace string) (*olm.Clu
 func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
 
 	// Delete namespace for the given request
-	namespace := &v1.Namespace{ObjectMeta:metav1.ObjectMeta{
-		Name:                       request.Namespace,
+	namespace := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name: request.Namespace,
 	}}
 
-	if err := r.client.Delete(context.TODO(), namespace); err!=nil{
+	if err := r.client.Delete(context.TODO(), namespace); err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("error deleting current namespace :%v", err)
 		}
 	}
 	r.recorder.Eventf(namespace, v1.EventTypeNormal, "NamespaceDeletionSuccessful",
-		"Namespace %s deleted as a part of uninstall.", namespace.Name )
+		"Namespace %s deleted as a part of uninstall.", namespace.Name)
 	log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
 
 	// Wait until all kfdef instances and corresponding namespaces are deleted
@@ -624,21 +672,21 @@ func (r *ReconcileKfDef) operatorUninstall(request reconcile.Request) error {
 
 	// Return if any one of the namespaces is Terminating due to resources that are in process of deletion. (e.g CRDs)
 	if len(generatedNamespaces.Items) != 0 {
-			for _, namespace := range generatedNamespaces.Items {
-				if namespace.Status.Phase == v1.NamespaceTerminating{
-					return fmt.Errorf("waiting for namespace %v to be deleted", namespace.Name)
-				}
-				}
+		for _, namespace := range generatedNamespaces.Items {
+			if namespace.Status.Phase == v1.NamespaceTerminating {
+				return fmt.Errorf("waiting for namespace %v to be deleted", namespace.Name)
 			}
+		}
+	}
 
 	// Delete all the active namespaces
 	for _, namespace := range generatedNamespaces.Items {
-		if namespace.Status.Phase == v1.NamespaceActive{
+		if namespace.Status.Phase == v1.NamespaceActive {
 			if err := r.client.Delete(context.TODO(), &namespace, []client.DeleteOption{}...); err != nil {
 				return fmt.Errorf("error deleting namespace %v: %v", namespace.Name, err)
 			}
 			r.recorder.Eventf(&namespace, v1.EventTypeNormal, "NamespaceDeletionSuccessful",
-				"Namespace %s deleted as a part of uninstall.", namespace.Name )
+				"Namespace %s deleted as a part of uninstall.", namespace.Name)
 			log.Infof("Namespace %s deleted as a part of uninstall.", namespace.Name)
 		}
 	}
@@ -669,10 +717,10 @@ func hasDeleteConfigMap(c client.Client) bool {
 	return len(deleteConfigMapList.Items) != 0
 }
 
-func removeCsv(	c client.Client, r *rest.Config) error{
-		// Get watchNamespace
-		operatorNamespace, err := k8sutil.GetOperatorNamespace()
-		if err != nil {
+func removeCsv(c client.Client, r *rest.Config) error {
+	// Get watchNamespace
+	operatorNamespace, err := k8sutil.GetOperatorNamespace()
+	if err != nil {
 		return err
 	}
 
@@ -693,5 +741,56 @@ func removeCsv(	c client.Client, r *rest.Config) error{
 		log.Infof("Clusterserviceversion %s deleted as a part of uninstall.", operatorCsv.Name)
 	}
 	log.Info("No clusterserviceversion for the operator found.")
+	return nil
+}
+
+func getNewUserNotificationEmails(c client.Client) (string, error) {
+
+	secret := &v1.Secret{}
+	secretParams := client.ObjectKey{
+		Namespace: "redhat-ods-operator",
+		Name:      "addon-managed-odh-parameters",
+	}
+
+	err := c.Get(context.TODO(), secretParams, secret)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("'%s'", string(secret.Data["notification-email"])), nil
+}
+
+func updateUserNotificationsEmails(oldAlertmanagerConfig string, newUserNotificationEmails string) string {
+
+	userNotificationregex := regexp.MustCompile(`- name: 'user-notifications'\n  email_configs:\n  - to: '.*com'`)
+	userNotificationMatch := userNotificationregex.FindAllString(oldAlertmanagerConfig, -1)
+
+	emailsRegex := regexp.MustCompile(`'.*com'`)
+	emailsMatch := emailsRegex.ReplaceAllString(userNotificationMatch[0], newUserNotificationEmails)
+
+	newAlertmanagerConfig := userNotificationregex.ReplaceAllString(oldAlertmanagerConfig, emailsMatch)
+
+	return newAlertmanagerConfig
+}
+
+func updateDeploymentConfigurationAnnotationHash(c client.Client, deploymentName string, deploymentNamespace string, annotationName string, annotationHash string) error {
+
+	deployment := &appsv1.Deployment{}
+	deploymentParams := client.ObjectKey{
+		Namespace: deploymentNamespace,
+		Name:      deploymentName,
+	}
+
+	err := c.Get(context.TODO(), deploymentParams, deployment)
+	if err != nil {
+		return err
+	}
+
+	deployment.Spec.Template.Annotations[annotationName] = annotationHash
+	err = c.Update(context.TODO(), deployment)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

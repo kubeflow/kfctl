@@ -10,7 +10,6 @@ require (
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
-	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/fatih/color v1.10.0
@@ -47,7 +46,6 @@ require (
 	google.golang.org/api v0.25.0
 	google.golang.org/genproto v0.0.0-20200430143042-b979b6f78d84
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.8
@@ -65,8 +63,8 @@ require (
 replace (
 	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
 	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.0.5
-	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.17.0
 	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.34.0
+	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.17.0
 	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.17.0
 	github.com/go-openapi/spec => github.com/go-openapi/spec v0.18.0
 	github.com/go-openapi/swag => github.com/go-openapi/swag v0.17.0
