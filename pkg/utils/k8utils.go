@@ -313,6 +313,12 @@ func (a *Apply) Apply(data []byte) error {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	a.options = kubectlapply.NewApplyOptions(ioStreams)
 	a.options.DeleteFlags = a.deleteFlags("that contains the configuration to apply")
+	// This is a required field for server-side apply
+	a.options.FieldManager =  "application/apply-patch+yaml"
+	a.options.ServerSideApply = true
+	// This is required to apply aggregated cluster roles :
+	// https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+	a.options.ForceConflicts = true
 	initializeErr := a.init()
 	if initializeErr != nil {
 		return &kfapis.KfError{
