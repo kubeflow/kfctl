@@ -8,8 +8,10 @@ require (
 	github.com/aws/aws-sdk-go v1.39.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
+	github.com/coreos/prometheus-operator v0.38.1-0.20200424145508-7e176fda06cc // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.13.1 // indirect
+	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/fatih/color v1.10.0
@@ -19,18 +21,20 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e
 	github.com/google/go-cmp v0.4.0
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-getter v1.0.2
 	github.com/hashicorp/go-version v1.2.1
 	github.com/imdario/mergo v0.3.8
-	github.com/integr8ly/cloud-resource-operator v0.30.0
 	github.com/jlewi/cloud-endpoints-controller v0.0.0-20200604211613-aff0aaad5602
 	github.com/kubernetes-sigs/application v0.8.0
 	github.com/onrik/logrus v0.5.1
+	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
 	github.com/operator-framework/operator-sdk v1.2.0
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.5.1 // indirect
 	github.com/prometheus/common v0.9.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
@@ -43,6 +47,7 @@ require (
 	golang.org/x/crypto v0.0.0
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/tools v0.0.0-20200815165600-90abf76919f3 // indirect
 	google.golang.org/api v0.25.0
 	google.golang.org/genproto v0.0.0-20200430143042-b979b6f78d84
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
@@ -54,6 +59,7 @@ require (
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-aggregator v0.0.0
+	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6 // indirect
 	k8s.io/kubernetes v1.16.2
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/kustomize/v3 v3.2.0
